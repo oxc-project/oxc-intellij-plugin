@@ -7,10 +7,9 @@ fun environment(key: String) = providers.environmentVariable(key)
 plugins {
     id("java") // Java support
     alias(libs.plugins.kotlin) // Kotlin support
-    alias(libs.plugins.gradleIntelliJPlugin) // Gradle IntelliJ Plugin
+    id("org.jetbrains.intellij") version "1.16.1"
+
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
-    alias(libs.plugins.qodana) // Gradle Qodana Plugin
-    alias(libs.plugins.kover) // Gradle Kover Plugin
 }
 
 group = properties("pluginGroup").get()
@@ -18,7 +17,10 @@ version = properties("pluginVersion").get()
 
 // Configure project's dependencies
 repositories {
-    mavenCentral()
+    maven(url = "https://maven.aliyun.com/repository/central")
+    maven(url = "https://maven.aliyun.com/repository/public")
+    maven(url = "https://maven.aliyun.com/repository/gradle-plugin")
+    maven(url = "https://maven.aliyun.com/repository/gradle-core")
 }
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
@@ -51,22 +53,6 @@ changelog {
     repositoryUrl = properties("pluginRepositoryUrl")
 }
 
-// Configure Gradle Qodana Plugin - read more: https://github.com/JetBrains/gradle-qodana-plugin
-qodana {
-    cachePath = provider { file(".qodana").canonicalPath }
-    reportPath = provider { file("build/reports/inspections").canonicalPath }
-    saveReport = true
-    showReport = environment("QODANA_SHOW_REPORT").map { it.toBoolean() }.getOrElse(false)
-}
-
-// Configure Gradle Kover Plugin - read more: https://github.com/Kotlin/kotlinx-kover#configuration
-koverReport {
-    defaults {
-        xml {
-            onCheck = true
-        }
-    }
-}
 
 tasks {
     wrapper {
@@ -123,9 +109,6 @@ tasks {
     publishPlugin {
         dependsOn("patchChangelog")
         token = environment("PUBLISH_TOKEN")
-        // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
-        // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
-        // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels = properties("pluginVersion").map { listOf(it.split('-').getOrElse(1) { "default" }.split('.').first()) }
+
     }
 }

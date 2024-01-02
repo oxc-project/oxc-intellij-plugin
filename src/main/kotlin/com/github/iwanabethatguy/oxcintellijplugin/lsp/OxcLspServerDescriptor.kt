@@ -8,6 +8,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
+import com.intellij.platform.lsp.api.requests.LspRequest
+import org.eclipse.lsp4j.ConfigurationItem
+import org.eclipse.lsp4j.InitializeParams
 
 class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "Oxc") {
 
@@ -18,10 +21,17 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
 
     override fun createCommandLine(): GeneralCommandLine {
         thisLogger().warn("Start oxc language server")
+
         return GeneralCommandLine("oxc_language_server").apply {
         }
     }
-    
+
+    override fun createInitializationOptions(): Any? {
+        val options = super.createInitializationOptions()
+        thisLogger().warn("get oxc configuration" + options.toString())
+        return options
+    }
+
 
     override val lspGoToDefinitionSupport = false
 

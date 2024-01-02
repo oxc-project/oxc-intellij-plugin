@@ -15,5 +15,13 @@
     </applicationListeners>
     <extensions defaultExtensionNs="com.intellij">
         <platform.lsp.serverSupportProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
+        <applicationService serviceImplementation="com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsState"/>
+
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsConfigurable"
+                id="Settings.Oxc"
+                groupId="language"
+                />
     </extensions>
 </idea-plugin>

@@ -9,11 +9,11 @@
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.iwanabethatguy.oxcintellijplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-    </extensions>
 
     <applicationListeners>
         <listener class="com.github.iwanabethatguy.oxcintellijplugin.listeners.MyApplicationActivationListener" topic="com.intellij.openapi.application.ApplicationActivationListener"/>
     </applicationListeners>
+    <extensions defaultExtensionNs="com.intellij">
+        <platform.lsp.serverSupportProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
+    </extensions>
 </idea-plugin>

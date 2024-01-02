@@ -1,3 +1,5 @@
+> [!WARNING]  
+> A MVP plugin for **Intellij Platform**,  Still under developing
 # oxc-intellij-plugin
 
 ![Build](https://github.com/IWANABETHATGUY/oxc-intellij-plugin/workflows/Build/badge.svg)

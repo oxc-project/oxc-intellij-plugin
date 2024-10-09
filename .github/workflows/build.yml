@@ -219,7 +219,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: pluginVerifier-result
+          name: pluginVerifier-result-${{ matrix.platformType }}
           path: ${{ github.workspace }}/build/reports/pluginVerifier
 
   # Prepare a draft release for GitHub Releases page for the manual verification

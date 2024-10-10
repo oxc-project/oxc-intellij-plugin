@@ -1,42 +1,22 @@
 package com.github.iwanabethatguy.oxcintellijplugin.settings
 
-import com.intellij.ui.components.JBBox
-import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBList
-import com.intellij.ui.components.JBRadioButton
-import com.intellij.ui.components.JBTextField
-import com.intellij.util.ui.FormBuilder
-import org.jetbrains.annotations.NotNull
-import javax.swing.JComponent
-import javax.swing.JPanel
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SettingsCategory
+import com.intellij.openapi.components.SimplePersistentStateComponent
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.project.Project
 
+@Service(Service.Level.PROJECT)
+@State(name = "OxcSettings", storages = [Storage("OxcSettings.xml")],
+    category = SettingsCategory.TOOLS)
+class OxcSettingsComponent(private val project: Project) :
+    SimplePersistentStateComponent<OxcSettingsState>(OxcSettingsState()) {
 
-class OxcSettingsComponent {
-    private var mainPanel: JPanel? = null
-//    private val runWhenOnSave = JBRadioButton("onSave")
-//    private val runWhenOnType = jBGROUP("onType")
-    private val enableCheckBox = JBCheckBox("Enable oxc language server: ")
-
-    fun AppSettingsComponent() {
-        mainPanel = FormBuilder.createFormBuilder()
-                .addComponent(enableCheckBox)
-                .addComponentFillVertically(JPanel(), 0)
-                .getPanel()
-    }
-
-    fun getPanel(): JPanel? {
-        return mainPanel
-    }
-
-
-    @NotNull
-    fun getEnable(): Boolean {
-        return enableCheckBox.isEnabled
-    }
-
-    fun setEnable(@NotNull newValue: Boolean) {
-        enableCheckBox.isEnabled = newValue
-    }
+    var enable
+        get() = state.enable
+        set(value) {
+            state.enable = value
+        }
 
 }

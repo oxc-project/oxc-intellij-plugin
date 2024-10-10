@@ -9,9 +9,6 @@
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
-    <applicationListeners>
-        <listener class="com.github.iwanabethatguy.oxcintellijplugin.listeners.MyApplicationActivationListener" topic="com.intellij.openapi.application.ApplicationActivationListener"/>
-    </applicationListeners>
     <extensions defaultExtensionNs="com.intellij">
         <platform.lsp.serverSupportProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
         <applicationService serviceImplementation="com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsState"/>

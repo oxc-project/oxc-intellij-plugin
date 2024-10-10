@@ -20,4 +20,8 @@
                 groupId="language"
                 />
     </extensions>
+  <actions>
+    <action id="com.github.iwanabethatguy.oxcintellijplugin.actions.RestartLanguageServer"
+      class="com.github.iwanabethatguy.oxcintellijplugin.actions.RestartLanguageServer"/>
+  </actions>
 </idea-plugin>

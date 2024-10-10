@@ -4,11 +4,10 @@
     <name>Oxc</name>
     <vendor>iwanabethatguy</vendor>
 
-    <depends>com.intellij.modules.ultimate</depends>
-
+    <depends>com.intellij.modules.platform</depends>
+    <depends>JavaScript</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
-
 
     <applicationListeners>
         <listener class="com.github.iwanabethatguy.oxcintellijplugin.listeners.MyApplicationActivationListener" topic="com.intellij.openapi.application.ApplicationActivationListener"/>

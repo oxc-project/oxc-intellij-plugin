@@ -11,13 +11,14 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <platform.lsp.serverSupportProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
-        <applicationService serviceImplementation="com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsState"/>
 
-        <applicationConfigurable
+        <projectConfigurable
                 parentId="tools"
                 instance="com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsConfigurable"
                 id="Settings.Oxc"
-                groupId="language"
+                nonDefaultProject="false"
+                bundle="messages.MyBundle"
+                key="oxc.name"
                 />
     </extensions>
   <actions>

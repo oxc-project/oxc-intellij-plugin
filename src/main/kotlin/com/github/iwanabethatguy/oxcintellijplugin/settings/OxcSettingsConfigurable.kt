@@ -1,47 +1,36 @@
 package com.github.iwanabethatguy.oxcintellijplugin.settings
 
-import com.intellij.openapi.options.Configurable
-import org.jetbrains.annotations.Nls
-import org.jetbrains.annotations.Nullable
-import javax.swing.JComponent
-import javax.swing.JPanel
+import com.github.iwanabethatguy.oxcintellijplugin.MyBundle
+import com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
+import com.intellij.openapi.options.BoundSearchableConfigurable
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogPanel
+import com.intellij.platform.lsp.api.LspServerManager
+import com.intellij.ui.dsl.builder.bindSelected
+import com.intellij.ui.dsl.builder.panel
 
+class OxcSettingsConfigurable(private val project: Project) :
+    BoundSearchableConfigurable(MyBundle.message("oxc.name"),
+        "com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsConfigurable") {
 
-class OxcSettingsConfigurable: Configurable {
-    private var settingsComponent: OxcSettingsComponent? = null
+    override fun createPanel(): DialogPanel {
+        val settings = project.service<OxcSettingsComponent>()
 
-
-    // A default constructor with no arguments is required because this implementation
-    // is registered in an applicationConfigurable EP
-    @Nls(capitalization = Nls.Capitalization.Title)
-    override fun getDisplayName(): String {
-        return "Oxc"
-    }
-
-    @Nullable
-    override fun createComponent(): JPanel? {
-        settingsComponent = OxcSettingsComponent()
-        return settingsComponent!!.getPanel()
-    }
-
-    override fun isModified(): Boolean {
-        val settings: OxcSettingsState = OxcSettingsState.instance
-        val modified: Boolean = !settingsComponent!!.getEnable().equals(settings.enable)
-
-        return modified
+        return panel {
+            row {
+                checkBox("Enabled").bindSelected(settings::enable)
+            }
+        }
     }
 
     override fun apply() {
-        val settings: OxcSettingsState = OxcSettingsState.instance
-        settings.enable = settingsComponent!!.getEnable()
-    }
-
-    override fun reset() {
-        val settings: OxcSettingsState = OxcSettingsState.instance
-        settingsComponent!!.setEnable(settings.enable)
-    }
-
-    override fun disposeUIResources() {
-        settingsComponent = null
+        super.apply()
+        @Suppress("UnstableApiUsage")
+        ApplicationManager.getApplication().invokeLater {
+            project.service<LspServerManager>()
+                .stopAndRestartIfNeeded(OxcLspServerSupportProvider::class.java)
+        }
     }
 }

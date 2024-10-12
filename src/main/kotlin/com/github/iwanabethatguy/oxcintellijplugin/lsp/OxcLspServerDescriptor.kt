@@ -5,8 +5,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
-import com.intellij.util.FileSearchUtil
-import java.time.Duration
 
 @Suppress("UnstableApiUsage")
 class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "Oxc") {
@@ -38,21 +36,23 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
     }
 
     private fun findBinary(): String {
+        val binaryName = "oxc_language_server"
         val foundBinaries = roots.map {
-            val fileQuery = FileSearchUtil.findFileRecursively(it, "oxc_language_server", 10,
-                Duration.ofSeconds(5).toMillis())
-            return@map fileQuery.findFirst()
+            return@map it.findFileByRelativePath("node_modules/.bin/$binaryName")
+                       ?: it.findFileByRelativePath("node_modules/.bin/$binaryName.exe")
         }.filterNotNull()
         if (foundBinaries.size == 1) {
             return foundBinaries.single().path
         }
         if (foundBinaries.size > 1) {
-            thisLogger().warn("Found multiple binaries")
-            return foundBinaries.single().path
+            val binary = foundBinaries.first().path
+            thisLogger().warn(
+                "Found multiple binaries [${foundBinaries.joinToString { it.path }}], using $binary")
+            return binary
         }
 
         thisLogger().warn("Unable to find binaries, falling back to PATH")
-        return "oxc_language_server"
+        return binaryName
     }
 
     override val lspGoToDefinitionSupport = false

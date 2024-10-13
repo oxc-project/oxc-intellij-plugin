@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>com.github.iwanabethatguy.oxcintellijplugin</id>
     <name>Oxc</name>
-    <vendor>iwanabethatguy</vendor>
+    <vendor url="https://oxc.rs/">Oxc</vendor>
 
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>

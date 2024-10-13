@@ -10,6 +10,7 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <iconProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.OxcIconProvider"/>
         <platform.lsp.serverSupportProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
 
         <projectConfigurable

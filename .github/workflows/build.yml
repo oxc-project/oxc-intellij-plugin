@@ -36,9 +36,6 @@ jobs:
       pluginVerifierHomeDir: ${{ steps.properties.outputs.pluginVerifierHomeDir }}
     steps:
 
-      - name: DF
-        run:
-          df -h
 
       # Check out current repository
       - name: Fetch Sources
@@ -54,6 +51,11 @@ jobs:
         with:
           distribution: zulu
           java-version: 17
+
+      - name: Clean
+        run: |
+          df -h
+          sudo rm -rf /tmp/*
 
       # Setup Gradle
       - name: Setup Gradle

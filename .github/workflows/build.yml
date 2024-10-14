@@ -36,6 +36,10 @@ jobs:
       pluginVerifierHomeDir: ${{ steps.properties.outputs.pluginVerifierHomeDir }}
     steps:
 
+      - name: DF
+        run:
+          df -h
+
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v4

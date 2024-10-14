@@ -1,4 +1,4 @@
-package com.github.iwanabethatguy.oxcintellijplugin.lsp
+package com.github.oxc.project.oxcintellijplugin.lsp
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.thisLogger

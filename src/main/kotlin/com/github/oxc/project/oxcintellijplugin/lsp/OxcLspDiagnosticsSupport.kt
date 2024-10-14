@@ -1,4 +1,4 @@
-package com.github.iwanabethatguy.oxcintellijplugin.lsp
+package com.github.oxc.project.oxcintellijplugin.lsp
 
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.Diagnostic

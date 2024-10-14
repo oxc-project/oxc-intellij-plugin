@@ -1,6 +1,6 @@
-package com.github.iwanabethatguy.oxcintellijplugin.lsp
+package com.github.oxc.project.oxcintellijplugin.lsp
 
-import com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsComponent
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsComponent
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile

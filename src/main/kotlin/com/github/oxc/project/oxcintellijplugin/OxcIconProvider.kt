@@ -1,4 +1,4 @@
-package com.github.iwanabethatguy.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin
 
 import com.intellij.ide.IconProvider
 import com.intellij.openapi.project.DumbAware

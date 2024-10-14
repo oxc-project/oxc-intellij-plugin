@@ -1,6 +1,6 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.iwanabethatguy.oxcintellijplugin</id>
+    <id>com.github.oxc.project.oxcintellijplugin</id>
     <name>Oxc</name>
     <vendor url="https://oxc.rs/">Oxc</vendor>
 
@@ -10,12 +10,12 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <iconProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.OxcIconProvider"/>
-        <platform.lsp.serverSupportProvider implementation="com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
+        <iconProvider implementation="com.github.oxc.project.oxcintellijplugin.OxcIconProvider"/>
+        <platform.lsp.serverSupportProvider implementation="com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
 
         <projectConfigurable
                 parentId="tools"
-                instance="com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsConfigurable"
+                instance="com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable"
                 id="Settings.Oxc"
                 nonDefaultProject="false"
                 bundle="messages.MyBundle"
@@ -24,11 +24,11 @@
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
-        <JsonSchema.ProviderFactory implementation="com.github.iwanabethatguy.oxcintellijplugin.OxcSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory implementation="com.github.oxc.project.oxcintellijplugin.OxcSchemaProviderFactory"/>
     </extensions>
 
   <actions>
-    <action id="com.github.iwanabethatguy.oxcintellijplugin.actions.RestartLanguageServer"
-      class="com.github.iwanabethatguy.oxcintellijplugin.actions.RestartLanguageServer"/>
+    <action id="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"
+      class="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"/>
   </actions>
 </idea-plugin>

@@ -21,6 +21,11 @@
                 key="oxc.name"
                 />
     </extensions>
+
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ProviderFactory implementation="com.github.iwanabethatguy.oxcintellijplugin.OxcSchemaProviderFactory"/>
+    </extensions>
+
   <actions>
     <action id="com.github.iwanabethatguy.oxcintellijplugin.actions.RestartLanguageServer"
       class="com.github.iwanabethatguy.oxcintellijplugin.actions.RestartLanguageServer"/>

@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
+import org.eclipse.lsp4j.InitializeParams
 
 @Suppress("UnstableApiUsage")
 class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "Oxc") {
@@ -19,21 +20,21 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
     }
 
     override fun isSupportedFile(file: VirtualFile): Boolean {
-        thisLogger().warn(
-            "file.isInLocalFileSystem ${file.isInLocalFileSystem}, file.extension ${file.extension}")
+        thisLogger().debug(
+            "file.path ${file.path}, file.isInLocalFileSystem ${file.isInLocalFileSystem}")
         return supportedFile(file)
     }
 
     override fun createCommandLine(): GeneralCommandLine {
-        thisLogger().warn("Start oxc language server")
+        thisLogger().debug("Start oxc language server")
 
         return GeneralCommandLine(findBinary())
     }
 
-    override fun createInitializationOptions(): Any? {
-        val options = super.createInitializationOptions()
-        thisLogger().warn("get oxc configuration $options")
-        return options
+    override fun createInitializeParams(): InitializeParams {
+        val params = super.createInitializeParams()
+        thisLogger().debug("Initialization params: $params")
+        return params
     }
 
     private fun findBinary(): String {

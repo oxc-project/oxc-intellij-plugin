@@ -3,8 +3,8 @@
 # oxc-intellij-plugin
 
 ![Build](https://github.com/oxc-project/oxc-intellij-plugin/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/com.github.iwanabethatguy.oxcintellijplugin.svg)](https://plugins.jetbrains.com/plugin/com.github.iwanabethatguy.oxcintellijplugin)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/com.github.iwanabethatguy.oxcintellijplugin.svg)](https://plugins.jetbrains.com/plugin/com.github.iwanabethatguy.oxcintellijplugin)
+[![Version](https://img.shields.io/jetbrains/plugin/v/com.github.oxc.project.oxcintellijplugin.svg)](https://plugins.jetbrains.com/plugin/com.github.oxc.project.oxcintellijplugin)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/com.github.oxc.project.oxcintellijplugin.svg)](https://plugins.jetbrains.com/plugin/com.github.oxc.project.oxcintellijplugin)
 
 <!-- Plugin description -->
 # ⚓ Oxc

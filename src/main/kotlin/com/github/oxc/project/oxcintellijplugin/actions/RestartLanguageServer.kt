@@ -1,7 +1,7 @@
-package com.github.iwanabethatguy.oxcintellijplugin.actions
+package com.github.oxc.project.oxcintellijplugin.actions
 
-import com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider
-import com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsComponent
+import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsComponent
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent

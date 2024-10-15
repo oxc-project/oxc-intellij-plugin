@@ -1,4 +1,4 @@
-package com.github.iwanabethatguy.oxcintellijplugin.settings
+package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SettingsCategory

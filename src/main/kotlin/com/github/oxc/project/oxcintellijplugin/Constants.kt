@@ -1,4 +1,4 @@
-package com.github.iwanabethatguy.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin
 
 object Constants {
 

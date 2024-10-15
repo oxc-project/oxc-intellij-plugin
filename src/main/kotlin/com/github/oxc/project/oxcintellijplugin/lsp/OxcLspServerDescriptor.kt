@@ -1,10 +1,11 @@
-package com.github.iwanabethatguy.oxcintellijplugin.lsp
+package com.github.oxc.project.oxcintellijplugin.lsp
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
+import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 
 @Suppress("UnstableApiUsage")
 class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "Oxc") {
@@ -62,5 +63,7 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
     override val lspFormattingSupport = null
 
     override val lspHoverSupport = false
+
+    override val lspDiagnosticsSupport: LspDiagnosticsSupport? = OxcLspDiagnosticsSupport()
 
 }

@@ -1,7 +1,7 @@
-package com.github.iwanabethatguy.oxcintellijplugin.settings
+package com.github.oxc.project.oxcintellijplugin.settings
 
-import com.github.iwanabethatguy.oxcintellijplugin.MyBundle
-import com.github.iwanabethatguy.oxcintellijplugin.lsp.OxcLspServerSupportProvider
+import com.github.oxc.project.oxcintellijplugin.MyBundle
+import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.BoundSearchableConfigurable
@@ -13,7 +13,7 @@ import com.intellij.ui.dsl.builder.panel
 
 class OxcSettingsConfigurable(private val project: Project) :
     BoundSearchableConfigurable(MyBundle.message("oxc.name"),
-        "com.github.iwanabethatguy.oxcintellijplugin.settings.OxcSettingsConfigurable") {
+        "com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable") {
 
     override fun createPanel(): DialogPanel {
         val settings = project.service<OxcSettingsComponent>()

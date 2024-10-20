@@ -11,7 +11,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <iconProvider implementation="com.github.oxc.project.oxcintellijplugin.OxcIconProvider"/>
-        <platform.lsp.serverSupportProvider implementation="com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
+        <platform.lsp.serverSupportProvider
+                implementation="com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
 
         <projectConfigurable
                 parentId="tools"
@@ -20,15 +21,20 @@
                 nonDefaultProject="false"
                 bundle="messages.MyBundle"
                 key="oxc.name"
-                />
+        />
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
         <JsonSchema.ProviderFactory implementation="com.github.oxc.project.oxcintellijplugin.OxcSchemaProviderFactory"/>
     </extensions>
 
-  <actions>
-    <action id="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"
-      class="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"/>
-  </actions>
+    <actions>
+        <action id="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"
+                class="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"/>
+    </actions>
+
+    <applicationListeners>
+        <listener class="com.github.oxc.project.oxcintellijplugin.lsp.OxlintConfigWatcher"
+                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </applicationListeners>
 </idea-plugin>

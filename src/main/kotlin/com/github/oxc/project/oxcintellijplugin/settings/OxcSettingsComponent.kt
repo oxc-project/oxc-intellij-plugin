@@ -13,10 +13,19 @@ import com.intellij.openapi.project.Project
 class OxcSettingsComponent(private val project: Project) :
     SimplePersistentStateComponent<OxcSettingsState>(OxcSettingsState()) {
 
+    var binaryPath
+        get() = state.binaryPath
+        set(value) {
+            if (value.isNullOrBlank()) {
+                state.binaryPath = null
+                return
+            }
+            state.binaryPath = value
+        }
+
     var enable
         get() = state.enable
         set(value) {
             state.enable = value
         }
-
 }

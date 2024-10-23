@@ -1,8 +1,12 @@
 package com.github.oxc.project.oxcintellijplugin.lsp
 
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsComponent
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.openapi.components.PathMacroManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
@@ -26,9 +30,9 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
     }
 
     override fun createCommandLine(): GeneralCommandLine {
-        thisLogger().debug("Start oxc language server")
-
-        return GeneralCommandLine(findBinary())
+        val binary = findBinary()
+        thisLogger().debug("Creating Oxc command with binary: $binary")
+        return GeneralCommandLine(binary)
     }
 
     override fun createInitializeParams(): InitializeParams {
@@ -38,6 +42,12 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
     }
 
     private fun findBinary(): String {
+        val configuredBinaryPath = project.service<OxcSettingsComponent>().binaryPath
+        if (!configuredBinaryPath.isNullOrBlank()) {
+            return FileUtil.toSystemDependentName(
+                project.service<PathMacroManager>().expandPath(configuredBinaryPath))
+        }
+
         val binaryName = "oxc_language_server"
         val foundBinaries = roots.map {
             return@map it.findFileByRelativePath("node_modules/.bin/$binaryName")

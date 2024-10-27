@@ -13,7 +13,7 @@ class OxcSchemaProviderFactory : JsonSchemaProviderFactory {
     override fun getProviders(project: Project): List<JsonSchemaFileProvider?> {
         return listOf(object : JsonSchemaFileProvider {
             override fun isAvailable(file: VirtualFile): Boolean {
-                return Constants.CONFIG_FILES.contains(file.name)
+                return Constants.OXLINT_CONFIG_FILES.contains(file.name)
             }
 
             override fun getName(): @Nls String {

@@ -16,7 +16,7 @@ class OxcIconProvider : IconProvider(), DumbAware {
         if (!file.isValid || file.isDirectory) {
             return null
         }
-        if (Constants.CONFIG_FILES.contains(file.name)) {
+        if (Constants.OXLINT_CONFIG_FILES.contains(file.name)) {
             return OxcIcons.OxcRound
         }
 

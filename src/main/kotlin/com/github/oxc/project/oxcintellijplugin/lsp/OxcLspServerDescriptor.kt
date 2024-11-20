@@ -16,10 +16,14 @@ import org.eclipse.lsp4j.InitializeParams
 class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "Oxc") {
 
     companion object {
-
         fun supportedFile(file: VirtualFile): Boolean {
-            return file.isInLocalFileSystem && listOf("js", "jsx", "ts", "tsx").contains(
-                file.extension)
+            return file.isInLocalFileSystem && listOf(
+                "astro",
+                "js", "jsx", "cjs", "mjs",
+                "svelte",
+                "ts", "tsx", "cts", "mts",
+                "vue"
+            ).contains(file.extension)
         }
     }
 

@@ -4,7 +4,7 @@
   "packageRules": [
     {
       "groupName": "java",
-      "matchManagers": ["java"],
+      "matchManagers": ["gradle"],
       "rangeStrategy": "auto"
     }
   ]

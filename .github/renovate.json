@@ -7,5 +7,10 @@
       "matchManagers": ["gradle"],
       "rangeStrategy": "auto"
     }
-  ]
+  ],
+  "gradle-wrapper": {
+    "fileMatch": [
+      "(^|/)gradle\\.properties$"
+    ]
+  }
 }

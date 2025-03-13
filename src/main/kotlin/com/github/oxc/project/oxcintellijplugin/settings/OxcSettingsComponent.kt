@@ -28,4 +28,10 @@ class OxcSettingsComponent(private val project: Project) :
         set(value) {
             state.enable = value
         }
+
+    var runTrigger
+        get() = state.runTrigger
+        set(value) {
+            state.runTrigger = value
+        }
 }

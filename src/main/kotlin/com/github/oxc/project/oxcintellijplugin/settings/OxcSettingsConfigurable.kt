@@ -31,10 +31,8 @@ class OxcSettingsConfigurable(private val project: Project) :
             row(MyBundle.message("oxc.settings.languageServerPath")) {
                 val textField = TextFieldWithBrowseButton()
                 cell(textField).align(AlignX.FILL).applyToComponent {
-                    val fileChooser = FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
-                    addBrowseFolderListener(null,
-                        MyBundle.message("oxc.settings.selectPathToLanguageServer"), null,
-                        fileChooser)
+                    val fileChooser = FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor().withDescription(MyBundle.message("oxc.settings.selectPathToLanguageServer"))
+                    addBrowseFolderListener(project, fileChooser)
                 }.bindText({
                     return@bindText expandToSystemDependentPath(settings.binaryPath)
                 }, {

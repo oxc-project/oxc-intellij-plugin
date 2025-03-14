@@ -11,6 +11,7 @@
       </option>
       <option name="taskNames">
         <list>
+          <option value="clean" />
           <option value="verifyPlugin" />
         </list>
       </option>
@@ -19,8 +20,7 @@
     <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
     <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
     <DebugAllEnabled>false</DebugAllEnabled>
-    <method v="2">
-      <option name="Gradle.BeforeRunTask" enabled="true" tasks="clean" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="" />
-    </method>
+    <RunAsTest>false</RunAsTest>
+    <method v="2" />
   </configuration>
 </component>

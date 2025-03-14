@@ -10,6 +10,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
+import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.InitializeParams
 
 @Suppress("UnstableApiUsage")
@@ -37,6 +38,18 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
         val binary = findBinary()
         thisLogger().debug("Creating Oxc command with binary: $binary")
         return GeneralCommandLine(binary)
+    }
+
+    override fun createInitializationOptions(): Any {
+        val state = project.service<OxcSettingsComponent>().state
+        val lspConfig = mapOf(
+            "settings" to mapOf(
+                "enable" to state.enable,
+                "run" to state.runTrigger.toLspValue()
+            )
+        )
+        thisLogger().debug("Initialization options: $lspConfig")
+        return lspConfig
     }
 
     override fun createInitializeParams(): InitializeParams {
@@ -70,6 +83,12 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
         thisLogger().warn("Unable to find binaries, falling back to PATH")
         return binaryName
     }
+
+    override val clientCapabilities: ClientCapabilities
+        get() {
+            thisLogger().debug("Client Capabilities: ${super.clientCapabilities}")
+            return super.clientCapabilities
+        }
 
     override val lspGoToDefinitionSupport = false
 

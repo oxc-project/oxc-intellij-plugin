@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.MyBundle
+import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PathMacroManager
@@ -13,6 +14,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
@@ -37,6 +39,15 @@ class OxcSettingsConfigurable(private val project: Project) :
                     return@bindText expandToSystemDependentPath(settings.binaryPath)
                 }, {
                     settings.binaryPath = collapseToSystemIndependentPath(it)
+                })
+            }
+            row(MyBundle.message("oxc.settings.oxlintRunTrigger")) {
+                comboBox(listOf(OxlintRunTrigger.ON_SAVE, OxlintRunTrigger.ON_TYPE)).bindItem({
+                    return@bindItem settings.runTrigger
+                }, {
+                    if (it != null) {
+                        settings.runTrigger = it
+                    }
                 })
             }
         }

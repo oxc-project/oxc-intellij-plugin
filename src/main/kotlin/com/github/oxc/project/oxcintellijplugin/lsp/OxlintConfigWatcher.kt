@@ -14,8 +14,8 @@ class OxlintConfigWatcher : BulkFileListener {
         val configChanged = events.any { event ->
             val fileName = event.path.substringAfterLast("/")
 
-            return@any (Constants.OXLINT_CONFIG_FILES + Constants.ESLINT_CONFIG_FILES).contains(
-                fileName)
+            // TODO: Watch user specified config file.
+            return@any Constants.OXLINTRC_CONFIG_FILE == fileName
         }
 
         if (configChanged) {

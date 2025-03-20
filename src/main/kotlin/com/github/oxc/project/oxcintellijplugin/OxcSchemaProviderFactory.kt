@@ -13,7 +13,8 @@ class OxcSchemaProviderFactory : JsonSchemaProviderFactory {
     override fun getProviders(project: Project): List<JsonSchemaFileProvider?> {
         return listOf(object : JsonSchemaFileProvider {
             override fun isAvailable(file: VirtualFile): Boolean {
-                return Constants.OXLINT_CONFIG_FILES.contains(file.name)
+                // TODO: Detect user specified config file path.
+                return Constants.OXLINTRC_CONFIG_FILE == file.name
             }
 
             override fun getName(): @Nls String {

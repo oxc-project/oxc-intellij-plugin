@@ -16,7 +16,8 @@ class OxcIconProvider : IconProvider(), DumbAware {
         if (!file.isValid || file.isDirectory) {
             return null
         }
-        if (Constants.OXLINT_CONFIG_FILES.contains(file.name)) {
+        // TODO: Detect user specified config file path.
+        if (Constants.OXLINTRC_CONFIG_FILE == file.name) {
             return OxcIcons.OxcRound
         }
 

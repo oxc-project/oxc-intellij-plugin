@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.extensions.isOxcConfigFile
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
@@ -14,11 +15,11 @@ class OxcSchemaProviderFactory : JsonSchemaProviderFactory {
         return listOf(object : JsonSchemaFileProvider {
             override fun isAvailable(file: VirtualFile): Boolean {
                 // TODO: Detect user specified config file path.
-                return Constants.OXLINTRC_CONFIG_FILE == file.name
+                return file.isOxcConfigFile()
             }
 
             override fun getName(): @Nls String {
-                return MyBundle.message("oxc.schema.name")
+                return OxcBundle.message("oxc.schema.name")
             }
 
             override fun getSchemaFile(): VirtualFile? {

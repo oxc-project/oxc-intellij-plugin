@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.extensions.isOxcConfigFile
 import com.intellij.ide.IconProvider
 import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
@@ -8,7 +9,8 @@ import javax.swing.Icon
 
 class OxcIconProvider : IconProvider(), DumbAware {
 
-    override fun getIcon(element: PsiElement, flags: Int): Icon? {
+    override fun getIcon(element: PsiElement,
+        flags: Int): Icon? {
         if (element !is PsiFile) {
             return null
         }
@@ -17,7 +19,7 @@ class OxcIconProvider : IconProvider(), DumbAware {
             return null
         }
         // TODO: Detect user specified config file path.
-        if (Constants.OXLINTRC_CONFIG_FILE == file.name) {
+        if (file.isOxcConfigFile()) {
             return OxcIcons.OxcRound
         }
 

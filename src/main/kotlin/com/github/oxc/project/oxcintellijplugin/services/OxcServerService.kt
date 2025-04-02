@@ -14,7 +14,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.customization.LspIntentionAction
-import com.intellij.platform.lsp.impl.LspServerImpl
 import com.intellij.platform.lsp.util.getLsp4jRange
 import org.eclipse.lsp4j.CodeActionContext
 import org.eclipse.lsp4j.CodeActionParams
@@ -28,10 +27,9 @@ class OxcServerService(private val project: Project) {
         fun getInstance(project: Project): OxcServerService = project.getService(OxcServerService::class.java)
     }
 
-    private fun getServer(file: VirtualFile): LspServerImpl? =
+    private fun getServer(file: VirtualFile) =
         LspServerManager.getInstance(project).getServersForProvider(OxcLspServerSupportProvider::class.java)
             .firstOrNull { server -> server.descriptor.isSupportedFile(file) }
-            .let { it as? LspServerImpl }
 
     suspend fun fixAll(document: Document) {
         val manager = FileDocumentManager.getInstance()

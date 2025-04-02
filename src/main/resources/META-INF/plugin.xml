@@ -23,13 +23,16 @@
                 bundle="messages.OxcBundle"
                 key="oxc.name"
         />
-        <actionOnSaveInfoProvider id="OxcOnSaveInfoProvider"
-                                  implementation="com.github.oxc.project.oxcintellijplugin.settings.OxcOnSaveInfoProvider"
-                                  order="after FormatOnSaveInfoProvider, after EsLintOnSaveInfoProvider, before FileWatcherOnSaveInfoProvider, before UploadOnSaveInfoProvider"/>
+        <actionOnSaveInfoProvider
+                id="OxcOnSaveInfoProvider"
+                implementation="com.github.oxc.project.oxcintellijplugin.settings.OxcOnSaveInfoProvider"
+                order="after FormatOnSaveInfoProvider, after EsLintOnSaveInfoProvider, before FileWatcherOnSaveInfoProvider, before UploadOnSaveInfoProvider"
+        />
 
-        <actionOnSave id="OxcFixAllOnSaveAction"
-                      implementation="com.github.oxc.project.oxcintellijplugin.actions.OxcFixAllOnSaveAction"
-                      order="first, before FormatOnSaveAction"/>
+        <actionOnSave
+                id="OxcFixAllOnSaveAction"
+                implementation="com.github.oxc.project.oxcintellijplugin.actions.OxcFixAllOnSaveAction"
+                order="first, before FormatOnSaveAction"
         />
     </extensions>
 
@@ -50,7 +53,9 @@
     </actions>
 
     <applicationListeners>
-        <listener class="com.github.oxc.project.oxcintellijplugin.listeners.OxcConfigWatcher"
-                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener
+                class="com.github.oxc.project.oxcintellijplugin.listeners.OxcConfigWatcher"
+                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"
+        />
     </applicationListeners>
 </idea-plugin>

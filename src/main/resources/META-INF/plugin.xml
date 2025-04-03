@@ -7,20 +7,32 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
+    <resource-bundle>messages.OxcBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="Oxc" displayType="BALLOON"/>
         <iconProvider implementation="com.github.oxc.project.oxcintellijplugin.OxcIconProvider"/>
         <platform.lsp.serverSupportProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider"/>
 
         <projectConfigurable
                 parentId="tools"
-                instance="com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable"
-                id="Settings.Oxc"
+                instance="com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable"
+                id="com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable"
                 nonDefaultProject="false"
-                bundle="messages.MyBundle"
+                bundle="messages.OxcBundle"
                 key="oxc.name"
+        />
+        <actionOnSaveInfoProvider
+                id="OxcOnSaveInfoProvider"
+                implementation="com.github.oxc.project.oxcintellijplugin.settings.OxcOnSaveInfoProvider"
+                order="after FormatOnSaveInfoProvider, after EsLintOnSaveInfoProvider, before FileWatcherOnSaveInfoProvider, before UploadOnSaveInfoProvider"
+        />
+
+        <actionOnSave
+                id="OxcFixAllOnSaveAction"
+                implementation="com.github.oxc.project.oxcintellijplugin.actions.OxcFixAllOnSaveAction"
+                order="first, before FormatOnSaveAction"
         />
     </extensions>
 
@@ -29,12 +41,21 @@
     </extensions>
 
     <actions>
-        <action id="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"
-                class="com.github.oxc.project.oxcintellijplugin.actions.RestartLanguageServer"/>
+        <action
+                id="OxcApplyFixAllAction"
+                text="Apply Oxc Quick Fixes"
+                description="Apply Oxc quick fixes"
+                class="com.github.oxc.project.oxcintellijplugin.actions.OxcFixAllAction"
+        >
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
     </actions>
 
     <applicationListeners>
-        <listener class="com.github.oxc.project.oxcintellijplugin.lsp.OxlintConfigWatcher"
-                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener
+                class="com.github.oxc.project.oxcintellijplugin.listeners.OxcConfigWatcher"
+                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"
+        />
     </applicationListeners>
 </idea-plugin>

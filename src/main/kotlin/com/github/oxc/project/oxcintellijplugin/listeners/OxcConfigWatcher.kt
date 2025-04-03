@@ -1,21 +1,17 @@
-package com.github.oxc.project.oxcintellijplugin.lsp
+package com.github.oxc.project.oxcintellijplugin.listeners
 
-import com.github.oxc.project.oxcintellijplugin.Constants
+import com.github.oxc.project.oxcintellijplugin.extensions.isOxcConfigFile
+import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import com.intellij.platform.lsp.api.LspServerManager
 
-class OxlintConfigWatcher : BulkFileListener {
-
+class OxcConfigWatcher : BulkFileListener {
     override fun after(events: List<VFileEvent>) {
         val configChanged = events.any { event ->
-            val fileName = event.path.substringAfterLast("/")
-
-            // TODO: Watch user specified config file.
-            return@any Constants.OXLINTRC_CONFIG_FILE == fileName
+            return@any event.file?.isOxcConfigFile() == true
         }
 
         if (configChanged) {
@@ -24,8 +20,7 @@ class OxlintConfigWatcher : BulkFileListener {
             openProjects.forEach { project ->
                 ApplicationManager.getApplication().invokeLater {
                     if (!project.isDisposed) {
-                        @Suppress("UnstableApiUsage") project.service<LspServerManager>()
-                            .stopAndRestartIfNeeded(OxcLspServerSupportProvider::class.java)
+                        OxcServerService.Companion.getInstance(project).restartServer()
                     }
                 }
             }

@@ -1,51 +1,68 @@
 package com.github.oxc.project.oxcintellijplugin.lsp
 
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsComponent
+import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
+import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
+import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.openapi.components.PathMacroManager
-import com.intellij.openapi.components.service
+import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
+import com.intellij.platform.lsp.api.LspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.InitializeParams
+import kotlin.io.path.Path
 
 @Suppress("UnstableApiUsage")
-class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "Oxc") {
+class OxcLspServerDescriptor(
+    project: Project,
+    root: VirtualFile,
+    executable: String,
+    private val configPath: String?,
+) : LspServerDescriptor(project, "Oxc", root) {
+    private val targetRun: OxcTargetRun = run {
+        var builder = OxcTargetRunBuilder(project).getBuilder(executable).setWorkingDirectory(root.path)
 
-    companion object {
-        fun supportedFile(file: VirtualFile): Boolean {
-            return file.isInLocalFileSystem && listOf(
-                "astro",
-                "js", "jsx", "cjs", "mjs",
-                "svelte",
-                "ts", "tsx", "cts", "mts",
-                "vue"
-            ).contains(file.extension)
+        if (configPath != null) {
+            builder = builder.addParameters(
+                listOf(
+                    ProcessCommandParameter.Value("--config"),
+                    ProcessCommandParameter.FilePath(Path(configPath))
+                )
+            )
         }
+
+        builder.build()
     }
 
     override fun isSupportedFile(file: VirtualFile): Boolean {
-        thisLogger().debug(
-            "file.path ${file.path}, file.isInLocalFileSystem ${file.isInLocalFileSystem}")
-        return supportedFile(file)
+        thisLogger().debug("file.path ${file.path}")
+        return OxcSettings.getInstance(project).fileSupported(file) && roots.any { root ->
+            file.toNioPath().startsWith(root.toNioPath())
+        }
     }
 
     override fun createCommandLine(): GeneralCommandLine {
-        val binary = findBinary()
-        thisLogger().debug("Creating Oxc command with binary: $binary")
-        return GeneralCommandLine(binary)
+        throw RuntimeException("Not expected to be called because startServerProcess() is overridden")
     }
 
+    override fun startServerProcess(): OSProcessHandler =
+        targetRun.startProcess()
+
+    override fun getFilePath(file: VirtualFile): String =
+        targetRun.toTargetPath(file.path)
+
+    override fun findLocalFileByPath(path: String): VirtualFile? =
+        super.findLocalFileByPath(targetRun.toLocalPath(path))
+
     override fun createInitializationOptions(): Any {
-        val state = project.service<OxcSettingsComponent>().state
+        val settings = OxcSettings.getInstance(project)
         val lspConfig = mapOf(
             "settings" to mapOf(
-                "enable" to state.enable,
-                "run" to state.runTrigger.toLspValue()
+                "enable" to settings.isEnabled(),
+                "run" to settings.state.runTrigger.toLspValue()
             )
         )
         thisLogger().debug("Initialization options: $lspConfig")
@@ -56,32 +73,6 @@ class OxcLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(
         val params = super.createInitializeParams()
         thisLogger().debug("Initialization params: $params")
         return params
-    }
-
-    private fun findBinary(): String {
-        val configuredBinaryPath = project.service<OxcSettingsComponent>().binaryPath
-        if (!configuredBinaryPath.isNullOrBlank()) {
-            return FileUtil.toSystemDependentName(
-                project.service<PathMacroManager>().expandPath(configuredBinaryPath))
-        }
-
-        val binaryName = "oxc_language_server"
-        val foundBinaries = roots.map {
-            return@map it.findFileByRelativePath("node_modules/.bin/$binaryName")
-                       ?: it.findFileByRelativePath("node_modules/.bin/$binaryName.exe")
-        }.filterNotNull()
-        if (foundBinaries.size == 1) {
-            return foundBinaries.single().path
-        }
-        if (foundBinaries.size > 1) {
-            val binary = foundBinaries.first().path
-            thisLogger().warn(
-                "Found multiple binaries [${foundBinaries.joinToString { it.path }}], using $binary")
-            return binary
-        }
-
-        thisLogger().warn("Unable to find binaries, falling back to PATH")
-        return binaryName
     }
 
     override val clientCapabilities: ClientCapabilities

@@ -50,7 +50,9 @@ class OxcServerService(private val project: Project) {
 
         WriteCommandAction.runWriteCommandAction(project, commandName, groupId, {
             codeActionResults?.forEach {
-                if (it.isRight) {
+                // Only apply preferred actions which contain real fixes.
+                // non-preferred options contain fixes such as disable-next-line.
+                if (it.isRight && it.right.isPreferred) {
                     val action = LspIntentionAction(server, it.right)
                     if (action.isAvailable()) {
                         action.invoke(null)

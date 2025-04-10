@@ -16,7 +16,7 @@ This is the linter for oxc. The currently supported features are listed below.
 
 - Highlighting for warnings or errors identified by Oxlint.
 - Quick fixes to fix a warning or error when possible.
-- JSON schema validation for supported `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
+- JSON schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 - Command to fix all auto-fixable content within the current text editor.
 - Automatically apply fixes on save.

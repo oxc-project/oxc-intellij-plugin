@@ -11,9 +11,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
+import kotlin.io.path.Path
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.InitializeParams
-import kotlin.io.path.Path
 
 @Suppress("UnstableApiUsage")
 class OxcLspServerDescriptor(
@@ -61,7 +61,6 @@ class OxcLspServerDescriptor(
         val settings = OxcSettings.getInstance(project)
         val lspConfig = mapOf(
             "settings" to mapOf(
-                "enable" to settings.isEnabled(),
                 "run" to settings.state.runTrigger.toLspValue()
             )
         )

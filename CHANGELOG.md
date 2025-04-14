@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix Oxc icon size.
+
 ## [0.0.1] - 2025-04-12
 
 ### Added

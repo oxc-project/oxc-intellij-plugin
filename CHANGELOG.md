@@ -3,7 +3,11 @@
 # oxc-intellij-plugin Changelog
 
 ## [Unreleased]
+
+## [0.0.1] - 2025-04-12
+
 ### Added
+
 - Initial scaffold created from [IntelliJ Platform Plugin Template](https://github.com/JetBrains/intellij-platform-plugin-template)
 - Integration with Oxc language server for lint abilities (oxlint)
   - Highlighting for warnings or errors identified by Oxlint.
@@ -13,3 +17,6 @@
 - Custom icons for Oxlint config files
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
+
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/oxc-project/oxc-intellij-plugin/commits/v0.0.1

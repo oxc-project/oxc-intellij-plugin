@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.2] - 2025-04-15
+
 ### Fixed
 
 - Fix Oxc icon size.
@@ -22,5 +24,6 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/oxc-project/oxc-intellij-plugin/commits/v0.0.1

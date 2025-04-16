@@ -16,7 +16,12 @@ import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.JBTextField
-import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.BottomGap
+import com.intellij.ui.dsl.builder.MutableProperty
+import com.intellij.ui.dsl.builder.bindSelected
+import com.intellij.ui.dsl.builder.bindText
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.not
 import com.intellij.ui.layout.selected
 import com.intellij.util.ui.JBUI
@@ -140,7 +145,6 @@ class OxcConfigurable(private val project: Project) :
 
             onApply {
                 server.restartServer()
-                server.notifyRestart()
             }
         }
 

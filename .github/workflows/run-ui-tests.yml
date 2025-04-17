@@ -7,6 +7,8 @@
 #
 # Workflow is triggered manually.
 
+permissions: {}
+
 name: Run UI Tests
 on:
   workflow_dispatch

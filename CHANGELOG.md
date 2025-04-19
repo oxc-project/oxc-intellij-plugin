@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix diagnostic may not have a code causing a NullPointerException to be thrown.
+
 ## [0.0.2] - 2025-04-15
 
 ### Fixed

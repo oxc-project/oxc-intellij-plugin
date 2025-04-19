@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix Manual configuration to save the correct file path to the Oxlint config file.
+
 ## [0.0.2] - 2025-04-15
 
 ### Fixed

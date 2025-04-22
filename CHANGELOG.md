@@ -4,9 +4,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Improve the settings UI.
+
 ### Fixed
 
 - Fix diagnostic may not have a code causing a NullPointerException to be thrown.
+- Stop showing the server restart message when enabling/disabling the plugin setting.
 
 ## [0.0.2] - 2025-04-15
 

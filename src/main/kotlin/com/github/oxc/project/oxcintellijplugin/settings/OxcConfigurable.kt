@@ -84,14 +84,14 @@ class OxcConfigurable(private val project: Project) :
                 row(OxcBundle.message("oxc.settings.languageServerPath")) {
                     textFieldWithBrowseButton(OxcBundle.message("oxc.settings.languageServerPath")) {
                         it.path
-                    }.bindText(settings::binaryPath)
+                    }.align(AlignX.FILL).bindText(settings::binaryPath)
                 }.visibleIf(manualConfiguration.selected)
 
                 row(OxcBundle.message("oxc.config.path.label")) {
                     textFieldWithBrowseButton(
                         OxcBundle.message("oxc.config.path.label"),
                         project,
-                    ) { it.path }.bindText(settings::configPath)
+                    ) { it.path }.align(AlignX.FILL).bindText(settings::configPath)
                 }.visibleIf(manualConfiguration.selected)
             }
 
@@ -109,23 +109,30 @@ class OxcConfigurable(private val project: Project) :
             // Supported file extensions row
             // *********************
             row(OxcBundle.message("oxc.supported.extensions.label")) {
-                extensionsField = textField().align(AlignX.FILL)
-                    .bindText({ settings.supportedExtensions.joinToString(",") }, { value ->
-                        settings.supportedExtensions =
-                            value.split(",").map { it.trim() }.filter { it.isNotBlank() }.toMutableList()
-                    }).validationOnInput { validateExtensions(it) }.applyToComponent {
-                        font = font.deriveFont(font.size2D - 2f) // Reduce font size by 2 points
-                    }.component
+                val parse = { it: String ->
+                    it.split(",").map { it.trim() }.filter { it.isNotBlank() }.toMutableList()
+                }
+                val join = { it: List<String> ->
+                    it.joinToString(",")
+                }
 
-            }.enabledIf(!disabledConfiguration.selected)
+                val extensionsFieldCell = expandableTextField(parse, join).align(AlignX.FILL)
+                    .bindText({ join(settings.supportedExtensions) }, { value ->
+                        settings.supportedExtensions = parse(value)
+                    }).validationOnInput { 
+                        validateExtensions(it)
+                    }
 
-            // Add help text with a "Reset" link below the field
-            row {
-                comment(OxcBundle.message("oxc.supported.extensions.comment") + " <a href=\"reset\">Reset to Defaults</a>").applyToComponent {
-                    addHyperlinkListener { event ->
-                        if (event.eventType == HyperlinkEvent.EventType.ACTIVATED && event.description == "reset") {
-                            extensionsField.text = OxcSettingsState.DEFAULT_EXTENSION_LIST.joinToString(",")
-                        }
+                extensionsField = extensionsFieldCell.component
+
+                // Add help text with a "Reset" link below the field
+                extensionsFieldCell.comment(
+                    OxcBundle.message("oxc.supported.extensions.comment") +
+                    " <a href=\"reset\">Reset to Defaults</a>"
+                )
+                extensionsFieldCell.comment!!.addHyperlinkListener { event ->
+                    if (event.eventType == HyperlinkEvent.EventType.ACTIVATED && event.description == "reset") {
+                        extensionsField.text = join(OxcSettingsState.DEFAULT_EXTENSION_LIST)
                     }
                 }
             }.bottomGap(BottomGap.MEDIUM).enabledIf(!disabledConfiguration.selected)

@@ -17,7 +17,7 @@ class OxcLspDiagnosticsSupport : LspDiagnosticsSupport() {
 
     override fun getTooltip(diagnostic: Diagnostic): String {
         thisLogger().debug("Creating tooltip for diagnostic: $diagnostic")
-        var rule = diagnostic.code.get() ?: OxcBundle.message("oxc.diagnostic.unknown.code")
+        var rule = diagnostic.code?.get() ?: OxcBundle.message("oxc.diagnostic.unknown.code")
         if (diagnostic.codeDescription?.href != null) {
             rule = "<a href=\"${diagnostic.codeDescription.href}\">${rule}</a>"
         }

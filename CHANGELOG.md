@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.4] - 2025-04-25
+
 ### Fixed
 
 - Fix diagnostic may not have a code causing a NullPointerException to be thrown. 
@@ -40,7 +42,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/oxc-project/oxc-intellij-plugin/commits/v0.0.1

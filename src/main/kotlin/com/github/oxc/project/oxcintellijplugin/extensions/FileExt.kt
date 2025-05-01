@@ -26,5 +26,10 @@ private fun VirtualFile.findNearestFile(
 fun VirtualFile.isOxcConfigFile(): Boolean =
     OxcPackage.configValidExtensions.map { "${OxcPackage.CONFIG_NAME}.$it" }.contains(this.name)
 
+fun VirtualFile.isPackageJsonFile(): Boolean = this.name == "package.json"
+
 fun VirtualFile.findNearestOxcConfig(root: VirtualFile? = null): VirtualFile? =
     this.findNearestFile({ f -> f.isOxcConfigFile() }, root)
+
+fun VirtualFile.findNearestPackageJson(root: VirtualFile? = null): VirtualFile? =
+    this.findNearestFile({ f -> f.isPackageJsonFile() }, root)

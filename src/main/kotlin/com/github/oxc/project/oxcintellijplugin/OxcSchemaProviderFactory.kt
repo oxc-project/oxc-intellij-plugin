@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.extensions.isOxcConfigFile
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
@@ -14,8 +15,8 @@ class OxcSchemaProviderFactory : JsonSchemaProviderFactory {
     override fun getProviders(project: Project): List<JsonSchemaFileProvider?> {
         return listOf(object : JsonSchemaFileProvider {
             override fun isAvailable(file: VirtualFile): Boolean {
-                // TODO: Detect user specified config file path.
-                return file.isOxcConfigFile()
+                val settings = OxcSettings.getInstance(project)
+                return settings.state.configPath == file.path || file.isOxcConfigFile()
             }
 
             override fun getName(): @Nls String {

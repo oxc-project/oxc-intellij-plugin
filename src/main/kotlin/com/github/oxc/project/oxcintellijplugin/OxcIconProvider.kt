@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.extensions.isOxcConfigFile
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.ide.IconProvider
 import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
@@ -18,7 +19,10 @@ class OxcIconProvider : IconProvider(), DumbAware {
         if (!file.isValid || file.isDirectory) {
             return null
         }
-        // TODO: Detect user specified config file path.
+        val settings = OxcSettings.getInstance(element.project)
+        if (settings.state.configPath == file.path) {
+            return OxcIcons.OxcRound
+        }
         if (file.isOxcConfigFile()) {
             return OxcIcons.OxcRound
         }

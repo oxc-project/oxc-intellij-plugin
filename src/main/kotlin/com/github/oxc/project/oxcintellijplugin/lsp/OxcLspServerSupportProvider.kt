@@ -3,14 +3,17 @@ package com.github.oxc.project.oxcintellijplugin.lsp
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.OxcPackage
 import com.github.oxc.project.oxcintellijplugin.extensions.findNearestOxcConfig
+import com.github.oxc.project.oxcintellijplugin.extensions.findNearestPackageJson
 import com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.lsp.api.LspServer
 import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.lsWidget.LspServerWidgetItem
+import java.io.File
 
 @Suppress("UnstableApiUsage")
 class OxcLspServerSupportProvider : LspServerSupportProvider {
@@ -19,14 +22,21 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
         serverStarter: LspServerSupportProvider.LspServerStarter) {
         thisLogger().debug("Handling fileOpened for ${file.path}")
 
-        val projectRootDir = project.guessProjectDir() ?: return
-        val root = file.findNearestOxcConfig(projectRootDir)?.parent ?: return
-
         val oxc = OxcPackage(project)
         val configPath = oxc.configPath()
+
+        val projectRootDir = project.guessProjectDir() ?: return
+        val root: VirtualFile
+        if (configPath?.isNotEmpty() == true) {
+            val configVirtualFile = VirtualFileManager.getInstance().findFileByNioPath(File(configPath).toPath()) ?: return
+            root = configVirtualFile.findNearestPackageJson(projectRootDir)?.parent ?: return
+        } else {
+            root = file.findNearestOxcConfig(projectRootDir)?.parent ?: return
+        }
+
         val executable = oxc.binaryPath(root.path, file) ?: return
 
-        serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable, configPath))
+        serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable))
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

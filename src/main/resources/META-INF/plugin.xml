@@ -48,7 +48,6 @@
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxcFixAllAction"
         >
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
     </actions>
 

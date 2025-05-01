@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Fixed 
+
+- Fix support for custom Oxlint config files.
+- Remove quick fix from file explorer context menu until the action supports it.
+
 ## [0.0.4] - 2025-04-25
 
 ### Fixed

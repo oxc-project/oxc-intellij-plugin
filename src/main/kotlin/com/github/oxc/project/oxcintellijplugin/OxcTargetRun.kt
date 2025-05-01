@@ -1,7 +1,5 @@
 package com.github.oxc.project.oxcintellijplugin
 
-import com.github.oxc.project.oxcintellijplugin.settings.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
@@ -66,18 +64,11 @@ class OxcTargetRunBuilder(val project: Project) {
             throw ExecutionException(OxcBundle.message("oxc.language.server.not.found"))
         }
 
-        val settings = OxcSettings.getInstance(project)
-        val configurationMode = settings.configurationMode
-
-        val builder: ProcessCommandBuilder = if (configurationMode == ConfigurationMode.MANUAL) {
-            GeneralProcessCommandBuilder()
-        } else {
-            val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
-            if (interpreter !is NodeJsLocalInterpreter && interpreter !is WslNodeInterpreter) {
-                throw ExecutionException(JavaScriptBundle.message("lsp.interpreter.error"))
-            }
-            NodeProcessCommandBuilder(project, interpreter)
+        val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
+        if (interpreter !is NodeJsLocalInterpreter && interpreter !is WslNodeInterpreter) {
+            throw ExecutionException(JavaScriptBundle.message("lsp.interpreter.error"))
         }
+        val builder = NodeProcessCommandBuilder(project, interpreter)
 
         return builder.setExecutable(executable).setCharset(Charsets.UTF_8)
     }

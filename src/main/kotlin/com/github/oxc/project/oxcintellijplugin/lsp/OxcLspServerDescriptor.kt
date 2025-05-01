@@ -2,7 +2,6 @@ package com.github.oxc.project.oxcintellijplugin.lsp
 
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
-import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -11,7 +10,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
-import kotlin.io.path.Path
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.InitializeParams
 
@@ -20,19 +18,9 @@ class OxcLspServerDescriptor(
     project: Project,
     root: VirtualFile,
     executable: String,
-    private val configPath: String?,
 ) : LspServerDescriptor(project, "Oxc", root) {
     private val targetRun: OxcTargetRun = run {
-        var builder = OxcTargetRunBuilder(project).getBuilder(executable).setWorkingDirectory(root.path)
-
-        if (configPath != null) {
-            builder = builder.addParameters(
-                listOf(
-                    ProcessCommandParameter.Value("--config"),
-                    ProcessCommandParameter.FilePath(Path(configPath))
-                )
-            )
-        }
+        val builder = OxcTargetRunBuilder(project).getBuilder(executable).setWorkingDirectory(root.path)
 
         builder.build()
     }
@@ -61,7 +49,8 @@ class OxcLspServerDescriptor(
         val settings = OxcSettings.getInstance(project)
         val lspConfig = mapOf(
             "settings" to mapOf(
-                "run" to settings.state.runTrigger.toLspValue()
+                "configPath" to settings.state.configPath,
+                "run" to settings.state.runTrigger.toLspValue(),
             )
         )
         thisLogger().debug("Initialization options: $lspConfig")

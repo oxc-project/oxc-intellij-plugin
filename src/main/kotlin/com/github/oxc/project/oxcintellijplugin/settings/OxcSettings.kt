@@ -1,7 +1,12 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsState.Companion.DEFAULT_EXTENSION_LIST
-import com.intellij.openapi.components.*
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SettingsCategory
+import com.intellij.openapi.components.SimplePersistentStateComponent
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
@@ -36,7 +41,7 @@ class OxcSettings(private val project: Project) :
         set(value) {
             val file = File(value)
             if (file.isFile) {
-                state.configPath = file.parentFile.path
+                state.configPath = file.path
                 return
             }
             state.configPath = value

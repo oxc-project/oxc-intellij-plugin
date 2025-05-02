@@ -34,6 +34,11 @@ class OxcServerService(private val project: Project) {
     suspend fun fixAll(document: Document) {
         val manager = FileDocumentManager.getInstance()
         val file = manager.getFile(document) ?: return
+        
+        fixAll(file, document)
+    }
+
+    suspend fun fixAll(file: VirtualFile, document: Document) {
         val server = getServer(file) ?: return
 
         val commandName = OxcBundle.message("oxc.run.quickfix")

@@ -50,7 +50,7 @@ class OxcFixAllAction : AnAction(), DumbAware {
             OxcBundle.message("oxc.run.fix.all")) {
             try {
                 withTimeout(5_000) {
-                    OxcServerService.getInstance(project).fixAll(document)
+                    OxcServerService.getInstance(project).fixAll(virtualFile, document)
                 }
                 notificationGroup.createNotification(title = OxcBundle.message("oxc.fix.all.success.label"),
                     content = OxcBundle.message("oxc.fix.all.success.description"),

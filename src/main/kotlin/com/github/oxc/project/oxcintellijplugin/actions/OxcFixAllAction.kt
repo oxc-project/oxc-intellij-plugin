@@ -11,11 +11,15 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.vfs.readText
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import kotlinx.coroutines.withTimeout
+import java.io.IOException
 
 class OxcFixAllAction : AnAction(), DumbAware {
     init {
@@ -24,13 +28,13 @@ class OxcFixAllAction : AnAction(), DumbAware {
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
-        val editor = event.getData(CommonDataKeys.EDITOR) ?: return
+        val document = event.getOrCreateDocument() ?: return
 
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
 
         val settings = OxcSettings.getInstance(project)
         val manager = FileDocumentManager.getInstance()
-        val virtualFile = manager.getFile(editor.document) ?: return
+        val virtualFile = manager.getFile(document) ?: return
 
         if (!settings.fileSupported(virtualFile)) {
             notificationGroup.createNotification(title = OxcBundle.message("oxc.file.not.supported.title"),
@@ -46,7 +50,7 @@ class OxcFixAllAction : AnAction(), DumbAware {
             OxcBundle.message("oxc.run.fix.all")) {
             try {
                 withTimeout(5_000) {
-                    OxcServerService.getInstance(project).fixAll(editor.document)
+                    OxcServerService.getInstance(project).fixAll(document)
                 }
                 notificationGroup.createNotification(title = OxcBundle.message("oxc.fix.all.success.label"),
                     content = OxcBundle.message("oxc.fix.all.success.description"),
@@ -57,5 +61,20 @@ class OxcFixAllAction : AnAction(), DumbAware {
                     type = NotificationType.ERROR).notify(project)
             }
         }
+    }
+    
+    private fun AnActionEvent.getOrCreateDocument(): Document? {
+        getData(CommonDataKeys.EDITOR)?.let {
+            return it.document
+        }
+        
+        val file = getData(CommonDataKeys.VIRTUAL_FILE) ?: return null
+        val text = try {
+            file.readText()
+        } catch (_: IOException) {
+            return null
+        }
+        
+        return EditorFactory.getInstance().createDocument(text)
     }
 }

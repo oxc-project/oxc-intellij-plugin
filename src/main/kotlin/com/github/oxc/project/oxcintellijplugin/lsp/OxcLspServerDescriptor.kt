@@ -50,6 +50,7 @@ class OxcLspServerDescriptor(
         val lspConfig = mapOf(
             "settings" to mapOf(
                 "configPath" to settings.state.configPath,
+                "flags" to emptyMap<String, String>(),
                 "run" to settings.state.runTrigger.toLspValue(),
             )
         )

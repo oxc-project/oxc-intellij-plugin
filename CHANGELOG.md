@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.6] - 2025-05-05
+
 ### Added
 
 - If the RUST_LOG env variable is undefined, pass either DEBUG or TRACE to the process when starting the language server
@@ -59,7 +61,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.2...v0.0.3

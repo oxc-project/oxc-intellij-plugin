@@ -28,13 +28,11 @@ class OxcFixAllAction : AnAction(), DumbAware {
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
-        val document = event.getOrCreateDocument() ?: return
+        val (file, document) = event.getFileAndDocument() ?: return
 
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
 
         val settings = OxcSettings.getInstance(project)
-        val manager = FileDocumentManager.getInstance()
-        val virtualFile = manager.getFile(document) ?: return
 
         if (!settings.fileSupported(virtualFile)) {
             notificationGroup.createNotification(title = OxcBundle.message("oxc.file.not.supported.title"),
@@ -62,19 +60,26 @@ class OxcFixAllAction : AnAction(), DumbAware {
             }
         }
     }
-    
-    private fun AnActionEvent.getOrCreateDocument(): Document? {
+
+    private fun AnActionEvent.getFileAndDocument(): Pair<VirtualFile, Document>? {
         getData(CommonDataKeys.EDITOR)?.let {
-            return it.document
+            val document = it.document
+
+            val manager = FileDocumentManager.getInstance()
+            val file = manager.getFile(document) ?: return null
+
+            return file to document
         }
-        
+
         val file = getData(CommonDataKeys.VIRTUAL_FILE) ?: return null
         val text = try {
             file.readText()
         } catch (_: IOException) {
             return null
         }
-        
-        return EditorFactory.getInstance().createDocument(text)
+
+        val document = EditorFactory.getInstance().createDocument(text)
+
+        return file to document
     }
 }

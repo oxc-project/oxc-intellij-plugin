@@ -16,6 +16,7 @@ import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.readText
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import kotlinx.coroutines.withTimeout
@@ -28,7 +29,7 @@ class OxcFixAllAction : AnAction(), DumbAware {
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
-        val (file, document) = event.getFileAndDocument() ?: return
+        val (virtualFile, document) = event.getFileAndDocument() ?: return
 
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
 

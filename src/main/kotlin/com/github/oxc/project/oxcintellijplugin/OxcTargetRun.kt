@@ -10,6 +10,7 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
 import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
 import com.intellij.lang.javascript.JavaScriptBundle
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
@@ -29,6 +30,11 @@ sealed interface OxcTargetRun {
     class Node(private val run: NodeTargetRun) : OxcTargetRun {
         override fun startProcess(): OSProcessHandler =
             wrapStartProcess {
+                if (!run.envData.envs.contains("RUST_LOG")) {
+                    val logger = Logger.getInstance("#com.github.oxc.project.oxcintellijplugin")
+                    val level = if (logger.isTraceEnabled) "TRACE" else if (logger.isDebugEnabled) "DEBUG" else "INFO"
+                    run.envData = run.envData.with(mapOf("RUST_LOG" to level))
+                }
                 run.startProcessEx().processHandler
             }
 

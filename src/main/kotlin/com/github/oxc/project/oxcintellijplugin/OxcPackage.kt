@@ -27,7 +27,7 @@ class OxcPackage(private val project: Project) {
             }
         }
 
-        var pkg = packageDescription.findUnambiguousDependencyPackage(project) ?: NodePackage.findDefaultPackage(
+        val pkg = packageDescription.findUnambiguousDependencyPackage(project) ?: NodePackage.findDefaultPackage(
             project,
             packageName,
             NodeJsInterpreterManager.getInstance(project).interpreter
@@ -47,7 +47,6 @@ class OxcPackage(private val project: Project) {
     }
 
     fun binaryPath(
-        rootPath: String?,
         virtualFile: VirtualFile,
     ): String? {
         val settings = OxcSettings.getInstance(project)
@@ -55,9 +54,14 @@ class OxcPackage(private val project: Project) {
 
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> if (rootPath != null) findOxcExecutable(virtualFile) else null
-            ConfigurationMode.MANUAL -> settings.binaryPath
+            ConfigurationMode.AUTOMATIC -> findOxcExecutable(virtualFile)
+            ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank { findOxcExecutable(virtualFile) }
         }
+    }
+
+    fun isEnabled(): Boolean {
+        val settings = OxcSettings.getInstance(project)
+        return settings.configurationMode != ConfigurationMode.DISABLED
     }
 
     private fun findOxcExecutable(virtualFile: VirtualFile?): String? {

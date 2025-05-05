@@ -23,7 +23,11 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
         thisLogger().debug("Handling fileOpened for ${file.path}")
 
         val oxc = OxcPackage(project)
+        if (!oxc.isEnabled()) {
+            return
+        }
         val configPath = oxc.configPath()
+        val executable = oxc.binaryPath(file) ?: return
 
         val projectRootDir = project.guessProjectDir() ?: return
         val root: VirtualFile
@@ -33,8 +37,6 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
         } else {
             root = file.findNearestOxcConfig(projectRootDir)?.parent ?: return
         }
-
-        val executable = oxc.binaryPath(root.path, file) ?: return
 
         serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable))
     }

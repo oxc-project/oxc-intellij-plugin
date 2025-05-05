@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- If the RUST_LOG env variable is undefined, pass either DEBUG or TRACE to the process when starting the language server
+  for additional logging when the plugin is configured to output debug or trace logs.
+
+### Fixed
+
+- Additional fixes to support custom Oxlint config files.
+- Make the language server config path optional when using the manual config.
+
 ## [0.0.5] - 2025-05-01
 
 ### Fixed

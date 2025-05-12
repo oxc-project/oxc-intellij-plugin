@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.7] - 2025-05-12
+
 ### Added
 
 - Add quick fixes back to the file explorer.
@@ -65,7 +67,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.3...v0.0.4

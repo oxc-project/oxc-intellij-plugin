@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add quick fixes back to the file explorer.
+
 ## [0.0.6] - 2025-05-05
 
 ### Added

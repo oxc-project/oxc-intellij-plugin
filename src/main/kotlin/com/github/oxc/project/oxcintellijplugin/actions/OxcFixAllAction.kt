@@ -8,6 +8,7 @@ import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -19,8 +20,8 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.readText
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
-import kotlinx.coroutines.withTimeout
 import java.io.IOException
+import kotlinx.coroutines.withTimeout
 
 class OxcFixAllAction : AnAction(), DumbAware {
     init {
@@ -60,6 +61,23 @@ class OxcFixAllAction : AnAction(), DumbAware {
                     type = NotificationType.ERROR).notify(project)
             }
         }
+    }
+
+    override fun update(e: AnActionEvent) {
+        val project = e.project ?: return
+        val settings = OxcSettings.getInstance(project)
+
+        val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
+        val enabled = file != null && settings.fileSupported(file) && settings.isEnabled()
+
+        if (e.isFromContextMenu) {
+            e.presentation.isVisible = enabled
+        }
+        e.presentation.isEnabled = enabled
+    }
+
+    override fun getActionUpdateThread(): ActionUpdateThread {
+        return ActionUpdateThread.BGT
     }
 
     private fun AnActionEvent.getFileAndDocument(): Pair<VirtualFile, Document>? {

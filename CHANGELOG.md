@@ -8,6 +8,10 @@
 
 - Support specifying a manual Oxc language server path to the binary instead of the Node.js wrapper.
 
+### Fixed
+
+- Only show "Apply Oxc Quick Fixes" when the plugin is enabled and the selected file is a supported file extension.
+
 ## [0.0.7] - 2025-05-12
 
 ### Added

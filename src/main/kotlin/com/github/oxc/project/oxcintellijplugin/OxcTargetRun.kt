@@ -1,5 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.settings.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
@@ -16,6 +18,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
 import com.intellij.util.io.BaseOutputReader
+import java.io.File
 import kotlin.io.path.Path
 
 
@@ -70,11 +73,20 @@ class OxcTargetRunBuilder(val project: Project) {
             throw ExecutionException(OxcBundle.message("oxc.language.server.not.found"))
         }
 
-        val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
-        if (interpreter !is NodeJsLocalInterpreter && interpreter !is WslNodeInterpreter) {
-            throw ExecutionException(JavaScriptBundle.message("lsp.interpreter.error"))
+        val settings = OxcSettings.getInstance(project)
+        val configurationMode = settings.configurationMode
+        val isNodeJs = File(executable).useLines { it.firstOrNull() }
+            ?.startsWith("#!/usr/bin/env node") == true
+
+        val builder: ProcessCommandBuilder = if (configurationMode == ConfigurationMode.MANUAL && !isNodeJs) {
+            GeneralProcessCommandBuilder()
+        } else {
+            val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
+            if (interpreter !is NodeJsLocalInterpreter && interpreter !is WslNodeInterpreter) {
+                throw ExecutionException(JavaScriptBundle.message("lsp.interpreter.error"))
+            }
+            NodeProcessCommandBuilder(project, interpreter)
         }
-        val builder = NodeProcessCommandBuilder(project, interpreter)
 
         return builder.setExecutable(executable).setCharset(Charsets.UTF_8)
     }

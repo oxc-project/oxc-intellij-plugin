@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Support specifying a manual Oxc language server path to the binary instead of the Node.js wrapper.
+
 ## [0.0.7] - 2025-05-12
 
 ### Added

@@ -1,8 +1,8 @@
 # oxc-intellij-plugin
 
-![Build](https://github.com/oxc-project/oxc-intellij-plugin/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/com.github.oxc.project.oxcintellijplugin.svg)](https://plugins.jetbrains.com/plugin/com.github.oxc.project.oxcintellijplugin)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/com.github.oxc.project.oxcintellijplugin.svg)](https://plugins.jetbrains.com/plugin/com.github.oxc.project.oxcintellijplugin)
+[![Build](https://github.com/oxc-project/oxc-intellij-plugin/workflows/Build/badge.svg)](https://github.com/oxc-project/oxc-intellij-plugin/actions/workflows/build.yml?query=branch%3Amain)
+[![Version](https://img.shields.io/jetbrains/plugin/v/27061.svg)](https://plugins.jetbrains.com/plugin/27061-oxc)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/27061.svg)](https://plugins.jetbrains.com/plugin/27061-oxc)
 
 <!-- Plugin description -->
 

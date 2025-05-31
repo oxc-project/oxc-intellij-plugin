@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.OxcBundle
 import com.github.oxc.project.oxcintellijplugin.OxcPackage
+import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
 import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
 import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
@@ -19,6 +20,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.MutableProperty
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
@@ -95,15 +97,15 @@ class OxcConfigurable(private val project: Project) :
                 }.visibleIf(manualConfiguration.selected)
             }
 
-//            row(MyBundle.message("oxc.settings.oxlintRunTrigger")) {
-//                comboBox(listOf(OxlintRunTrigger.ON_SAVE, OxlintRunTrigger.ON_TYPE)).bindItem({
-//                    return@bindItem settings.runTrigger
-//                }, {
-//                    if (it != null) {
-//                        settings.runTrigger = it
-//                    }
-//                })
-//            }.enabledIf(!disabledConfiguration.selected)
+            row(OxcBundle.message("oxc.settings.oxlintRunTrigger")) {
+                comboBox(listOf(OxlintRunTrigger.ON_SAVE, OxlintRunTrigger.ON_TYPE)).bindItem({
+                    return@bindItem settings.runTrigger
+                }, {
+                    if (it != null) {
+                        settings.runTrigger = it
+                    }
+                })
+            }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
             // Supported file extensions row
@@ -119,7 +121,7 @@ class OxcConfigurable(private val project: Project) :
                 val extensionsFieldCell = expandableTextField(parse, join).align(AlignX.FILL)
                     .bindText({ join(settings.supportedExtensions) }, { value ->
                         settings.supportedExtensions = parse(value)
-                    }).validationOnInput { 
+                    }).validationOnInput {
                         validateExtensions(it)
                     }
 

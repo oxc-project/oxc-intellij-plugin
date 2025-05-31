@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add run trigger to config settings. Allow triggering Oxlint either on save or on type.
+
 ## [0.0.8] - 2025-05-19
 
 ### Added

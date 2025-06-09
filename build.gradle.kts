@@ -112,6 +112,7 @@ intellijPlatform {
         ides {
             recommended()
         }
+        ignoredProblemsFile.set(File("plugin-verifier-ignored-problems.txt"))
     }
 }
 

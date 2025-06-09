@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.10] - 2025-06-09
+
 ### Added
 
 - Add run trigger to config settings. Allow triggering Oxlint either on save or on type.
@@ -85,7 +87,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.8...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.10...HEAD
+[0.0.10]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.8...v0.0.10
 [0.0.8]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.5...v0.0.6

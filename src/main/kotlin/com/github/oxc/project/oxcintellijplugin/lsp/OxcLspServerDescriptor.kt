@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.ClientCapabilities
+import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.InitializeParams
 
 @Suppress("UnstableApiUsage")
@@ -46,16 +47,14 @@ class OxcLspServerDescriptor(
         super.findLocalFileByPath(targetRun.toLocalPath(path))
 
     override fun createInitializationOptions(): Any {
-        val settings = OxcSettings.getInstance(project)
-        val lspConfig = mapOf(
-            "settings" to mapOf(
-                "configPath" to settings.state.configPath,
-                "flags" to emptyMap<String, String>(),
-                "run" to settings.state.runTrigger.toLspValue(),
+        val initializationOptions = roots.map {
+            return@map mapOf(
+                "workspaceUri" to it.toNioPath().toUri().toString(),
+                "options" to createWorkspaceConfig(it)
             )
-        )
-        thisLogger().debug("Initialization options: $lspConfig")
-        return lspConfig
+        }
+        thisLogger().debug("Initialization options: $initializationOptions")
+        return initializationOptions
     }
 
     override fun createInitializeParams(): InitializeParams {
@@ -64,10 +63,21 @@ class OxcLspServerDescriptor(
         return params
     }
 
+    override fun getWorkspaceConfiguration(item: ConfigurationItem): Any? {
+        val myRoot = roots.find {
+            return@find it.toNioPath().toUri().toString() == item.scopeUri
+        } ?: return null
+        return createWorkspaceConfig(myRoot)
+    }
+
     override val clientCapabilities: ClientCapabilities
         get() {
             thisLogger().debug("Client Capabilities: ${super.clientCapabilities}")
-            return super.clientCapabilities
+            return super.clientCapabilities.apply {
+                workspace.apply {
+                    configuration = true
+                }
+            }
         }
 
     override val lspGoToDefinitionSupport = false
@@ -80,4 +90,13 @@ class OxcLspServerDescriptor(
 
     override val lspDiagnosticsSupport: LspDiagnosticsSupport? = OxcLspDiagnosticsSupport()
 
+    private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
+        val settings = OxcSettings.getInstance(project)
+
+        return mapOf(
+            "configPath" to settings.state.configPath,
+            "flags" to emptyMap<String, String>(),
+            "run" to settings.state.runTrigger.toLspValue()
+        )
+    }
 }

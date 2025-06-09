@@ -8,6 +8,10 @@
 
 - Add run trigger to config settings. Allow triggering Oxlint either on save or on type.
 
+### Changed
+
+- Use the new Oxc Language Server config format. This requires Oxlint 0.16.11 or newer.
+
 ## [0.0.8] - 2025-05-19
 
 ### Added

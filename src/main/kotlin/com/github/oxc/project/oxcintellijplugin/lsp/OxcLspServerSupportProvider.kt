@@ -35,7 +35,7 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
             val configVirtualFile = VirtualFileManager.getInstance().findFileByNioPath(File(configPath).toPath()) ?: return
             root = configVirtualFile.findNearestPackageJson(projectRootDir)?.parent ?: return
         } else {
-            root = file.findNearestOxcConfig(projectRootDir)?.parent ?: return
+            root = file.findNearestOxcConfig(projectRootDir)?.parent ?: projectRootDir
         }
 
         serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable))

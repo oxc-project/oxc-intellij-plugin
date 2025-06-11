@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Use project root directory as the root when an Oxlint config file is not available.
+
 ## [0.0.10] - 2025-06-09
 
 ### Added

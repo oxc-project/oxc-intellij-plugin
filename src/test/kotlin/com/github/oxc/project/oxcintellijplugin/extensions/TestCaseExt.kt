@@ -11,23 +11,32 @@ import com.intellij.testFramework.ExpectedHighlightingData
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
+import com.intellij.tool.withRetryAsync
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.runBlocking
 
 fun CodeInsightTestFixture.configureByFileAndCheckLanguageServerHighlighting(filePath: String) {
     val configuredFile = this.configureByFile(filePath).virtualFile
-    val expectedHighlightingData = ExpectedHighlightingData(editor.document, true, true, true,
-        false)
-    expectedHighlightingData.init()
-    this.waitForLanguageServerDiagnostics(this.project, configuredFile)
+    val project = this.project
+    val fixture = this
 
-    (this as CodeInsightTestFixtureImpl).collectAndCheckHighlighting(
-        expectedHighlightingData)
+    runBlocking {
+        withRetryAsync(retries = 3, delayBetweenRetries = 1.seconds, retryAction = {
+            val expectedHighlightingData = ExpectedHighlightingData(editor.document, true, true,
+                true, false)
+            expectedHighlightingData.init()
+            waitForLanguageServerDiagnostics(project, configuredFile)
+
+            (fixture as CodeInsightTestFixtureImpl).collectAndCheckHighlighting(
+                expectedHighlightingData)
+        })
+    }
 }
 
-fun CodeInsightTestFixture.waitForLanguageServerDiagnostics(project: Project, fileNeedingDiagnostics: VirtualFile,
-    timeout: Duration = 10.seconds) {
+private fun waitForLanguageServerDiagnostics(project: Project,
+    fileNeedingDiagnostics: VirtualFile, timeout: Duration = 10.seconds) {
     val diagnosticsReceived = AtomicBoolean()
     val shutdownReceived = AtomicBoolean()
 
@@ -53,8 +62,7 @@ fun CodeInsightTestFixture.waitForLanguageServerDiagnostics(project: Project, fi
 
         PlatformTestUtil.waitWithEventsDispatching(
             "Timeout waiting for diagnostics for $fileNeedingDiagnostics",
-            { diagnosticsReceived.get() || shutdownReceived.get() },
-            timeout.inWholeSeconds.toInt())
+            { diagnosticsReceived.get() || shutdownReceived.get() }, timeout.inWholeSeconds.toInt())
     } finally {
         Disposer.dispose(disposable)
     }

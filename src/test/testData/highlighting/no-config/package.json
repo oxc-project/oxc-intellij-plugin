@@ -1,0 +1,8 @@
+{
+  "name": "oxc-lint",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "oxlint": "0.16.12"
+  }
+}

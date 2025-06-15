@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "devDependencies": {
-    "oxlint": "0.16.12"
+    "oxlint": "1.1.0"
   }
 }

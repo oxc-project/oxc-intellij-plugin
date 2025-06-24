@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.12] - 2025-06-24
+
 ### Added
 
 - Add support for 2025.2.* versions of IntelliJ.
@@ -97,7 +99,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.11...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.12...HEAD
+[0.0.12]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.8...v0.0.10
 [0.0.8]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.7...v0.0.8

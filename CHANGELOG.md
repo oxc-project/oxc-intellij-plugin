@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for 2025.2.* versions of IntelliJ.
+
 ## [0.0.11] - 2025-06-11
 
 ### Fixed

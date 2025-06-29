@@ -1,2 +1,3 @@
 Access to unresolved class com.intellij.javascript.nodejs.util.NodePackage.Companion.*
 Access to unresolved field com.intellij.javascript.nodejs.util.NodePackage.Companion.*
+Access to unresolved class kotlin.coroutines.jvm.internal.SpillingKt

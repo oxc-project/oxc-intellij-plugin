@@ -3,6 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.lsp
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.OxcPackage
 import com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable
+import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -18,6 +19,10 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter) {
         thisLogger().debug("Handling fileOpened for ${file.path}")
+
+        if (!OxcSettings.getInstance(project).fileSupported(file)) {
+            return
+        }
 
         val oxc = OxcPackage(project)
         if (!oxc.isEnabled()) {

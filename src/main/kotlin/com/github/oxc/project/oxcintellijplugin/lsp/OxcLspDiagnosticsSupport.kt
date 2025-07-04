@@ -5,7 +5,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.Diagnostic
 
-@Suppress("UnstableApiUsage")
 class OxcLspDiagnosticsSupport : LspDiagnosticsSupport() {
 
     override fun getMessage(diagnostic: Diagnostic): String {

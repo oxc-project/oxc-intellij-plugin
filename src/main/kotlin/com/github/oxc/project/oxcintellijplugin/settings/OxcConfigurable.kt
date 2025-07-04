@@ -84,12 +84,14 @@ class OxcConfigurable(private val project: Project) :
             // *********************
             panel {
                 row(OxcBundle.message("oxc.settings.languageServerPath")) {
+                    @Suppress("UnstableApiUsage")
                     textFieldWithBrowseButton(OxcBundle.message("oxc.settings.languageServerPath")) {
                         it.path
                     }.align(AlignX.FILL).bindText(settings::binaryPath)
                 }.visibleIf(manualConfiguration.selected)
 
                 row(OxcBundle.message("oxc.config.path.label")) {
+                    @Suppress("UnstableApiUsage")
                     textFieldWithBrowseButton(
                         OxcBundle.message("oxc.config.path.label"),
                         project,
@@ -161,7 +163,7 @@ class OxcConfigurable(private val project: Project) :
 
     override fun apply() {
         super.apply()
-        @Suppress("UnstableApiUsage") ApplicationManager.getApplication().invokeLater {
+        ApplicationManager.getApplication().invokeLater {
             project.service<LspServerManager>().stopAndRestartIfNeeded(OxcLspServerSupportProvider::class.java)
         }
     }

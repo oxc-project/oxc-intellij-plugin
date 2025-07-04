@@ -13,7 +13,6 @@ import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.lsWidget.LspServerWidgetItem
 import kotlin.io.path.Path
 
-@Suppress("UnstableApiUsage")
 class OxcLspServerSupportProvider : LspServerSupportProvider {
     override fun fileOpened(project: Project,
         file: VirtualFile,
@@ -36,7 +35,7 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,
-        currentFile: VirtualFile?): LspServerWidgetItem? {
+        currentFile: VirtualFile?): LspServerWidgetItem {
         return LspServerWidgetItem(lspServer, currentFile, OxcIcons.OxcRound, OxcConfigurable::class.java)
     }
 }

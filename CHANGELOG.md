@@ -11,6 +11,10 @@
 - Resolve language server not stopping when closing all relevant files.
 - Resolve language server starting when opening irrelevant files.
 
+### Removed
+
+- Removed support for IDE versions 2024.3.
+
 ## [0.0.12] - 2025-06-24
 
 ### Added 

@@ -4,9 +4,16 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Resolve multiple language servers being started when only one should be running.
+  This resulted in duplicate diagnostics in the IDE.
+- Resolve language server not stopping when closing all relevant files.
+- Resolve language server starting when opening irrelevant files.
+
 ## [0.0.12] - 2025-06-24
 
-### Added
+### Added 
 
 - Add support for 2025.2.* versions of IntelliJ.
 

@@ -58,4 +58,9 @@
                 topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"
         />
     </applicationListeners>
+
+    <projectListeners>
+        <listener class="com.github.oxc.project.oxcintellijplugin.listeners.EditorWatcher"
+                topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
 </idea-plugin>

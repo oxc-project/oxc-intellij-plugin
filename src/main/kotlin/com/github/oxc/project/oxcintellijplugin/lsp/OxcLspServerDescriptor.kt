@@ -15,7 +15,6 @@ import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.InitializeParams
 
-@Suppress("UnstableApiUsage")
 class OxcLspServerDescriptor(
     project: Project,
     root: VirtualFile,
@@ -89,7 +88,7 @@ class OxcLspServerDescriptor(
 
     override val lspHoverSupport = false
 
-    override val lspDiagnosticsSupport: LspDiagnosticsSupport? = OxcLspDiagnosticsSupport()
+    override val lspDiagnosticsSupport: LspDiagnosticsSupport = OxcLspDiagnosticsSupport()
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
         val oxcPackage = OxcPackage(project)

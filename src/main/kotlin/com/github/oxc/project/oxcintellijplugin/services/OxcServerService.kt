@@ -1,5 +1,3 @@
-@file:Suppress("UnstableApiUsage")
-
 package com.github.oxc.project.oxcintellijplugin.services
 
 import com.github.oxc.project.oxcintellijplugin.OxcBundle
@@ -34,7 +32,7 @@ class OxcServerService(private val project: Project) {
     suspend fun fixAll(document: Document) {
         val manager = FileDocumentManager.getInstance()
         val file = manager.getFile(document) ?: return
-        
+
         fixAll(file, document)
     }
 

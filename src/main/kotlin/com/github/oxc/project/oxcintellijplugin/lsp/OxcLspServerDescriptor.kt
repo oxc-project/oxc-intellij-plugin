@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.lsp
 
+import com.github.oxc.project.oxcintellijplugin.OxcPackage
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
@@ -91,10 +92,11 @@ class OxcLspServerDescriptor(
     override val lspDiagnosticsSupport: LspDiagnosticsSupport? = OxcLspDiagnosticsSupport()
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
+        val oxcPackage = OxcPackage(project)
         val settings = OxcSettings.getInstance(project)
 
         return mapOf(
-            "configPath" to settings.state.configPath,
+            "configPath" to oxcPackage.configPath(),
             "flags" to emptyMap<String, String>(),
             "run" to settings.state.runTrigger.toLspValue()
         )

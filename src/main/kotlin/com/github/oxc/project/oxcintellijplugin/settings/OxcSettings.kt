@@ -59,6 +59,12 @@ class OxcSettings(private val project: Project) :
             state.runTrigger = value
         }
 
+    var unusedDisableDirectivesSeverity
+        get() = state.unusedDisableDirectives
+        set(value) {
+            state.unusedDisableDirectives = value
+        }
+
     fun isEnabled(): Boolean {
         return configurationMode !== ConfigurationMode.DISABLED
     }

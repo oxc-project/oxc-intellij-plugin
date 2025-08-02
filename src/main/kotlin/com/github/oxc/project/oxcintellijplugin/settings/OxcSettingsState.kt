@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
+import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
 import com.intellij.openapi.components.BaseState
 import com.intellij.util.xml.Attribute
 
@@ -29,6 +30,9 @@ class OxcSettingsState : BaseState() {
 
     @get:Attribute("supportedExtensions")
     var supportedExtensions by list<String>()
+
+    @get:Attribute("unusedDisableDirectives")
+    var unusedDisableDirectives by enum(OxlintUnusedDisableDirectivesSeverity.ALLOW)
 
     companion object {
         val DEFAULT_EXTENSION_LIST = listOf(

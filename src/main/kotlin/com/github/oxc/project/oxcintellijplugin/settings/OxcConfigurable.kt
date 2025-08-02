@@ -3,6 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.settings
 import com.github.oxc.project.oxcintellijplugin.OxcBundle
 import com.github.oxc.project.oxcintellijplugin.OxcPackage
 import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
+import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
 import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
 import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
 import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
@@ -48,6 +49,9 @@ class OxcConfigurable(private val project: Project) :
         val server = OxcServerService.getInstance(project)
 
         return panel {
+            // *********************
+            // Configuration mode row
+            // *********************
             buttonsGroup {
                 row {
                     disabledConfiguration =
@@ -99,12 +103,30 @@ class OxcConfigurable(private val project: Project) :
                 }.visibleIf(manualConfiguration.selected)
             }
 
+            // *********************
+            // Oxlint execution trigger row
+            // *********************
             row(OxcBundle.message("oxc.settings.oxlintRunTrigger")) {
                 comboBox(listOf(OxlintRunTrigger.ON_SAVE, OxlintRunTrigger.ON_TYPE)).bindItem({
                     return@bindItem settings.runTrigger
                 }, {
                     if (it != null) {
                         settings.runTrigger = it
+                    }
+                })
+            }.enabledIf(!disabledConfiguration.selected)
+
+            // *********************
+            // Oxlint unused disable directives row
+            // *********************
+            row(OxcBundle.message("oxc.settings.unusedDisableDirectives")) {
+                comboBox(listOf(OxlintUnusedDisableDirectivesSeverity.ALLOW,
+                    OxlintUnusedDisableDirectivesSeverity.WARN,
+                    OxlintUnusedDisableDirectivesSeverity.DENY)).bindItem({
+                    return@bindItem settings.unusedDisableDirectivesSeverity
+                }, {
+                    if (it != null) {
+                        settings.unusedDisableDirectivesSeverity = it
                     }
                 })
             }.enabledIf(!disabledConfiguration.selected)

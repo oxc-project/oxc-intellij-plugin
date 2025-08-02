@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for configuring the severity of unused disable directives.
+
 ## [0.0.13] - 2025-07-04
 
 ### Fixed

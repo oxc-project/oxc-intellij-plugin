@@ -4,10 +4,10 @@ junit = "4.13.2"
 
 # plugins
 changelog = "2.4.0"
-intelliJPlatform = "2.7.1"
-kotlin = "2.2.0"
+intelliJPlatform = "2.7.2"
+kotlin = "2.2.10"
 kover = "0.9.1"
-qodana = "2025.1.1"
+qodana = "2025.2.1"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }

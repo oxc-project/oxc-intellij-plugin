@@ -25,7 +25,7 @@ class OxcSettingsState : BaseState() {
     @get:Attribute("configPath")
     var configPath by string()
 
-    @get:Attribute("configPath")
+    @get:Attribute("fixAllOnSave")
     var fixAllOnSave by property(false)
 
     @get:Attribute("supportedExtensions")

@@ -8,6 +8,9 @@
 
 - Add support for configuring the severity of unused disable directives.
 - Add support for passing flags to the language server.
+
+### Fixed
+
 - Fix `fixAllOnSave` property to save to the correct element instead of conflicting with `configPath`.
 
 ## [0.0.13] - 2025-07-04

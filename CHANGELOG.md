@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.14] - 2025-08-28
+
 ### Added
 
 - Add support for configuring the severity of unused disable directives.
@@ -121,7 +123,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.13...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.14...HEAD
+[0.0.14]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.10...v0.0.11

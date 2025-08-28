@@ -98,6 +98,7 @@ class OxcLspServerDescriptor(
             "configPath" to oxcPackage.configPath(),
             "flags" to settings.flags,
             "run" to settings.state.runTrigger.toLspValue(),
+            "typeAware" to settings.typeAware,
             "unusedDisableDirectives" to settings.state.unusedDisableDirectives.toLspValue(),
         )
     }

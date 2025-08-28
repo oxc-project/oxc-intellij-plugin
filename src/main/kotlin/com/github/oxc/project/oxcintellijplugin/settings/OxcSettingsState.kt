@@ -36,6 +36,9 @@ class OxcSettingsState : BaseState() {
     @get:Attribute("supportedExtensions")
     var supportedExtensions by list<String>()
 
+    @get:Attribute("typeAware")
+    var typeAware by property(false)
+
     @get:Attribute("unusedDisableDirectives")
     var unusedDisableDirectives by enum(OxlintUnusedDisableDirectivesSeverity.ALLOW)
 

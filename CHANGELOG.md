@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.15] - 2025-08-28
+
 ### Added
 
 - Add support for type aware rules.
@@ -128,7 +130,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.14...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.15...HEAD
+[0.0.15]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.11...v0.0.12

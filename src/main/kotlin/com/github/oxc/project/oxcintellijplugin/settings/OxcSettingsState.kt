@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
 import com.intellij.openapi.components.BaseState
 import com.intellij.util.xml.Attribute
+import com.intellij.util.xmlb.annotations.XMap
 
 enum class ConfigurationMode {
     DISABLED,
@@ -27,6 +28,10 @@ class OxcSettingsState : BaseState() {
 
     @get:Attribute("fixAllOnSave")
     var fixAllOnSave by property(false)
+
+    @get:Attribute("flags")
+    @get:XMap
+    var flags by map<String, String>()
 
     @get:Attribute("supportedExtensions")
     var supportedExtensions by list<String>()

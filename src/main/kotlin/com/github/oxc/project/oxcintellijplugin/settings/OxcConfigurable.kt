@@ -4,19 +4,17 @@ import com.github.oxc.project.oxcintellijplugin.OxcBundle
 import com.github.oxc.project.oxcintellijplugin.OxcPackage
 import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
-import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
 import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
 import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
 import com.intellij.lang.javascript.JavaScriptBundle
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
-import com.intellij.openapi.components.service
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
@@ -27,11 +25,15 @@ import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.not
 import com.intellij.ui.layout.selected
+import com.intellij.ui.table.TableView
+import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.ListTableModel
 import com.intellij.util.ui.UIUtil
 import javax.swing.JCheckBox
 import javax.swing.JRadioButton
 import javax.swing.event.HyperlinkEvent
+import kotlinx.collections.immutable.toImmutableMap
 
 private const val HELP_TOPIC = "reference.settings.oxc"
 
@@ -176,18 +178,40 @@ class OxcConfigurable(private val project: Project) :
                 cell(link)
             }.enabledIf(!disabledConfiguration.selected)
 
+            // *********************
+            // Language Server Flags row
+            // *********************
+            row("Language Server Flags") {
+                val table = TableView(
+                    ListTableModel<Flag>(createFlagKeyColumn(), createFlagValueColumn()))
+
+                cell(ToolbarDecorator.createDecorator(table).setAddAction {
+                    table.listTableModel.addRow(Flag("", ""))
+                }.setRemoveAction {
+                    val selectedRow = table.selectedRow
+                    if (selectedRow >= 0) {
+                        table.listTableModel.removeRow(selectedRow)
+                    }
+                }.createPanel()).align(AlignX.FILL).onApply {
+                    settings.flags = table.listTableModel.items.associate { it.key to it.value }
+                        .toImmutableMap()
+                }.onIsModified {
+                    settings.flags != table.listTableModel.items.associate { it.key to it.value }
+                }.onReset {
+                    table.listTableModel.items = settings.flags.map { Flag(it.key, it.value) }
+                }
+            }
+
             onApply {
-                server.restartServer()
+                if (project.isDefault) {
+                    return@onApply
+                }
+                ApplicationManager.getApplication().invokeLater {
+                    server.restartServer()
+                }
             }
         }
 
-    }
-
-    override fun apply() {
-        super.apply()
-        ApplicationManager.getApplication().invokeLater {
-            project.service<LspServerManager>().stopAndRestartIfNeeded(OxcLspServerSupportProvider::class.java)
-        }
     }
 
     private fun validateExtensions(field: JBTextField): ValidationInfo? {
@@ -218,5 +242,43 @@ class OxcConfigurable(private val project: Project) :
 
     companion object {
         const val CONFIGURABLE_ID = "com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable"
+    }
+}
+
+private data class Flag(var key: String, var value: String)
+
+private abstract class EditableColumn<Item, Aspect>(private val name: String) :
+    ColumnInfo<Item, Aspect>(name) {
+
+    override fun isCellEditable(item: Item?): Boolean {
+        return true
+    }
+}
+
+private fun createFlagKeyColumn(): ColumnInfo<Flag, String> {
+    return object : EditableColumn<Flag, String>("Key") {
+        override fun setValue(item: Flag?, value: String?) {
+            if (item != null && value != null) {
+                item.key = value
+            }
+        }
+
+        override fun valueOf(item: Flag?): String? {
+            return item?.key
+        }
+    }
+}
+
+private fun createFlagValueColumn(): ColumnInfo<Flag, String> {
+    return object : EditableColumn<Flag, String>("Value") {
+        override fun setValue(item: Flag?, value: String?) {
+            if (item != null && value != null) {
+                item.value = value
+            }
+        }
+
+        override fun valueOf(item: Flag?): String? {
+            return item?.value
+        }
     }
 }

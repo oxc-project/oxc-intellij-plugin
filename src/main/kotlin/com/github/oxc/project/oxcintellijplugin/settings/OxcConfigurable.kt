@@ -88,32 +88,42 @@ class OxcConfigurable(private val project: Project) :
             // *********************
             // Manual configuration row
             // *********************
-            panel {
-                row(OxcBundle.message("oxc.settings.languageServerPath")) {
-                    @Suppress("UnstableApiUsage")
-                    textFieldWithBrowseButton(OxcBundle.message("oxc.settings.languageServerPath")) {
-                        it.path
-                    }.align(AlignX.FILL).bindText(settings::binaryPath)
-                }.visibleIf(manualConfiguration.selected)
+            indent {
+                panel {
+                    row(OxcBundle.message("oxc.settings.languageServerPath")) {
+                        @Suppress("UnstableApiUsage")
+                        textFieldWithBrowseButton(
+                            OxcBundle.message("oxc.settings.languageServerPath")) {
+                            it.path
+                        }.align(AlignX.FILL).bindText(settings::binaryPath)
+                    }.visibleIf(manualConfiguration.selected)
 
-                row(OxcBundle.message("oxc.config.path.label")) {
-                    @Suppress("UnstableApiUsage")
-                    textFieldWithBrowseButton(
-                        OxcBundle.message("oxc.config.path.label"),
-                        project,
-                    ) { it.path }.align(AlignX.FILL).bindText(settings::configPath)
-                }.visibleIf(manualConfiguration.selected)
+                    row(OxcBundle.message("oxc.config.path.label")) {
+                        @Suppress("UnstableApiUsage")
+                        textFieldWithBrowseButton(
+                            OxcBundle.message("oxc.config.path.label"),
+                            project,
+                        ) { it.path }.align(AlignX.FILL).bindText(settings::configPath)
+                    }.visibleIf(manualConfiguration.selected)
+                }
             }
 
             // *********************
             // Oxlint execution trigger row
             // *********************
             row(OxcBundle.message("oxc.settings.oxlintRunTrigger")) {
-                comboBox(listOf(OxlintRunTrigger.ON_SAVE, OxlintRunTrigger.ON_TYPE)).bindItem({
-                    return@bindItem settings.runTrigger
+                // TODO: Probably a better way to do this map of enum to presentation text.
+                val options = mapOf(
+                    OxlintRunTrigger.ON_SAVE to "On Save",
+                    OxlintRunTrigger.ON_TYPE to "On Type",
+                )
+                val reverseOptions = options.entries.associateBy({ it.value }, { it.key })
+
+                comboBox(options.values).bindItem({
+                    return@bindItem options[settings.runTrigger]
                 }, {
                     if (it != null) {
-                        settings.runTrigger = it
+                        settings.runTrigger = reverseOptions[it]!!
                     }
                 })
             }.enabledIf(!disabledConfiguration.selected)
@@ -122,25 +132,21 @@ class OxcConfigurable(private val project: Project) :
             // Oxlint unused disable directives row
             // *********************
             row(OxcBundle.message("oxc.settings.unusedDisableDirectives")) {
-                comboBox(listOf(OxlintUnusedDisableDirectivesSeverity.ALLOW,
-                    OxlintUnusedDisableDirectivesSeverity.WARN,
-                    OxlintUnusedDisableDirectivesSeverity.DENY)).bindItem({
-                    return@bindItem settings.unusedDisableDirectivesSeverity
+                // TODO: Probably a better way to do this map of enum to presentation text.
+                val options = mapOf(
+                    OxlintUnusedDisableDirectivesSeverity.ALLOW to "Allow",
+                    OxlintUnusedDisableDirectivesSeverity.WARN to "Warn",
+                    OxlintUnusedDisableDirectivesSeverity.DENY to "Deny",
+                )
+                val reverseOptions = options.entries.associateBy({ it.value }, { it.key })
+
+                comboBox(options.values).bindItem({
+                    return@bindItem options[settings.unusedDisableDirectivesSeverity]
                 }, {
                     if (it != null) {
-                        settings.unusedDisableDirectivesSeverity = it
+                        settings.unusedDisableDirectivesSeverity = reverseOptions[it]!!
                     }
                 })
-            }.enabledIf(!disabledConfiguration.selected)
-
-            // *********************
-            // Type aware row
-            // *********************
-            row {
-                checkBox(OxcBundle.message("oxc.type.aware.label")).bindSelected(
-                    { settings.typeAware },
-                    { settings.typeAware = it },
-                )
             }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
@@ -176,6 +182,16 @@ class OxcConfigurable(private val project: Project) :
             }.bottomGap(BottomGap.MEDIUM).enabledIf(!disabledConfiguration.selected)
 
             // *********************
+            // Type aware row
+            // *********************
+            row {
+                checkBox(OxcBundle.message("oxc.type.aware.label")).bindSelected(
+                    { settings.typeAware },
+                    { settings.typeAware = it },
+                )
+            }.enabledIf(!disabledConfiguration.selected)
+
+            // *********************
             // Apply fixes on save row
             // *********************
             row {
@@ -191,7 +207,8 @@ class OxcConfigurable(private val project: Project) :
             // *********************
             // Language Server Flags row
             // *********************
-            row("Language Server Flags") {
+            row("Language Server Flags") {}
+            row {
                 val table = TableView(
                     ListTableModel<Flag>(createFlagKeyColumn(), createFlagValueColumn()))
 

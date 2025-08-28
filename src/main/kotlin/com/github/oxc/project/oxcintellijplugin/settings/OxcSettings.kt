@@ -10,6 +10,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.toImmutableMap
 
 @Service(Service.Level.PROJECT)
 @State(name = "OxcSettings", storages = [Storage("OxcSettings.xml")],
@@ -51,6 +53,12 @@ class OxcSettings(private val project: Project) :
         get() = isEnabled() && state.fixAllOnSave
         set(value) {
             state.fixAllOnSave = value
+        }
+
+    var flags: ImmutableMap<String, String>
+        get() = state.flags.toImmutableMap()
+        set(value) {
+            state.flags = value.toMutableMap()
         }
 
     var runTrigger

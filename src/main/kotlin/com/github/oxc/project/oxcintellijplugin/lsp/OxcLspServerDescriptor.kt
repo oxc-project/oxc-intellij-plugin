@@ -96,7 +96,7 @@ class OxcLspServerDescriptor(
 
         return mapOf(
             "configPath" to oxcPackage.configPath(),
-            "flags" to emptyMap<String, String>(),
+            "flags" to settings.flags,
             "run" to settings.state.runTrigger.toLspValue(),
             "unusedDisableDirectives" to settings.state.unusedDisableDirectives.toLspValue(),
         )

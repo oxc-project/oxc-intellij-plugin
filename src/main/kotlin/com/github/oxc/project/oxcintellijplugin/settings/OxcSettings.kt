@@ -67,6 +67,12 @@ class OxcSettings(private val project: Project) :
             state.runTrigger = value
         }
 
+    var typeAware
+        get() = state.typeAware
+        set(value) {
+            state.typeAware = value
+        }
+
     var unusedDisableDirectivesSeverity
         get() = state.unusedDisableDirectives
         set(value) {

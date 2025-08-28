@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for type aware rules.
+
 ## [0.0.14] - 2025-08-28
 
 ### Added

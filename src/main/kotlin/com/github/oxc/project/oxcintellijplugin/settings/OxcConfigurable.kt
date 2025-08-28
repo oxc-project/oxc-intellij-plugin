@@ -134,6 +134,16 @@ class OxcConfigurable(private val project: Project) :
             }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
+            // Type aware row
+            // *********************
+            row {
+                checkBox(OxcBundle.message("oxc.type.aware.label")).bindSelected(
+                    { settings.typeAware },
+                    { settings.typeAware = it },
+                )
+            }.enabledIf(!disabledConfiguration.selected)
+
+            // *********************
             // Supported file extensions row
             // *********************
             row(OxcBundle.message("oxc.supported.extensions.label")) {
@@ -166,7 +176,7 @@ class OxcConfigurable(private val project: Project) :
             }.bottomGap(BottomGap.MEDIUM).enabledIf(!disabledConfiguration.selected)
 
             // *********************
-            // Apply safe fixes on save row
+            // Apply fixes on save row
             // *********************
             row {
                 fixAllOnSaveCheckBox = checkBox(OxcBundle.message("oxc.run.fix.all.on.save.label")).bindSelected(

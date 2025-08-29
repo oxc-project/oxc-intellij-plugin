@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix working directory lookup when specifying a language server path that is not part of a node_modules installation.
+
 ## [0.0.15] - 2025-08-28
 
 ### Added

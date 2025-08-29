@@ -6,6 +6,7 @@ import com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.lsp.api.LspServer
@@ -28,8 +29,12 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
             return
         }
         val executable = oxc.binaryPath(file) ?: return
-        val nodePackage = oxc.getPackage(file) ?: return
-        val root = VirtualFileManager.getInstance().findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent ?: return
+        val nodePackage = oxc.getPackage(file)
+        val root = if (nodePackage != null) {
+            VirtualFileManager.getInstance().findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent ?: return
+        } else {
+            ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
+        }
 
         serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable))
     }

@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.17] - 2025-09-18
+
 ### Added
 
 - Update pluginUntilBuild version for compatibility with 2025.3 versions of IntelliJ.
@@ -140,7 +142,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.16...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.17...HEAD
+[0.0.17]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.13...v0.0.14

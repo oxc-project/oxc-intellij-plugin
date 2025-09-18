@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Update pluginUntilBuild version for compatibility with 2025.3 versions of IntelliJ.
+
 ## [0.0.16] - 2025-08-30
 
 ### Fixed

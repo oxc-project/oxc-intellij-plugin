@@ -39,14 +39,12 @@ jobs:
           distribution: zulu
           java-version: 21
 
-      - name: Clean
-        run: |
-          df -h
-          sudo rm -rf /tmp/*
-
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # v5.0.0
+        with:
+          # Read only cache when not executing on the main branch.
+          cache-read-only: ${{ github.ref != 'main' }}
 
       # Set environment variables
       - name: Export Properties
@@ -107,6 +105,8 @@ jobs:
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # v5.0.0
+        with:
+          cache-read-only: 'true'
 
       # Setup Node and install dependencies
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -163,14 +163,6 @@ jobs:
     needs: [ build ]
     runs-on: ubuntu-latest
     steps:
-
-      # Free GitHub Actions Environment Disk Space
-      - name: Maximize Build Space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-        with:
-          tool-cache: false
-          large-packages: false
-
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -185,6 +177,8 @@ jobs:
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # v5.0.0
+        with:
+          cache-read-only: 'true'
 
       # Cache Plugin Verifier IDEs
       - name: Setup Plugin Verifier IDEs Cache

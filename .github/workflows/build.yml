@@ -14,6 +14,17 @@ concurrency:
 
 jobs:
 
+  cleanup-disk:
+    name: Cleanup Disk
+    runs-on: ubuntu-latest
+    steps:
+      # Free GitHub Actions Environment Disk Space
+      - name: Maximize Build Space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
+
   # Prepare environment and build the plugin
   build:
     name: Build
@@ -160,7 +171,7 @@ jobs:
   # Run plugin structure verification along with IntelliJ Plugin Verifier
   verify:
     name: Verify plugin
-    needs: [ build ]
+    needs: [ build, cleanup-disk ]
     runs-on: ubuntu-latest
     steps:
       # Check out current repository

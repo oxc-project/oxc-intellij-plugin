@@ -88,7 +88,8 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = properties("pluginSinceBuild")
-            untilBuild = properties("pluginUntilBuild")
+//            untilBuild = properties("pluginUntilBuild")
+            untilBuild = provider { null }
         }
     }
 
@@ -140,6 +141,11 @@ tasks {
 
     publishPlugin {
         dependsOn(patchChangelog)
+    }
+
+    runIde {
+        systemProperty("idea.log.trace.categories",
+            "#com.github.oxc.project.oxcintellijplugin,#com.intellij.platform.lsp")
     }
 }
 

@@ -10,7 +10,11 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
-import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
+import com.intellij.platform.lsp.api.customization.LspCompletionDisabled
+import com.intellij.platform.lsp.api.customization.LspCustomization
+import com.intellij.platform.lsp.api.customization.LspFormattingDisabled
+import com.intellij.platform.lsp.api.customization.LspGoToDefinitionDisabled
+import com.intellij.platform.lsp.api.customization.LspHoverDisabled
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.InitializeParams
@@ -80,15 +84,20 @@ class OxcLspServerDescriptor(
             }
         }
 
-    override val lspGoToDefinitionSupport = false
+    override val lspCustomization: LspCustomization
+        get() {
+            return object : LspCustomization() {
+                override val goToDefinitionCustomizer = LspGoToDefinitionDisabled
 
-    override val lspCompletionSupport = null
+                override val completionCustomizer = LspCompletionDisabled
 
-    override val lspFormattingSupport = null
+                override val formattingCustomizer = LspFormattingDisabled
 
-    override val lspHoverSupport = false
+                override val hoverCustomizer = LspHoverDisabled
 
-    override val lspDiagnosticsSupport: LspDiagnosticsSupport = OxcLspDiagnosticsSupport()
+                override val diagnosticsCustomizer = OxcLspDiagnosticsSupport()
+            }
+        }
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
         val oxcPackage = OxcPackage(project)

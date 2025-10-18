@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `pluginUntilBuild` version is not specified anymore. Plugin will be marked as compatible with all future versions of
+  an IntelliJ IDE. Individual versions will be marked as not compatible within the JetBrains Marketplace as needed.
+
 ## [0.0.17] - 2025-09-18
 
 ### Added

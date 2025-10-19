@@ -1,6 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsState.Companion.DEFAULT_EXTENSION_LIST
+import com.github.oxc.project.oxcintellijplugin.settings.OxlintSettingsState.Companion.DEFAULT_EXTENSION_LIST
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SettingsCategory
 import com.intellij.openapi.components.SimplePersistentStateComponent
@@ -16,8 +16,8 @@ import kotlinx.collections.immutable.toImmutableMap
 @Service(Service.Level.PROJECT)
 @State(name = "OxcSettings", storages = [Storage("OxcSettings.xml")],
     category = SettingsCategory.TOOLS)
-class OxcSettings(private val project: Project) :
-    SimplePersistentStateComponent<OxcSettingsState>(OxcSettingsState()) {
+class OxlintSettings(private val project: Project) :
+    SimplePersistentStateComponent<OxlintSettingsState>(OxlintSettingsState()) {
 
     var configurationMode: ConfigurationMode
         get() = state.configurationMode
@@ -94,6 +94,6 @@ class OxcSettings(private val project: Project) :
 
     companion object {
         @JvmStatic
-        fun getInstance(project: Project): OxcSettings = project.service()
+        fun getInstance(project: Project): OxlintSettings = project.service()
     }
 }

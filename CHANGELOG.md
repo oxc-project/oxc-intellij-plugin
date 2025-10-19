@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Tool name is now "Oxlint" instead of "Oxc" in the settings UI. This is in preparation for the new "Oxfmt" tool and
+  settings.
+
 ## [0.0.18] - 2025-10-19
 
 ### Changed

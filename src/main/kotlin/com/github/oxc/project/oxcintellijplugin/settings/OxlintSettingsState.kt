@@ -6,13 +6,7 @@ import com.intellij.openapi.components.BaseState
 import com.intellij.util.xml.Attribute
 import com.intellij.util.xmlb.annotations.XMap
 
-enum class ConfigurationMode {
-    DISABLED,
-    AUTOMATIC,
-    MANUAL
-}
-
-class OxcSettingsState : BaseState() {
+class OxlintSettingsState : BaseState() {
 
     @get:Attribute("binaryPath")
     var binaryPath by string()

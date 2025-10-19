@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.settings.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.settings.OxlintSettings
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.Paths
 
-class OxcPackage(private val project: Project) {
+class OxlintPackage(private val project: Project) {
     private val packageName = "oxlint"
     private val packageDescription = NodePackageDescriptor(packageName)
 
@@ -37,7 +37,7 @@ class OxcPackage(private val project: Project) {
     }
 
     fun configPath(): String? {
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
@@ -49,7 +49,7 @@ class OxcPackage(private val project: Project) {
     fun binaryPath(
         virtualFile: VirtualFile,
     ): String? {
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
 
         return when (configurationMode) {
@@ -60,7 +60,7 @@ class OxcPackage(private val project: Project) {
     }
 
     fun isEnabled(): Boolean {
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         return settings.configurationMode != ConfigurationMode.DISABLED
     }
 

@@ -1,10 +1,10 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.OxcBundle
-import com.github.oxc.project.oxcintellijplugin.OxcPackage
+import com.github.oxc.project.oxcintellijplugin.OxlintPackage
 import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
-import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
+import com.github.oxc.project.oxcintellijplugin.services.OxlintServerService
 import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
 import com.intellij.lang.javascript.JavaScriptBundle
 import com.intellij.openapi.application.ApplicationManager
@@ -37,8 +37,8 @@ import kotlinx.collections.immutable.toImmutableMap
 
 private const val HELP_TOPIC = "reference.settings.oxc"
 
-class OxcConfigurable(private val project: Project) :
-    BoundSearchableConfigurable(OxcBundle.message("oxc.name"), HELP_TOPIC, CONFIGURABLE_ID) {
+class OxlintConfigurable(private val project: Project) :
+    BoundSearchableConfigurable(OxcBundle.message("oxlint.name"), HELP_TOPIC, CONFIGURABLE_ID) {
 
     lateinit var fixAllOnSaveCheckBox: JCheckBox
     lateinit var disabledConfiguration: JRadioButton
@@ -47,8 +47,8 @@ class OxcConfigurable(private val project: Project) :
     private lateinit var extensionsField: JBTextField
 
     override fun createPanel(): DialogPanel {
-        val settings = OxcSettings.getInstance(project)
-        val server = OxcServerService.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
+        val server = OxlintServerService.getInstance(project)
 
         return panel {
             // *********************
@@ -71,7 +71,7 @@ class OxcConfigurable(private val project: Project) :
                         JavaScriptBundle.message("settings.javascript.linters.autodetect.configure.automatically.help.text",
                             ApplicationNamesInfo.getInstance().fullProductName,
                             displayName,
-                            "${OxcPackage.CONFIG_NAME}.json")
+                            "${OxlintPackage.CONFIG_NAME}.json")
 
                     val helpLabel = ContextHelpLabel.create(detectAutomaticallyHelpText)
                     helpLabel.border = JBUI.Borders.emptyLeft(UIUtil.DEFAULT_HGAP)
@@ -90,18 +90,18 @@ class OxcConfigurable(private val project: Project) :
             // *********************
             indent {
                 panel {
-                    row(OxcBundle.message("oxc.settings.languageServerPath")) {
+                    row(OxcBundle.message("oxlint.settings.languageServerPath")) {
                         @Suppress("UnstableApiUsage")
                         textFieldWithBrowseButton(
-                            OxcBundle.message("oxc.settings.languageServerPath")) {
+                            OxcBundle.message("oxlint.settings.languageServerPath")) {
                             it.path
                         }.align(AlignX.FILL).bindText(settings::binaryPath)
                     }.visibleIf(manualConfiguration.selected)
 
-                    row(OxcBundle.message("oxc.config.path.label")) {
+                    row(OxcBundle.message("oxlint.config.path.label")) {
                         @Suppress("UnstableApiUsage")
                         textFieldWithBrowseButton(
-                            OxcBundle.message("oxc.config.path.label"),
+                            OxcBundle.message("oxlint.config.path.label"),
                             project,
                         ) { it.path }.align(AlignX.FILL).bindText(settings::configPath)
                     }.visibleIf(manualConfiguration.selected)
@@ -111,7 +111,7 @@ class OxcConfigurable(private val project: Project) :
             // *********************
             // Oxlint execution trigger row
             // *********************
-            row(OxcBundle.message("oxc.settings.oxlintRunTrigger")) {
+            row(OxcBundle.message("oxlint.settings.oxlintRunTrigger")) {
                 // TODO: Probably a better way to do this map of enum to presentation text.
                 val options = mapOf(
                     OxlintRunTrigger.ON_SAVE to "On Save",
@@ -131,7 +131,7 @@ class OxcConfigurable(private val project: Project) :
             // *********************
             // Oxlint unused disable directives row
             // *********************
-            row(OxcBundle.message("oxc.settings.unusedDisableDirectives")) {
+            row(OxcBundle.message("oxlint.settings.unusedDisableDirectives")) {
                 // TODO: Probably a better way to do this map of enum to presentation text.
                 val options = mapOf(
                     OxlintUnusedDisableDirectivesSeverity.ALLOW to "Allow",
@@ -152,7 +152,7 @@ class OxcConfigurable(private val project: Project) :
             // *********************
             // Supported file extensions row
             // *********************
-            row(OxcBundle.message("oxc.supported.extensions.label")) {
+            row(OxcBundle.message("oxlint.supported.extensions.label")) {
                 val parse = { it: String ->
                     it.split(",").map { it.trim() }.filter { it.isNotBlank() }.toMutableList()
                 }
@@ -171,12 +171,12 @@ class OxcConfigurable(private val project: Project) :
 
                 // Add help text with a "Reset" link below the field
                 extensionsFieldCell.comment(
-                    OxcBundle.message("oxc.supported.extensions.comment") +
+                    OxcBundle.message("oxlint.supported.extensions.comment") +
                     " <a href=\"reset\">Reset to Defaults</a>"
                 )
                 extensionsFieldCell.comment!!.addHyperlinkListener { event ->
                     if (event.eventType == HyperlinkEvent.EventType.ACTIVATED && event.description == "reset") {
-                        extensionsField.text = join(OxcSettingsState.DEFAULT_EXTENSION_LIST)
+                        extensionsField.text = join(OxlintSettingsState.DEFAULT_EXTENSION_LIST)
                     }
                 }
             }.bottomGap(BottomGap.MEDIUM).enabledIf(!disabledConfiguration.selected)
@@ -185,7 +185,7 @@ class OxcConfigurable(private val project: Project) :
             // Type aware row
             // *********************
             row {
-                checkBox(OxcBundle.message("oxc.type.aware.label")).bindSelected(
+                checkBox(OxcBundle.message("oxlint.type.aware.label")).bindSelected(
                     { settings.typeAware },
                     { settings.typeAware = it },
                 )
@@ -195,7 +195,7 @@ class OxcConfigurable(private val project: Project) :
             // Apply fixes on save row
             // *********************
             row {
-                fixAllOnSaveCheckBox = checkBox(OxcBundle.message("oxc.run.fix.all.on.save.label")).bindSelected(
+                fixAllOnSaveCheckBox = checkBox(OxcBundle.message("oxlint.run.fix.all.on.save.label")).bindSelected(
                     { settings.configurationMode != ConfigurationMode.DISABLED && settings.fixAllOnSave },
                     { settings.fixAllOnSave = it },
                 ).component
@@ -255,7 +255,7 @@ class OxcConfigurable(private val project: Project) :
     }
 
     private class ConfigurationModeProperty(
-        private val settings: OxcSettings,
+        private val settings: OxlintSettings,
         private val mode: ConfigurationMode,
     ) : MutableProperty<Boolean> {
         override fun get(): Boolean = settings.configurationMode == mode

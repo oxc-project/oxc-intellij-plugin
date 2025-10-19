@@ -1,9 +1,9 @@
 package com.github.oxc.project.oxcintellijplugin.lsp
 
-import com.github.oxc.project.oxcintellijplugin.OxcPackage
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.OxlintPackage
+import com.github.oxc.project.oxcintellijplugin.settings.OxlintSettings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.diagnostic.thisLogger
@@ -15,11 +15,11 @@ import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.InitializeParams
 
-class OxcLspServerDescriptor(
+class OxlintLspServerDescriptor(
     project: Project,
     root: VirtualFile,
     executable: String,
-) : LspServerDescriptor(project, "Oxc", root) {
+) : LspServerDescriptor(project, "Oxlint", root) {
     private val targetRun: OxcTargetRun = run {
         val builder = OxcTargetRunBuilder(project).getBuilder(executable).setWorkingDirectory(root.path)
 
@@ -28,7 +28,7 @@ class OxcLspServerDescriptor(
 
     override fun isSupportedFile(file: VirtualFile): Boolean {
         thisLogger().debug("file.path ${file.path}")
-        return OxcSettings.getInstance(project).fileSupported(file) && roots.any { root ->
+        return OxlintSettings.getInstance(project).fileSupported(file) && roots.any { root ->
             file.toNioPath().startsWith(root.toNioPath())
         }
     }
@@ -88,14 +88,14 @@ class OxcLspServerDescriptor(
 
     override val lspHoverSupport = false
 
-    override val lspDiagnosticsSupport: LspDiagnosticsSupport = OxcLspDiagnosticsSupport()
+    override val lspDiagnosticsSupport: LspDiagnosticsSupport = OxlintLspDiagnosticsSupport()
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
-        val oxcPackage = OxcPackage(project)
-        val settings = OxcSettings.getInstance(project)
+        val oxlintPackage = OxlintPackage(project)
+        val settings = OxlintSettings.getInstance(project)
 
         return mapOf(
-            "configPath" to oxcPackage.configPath(),
+            "configPath" to oxlintPackage.configPath(),
             "flags" to settings.flags,
             "run" to settings.state.runTrigger.toLspValue(),
             "typeAware" to settings.typeAware,

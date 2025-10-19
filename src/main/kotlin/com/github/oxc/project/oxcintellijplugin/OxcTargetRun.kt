@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.settings.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.settings.OxlintSettings
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
@@ -70,10 +70,10 @@ class OxcTargetRunBuilder(val project: Project) {
         executable: String,
     ): ProcessCommandBuilder {
         if (executable.isEmpty()) {
-            throw ExecutionException(OxcBundle.message("oxc.language.server.not.found"))
+            throw ExecutionException(OxcBundle.message("oxlint.language.server.not.found"))
         }
 
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
         val isNodeJs = File(executable).useLines { it.firstOrNull() }
             ?.startsWith("#!/usr/bin/env node") == true

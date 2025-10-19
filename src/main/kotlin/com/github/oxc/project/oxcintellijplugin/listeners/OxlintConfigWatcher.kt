@@ -1,17 +1,17 @@
 package com.github.oxc.project.oxcintellijplugin.listeners
 
-import com.github.oxc.project.oxcintellijplugin.extensions.isOxcConfigFile
-import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
+import com.github.oxc.project.oxcintellijplugin.extensions.isOxlintConfigFile
+import com.github.oxc.project.oxcintellijplugin.services.OxlintServerService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 
-class OxcConfigWatcher : BulkFileListener {
+class OxlintConfigWatcher : BulkFileListener {
     override fun after(events: List<VFileEvent>) {
         val configChanged = events.any { event ->
-            return@any event.file?.isOxcConfigFile() == true
+            return@any event.file?.isOxlintConfigFile() == true
         }
 
         if (configChanged) {
@@ -20,7 +20,7 @@ class OxcConfigWatcher : BulkFileListener {
             openProjects.forEach { project ->
                 ApplicationManager.getApplication().invokeLater {
                     if (!project.isDisposed) {
-                        OxcServerService.Companion.getInstance(project).restartServer()
+                        OxlintServerService.getInstance(project).restartServer()
                     }
                 }
             }

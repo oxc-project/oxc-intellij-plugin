@@ -2,9 +2,9 @@ package com.github.oxc.project.oxcintellijplugin.actions
 
 import com.github.oxc.project.oxcintellijplugin.OxcBundle
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
-import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
-import com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.services.OxlintServerService
+import com.github.oxc.project.oxcintellijplugin.settings.OxlintConfigurable
+import com.github.oxc.project.oxcintellijplugin.settings.OxlintSettings
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -23,7 +23,7 @@ import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import java.io.IOException
 import kotlinx.coroutines.withTimeout
 
-class OxcFixAllAction : AnAction(), DumbAware {
+class OxlintFixAllAction : AnAction(), DumbAware {
     init {
         templatePresentation.icon = OxcIcons.OxcRound
     }
@@ -34,30 +34,30 @@ class OxcFixAllAction : AnAction(), DumbAware {
 
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
 
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
 
         if (!settings.fileSupported(virtualFile)) {
-            notificationGroup.createNotification(title = OxcBundle.message("oxc.file.not.supported.title"),
-                content = OxcBundle.message("oxc.file.not.supported.description", virtualFile.name),
+            notificationGroup.createNotification(title = OxcBundle.message("oxlint.file.not.supported.title"),
+                content = OxcBundle.message("oxlint.file.not.supported.description", virtualFile.name),
                 type = NotificationType.WARNING)
-                .addAction(NotificationAction.createSimple(OxcBundle.message("oxc.configure.extensions.link")) {
-                    ShowSettingsUtil.getInstance().showSettingsDialog(project, OxcConfigurable::class.java)
+                .addAction(NotificationAction.createSimple(OxcBundle.message("oxlint.configure.extensions.link")) {
+                    ShowSettingsUtil.getInstance().showSettingsDialog(project, OxlintConfigurable::class.java)
                 }).notify(project)
             return
         }
 
         runWithModalProgressBlocking(project,
-            OxcBundle.message("oxc.run.fix.all")) {
+            OxcBundle.message("oxlint.run.fix.all")) {
             try {
                 withTimeout(5_000) {
-                    OxcServerService.getInstance(project).fixAll(virtualFile, document)
+                    OxlintServerService.getInstance(project).fixAll(virtualFile, document)
                 }
-                notificationGroup.createNotification(title = OxcBundle.message("oxc.fix.all.success.label"),
-                    content = OxcBundle.message("oxc.fix.all.success.description"),
+                notificationGroup.createNotification(title = OxcBundle.message("oxlint.fix.all.success.label"),
+                    content = OxcBundle.message("oxlint.fix.all.success.description"),
                     type = NotificationType.INFORMATION).notify(project)
             } catch (e: Exception) {
-                notificationGroup.createNotification(title = OxcBundle.message("oxc.fix.all.failure.label"),
-                    content = OxcBundle.message("oxc.fix.all.failure.description", e.message.toString()),
+                notificationGroup.createNotification(title = OxcBundle.message("oxlint.fix.all.failure.label"),
+                    content = OxcBundle.message("oxlint.fix.all.failure.description", e.message.toString()),
                     type = NotificationType.ERROR).notify(project)
             }
         }
@@ -65,7 +65,7 @@ class OxcFixAllAction : AnAction(), DumbAware {
 
     override fun update(e: AnActionEvent) {
         val project = e.project ?: return
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
 
         val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
         val enabled = file != null && settings.fileSupported(file) && settings.isEnabled()

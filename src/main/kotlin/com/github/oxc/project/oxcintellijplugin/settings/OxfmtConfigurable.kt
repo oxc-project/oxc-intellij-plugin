@@ -1,10 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.OxcBundle
-import com.github.oxc.project.oxcintellijplugin.OxlintPackage
-import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
-import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
-import com.github.oxc.project.oxcintellijplugin.services.OxlintServerService
+import com.github.oxc.project.oxcintellijplugin.OxfmtPackage
+import com.github.oxc.project.oxcintellijplugin.services.OxfmtServerService
 import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
 import com.intellij.lang.javascript.JavaScriptBundle
 import com.intellij.openapi.application.ApplicationManager
@@ -19,7 +17,6 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.MutableProperty
-import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
@@ -36,7 +33,7 @@ import kotlinx.collections.immutable.toImmutableMap
 
 private const val HELP_TOPIC = "reference.settings.oxc"
 
-class OxlintConfigurable(private val project: Project) :
+class OxfmtConfigurable(private val project: Project) :
     BoundSearchableConfigurable(OxcBundle.message("oxlint.name"), HELP_TOPIC, CONFIGURABLE_ID) {
 
     lateinit var fixAllOnSaveCheckBox: JCheckBox
@@ -46,8 +43,8 @@ class OxlintConfigurable(private val project: Project) :
     private lateinit var extensionsField: JBTextField
 
     override fun createPanel(): DialogPanel {
-        val settings = OxlintSettings.getInstance(project)
-        val server = OxlintServerService.getInstance(project)
+        val settings = OxfmtSettings.getInstance(project)
+        val server = OxfmtServerService.getInstance(project)
 
         return panel {
             // *********************
@@ -70,7 +67,7 @@ class OxlintConfigurable(private val project: Project) :
                         JavaScriptBundle.message("settings.javascript.linters.autodetect.configure.automatically.help.text",
                             ApplicationNamesInfo.getInstance().fullProductName,
                             displayName,
-                            "${OxlintPackage.CONFIG_NAME}.json")
+                            "${OxfmtPackage.CONFIG_NAME}.json")
 
                     val helpLabel = ContextHelpLabel.create(detectAutomaticallyHelpText)
                     helpLabel.border = JBUI.Borders.emptyLeft(UIUtil.DEFAULT_HGAP)
@@ -108,47 +105,6 @@ class OxlintConfigurable(private val project: Project) :
             }
 
             // *********************
-            // Oxlint execution trigger row
-            // *********************
-            row(OxcBundle.message("oxlint.settings.oxlintRunTrigger")) {
-                // TODO: Probably a better way to do this map of enum to presentation text.
-                val options = mapOf(
-                    OxlintRunTrigger.ON_SAVE to "On Save",
-                    OxlintRunTrigger.ON_TYPE to "On Type",
-                )
-                val reverseOptions = options.entries.associateBy({ it.value }, { it.key })
-
-                comboBox(options.values).bindItem({
-                    return@bindItem options[settings.runTrigger]
-                }, {
-                    if (it != null) {
-                        settings.runTrigger = reverseOptions[it]!!
-                    }
-                })
-            }.enabledIf(!disabledConfiguration.selected)
-
-            // *********************
-            // Oxlint unused disable directives row
-            // *********************
-            row(OxcBundle.message("oxlint.settings.unusedDisableDirectives")) {
-                // TODO: Probably a better way to do this map of enum to presentation text.
-                val options = mapOf(
-                    OxlintUnusedDisableDirectivesSeverity.ALLOW to "Allow",
-                    OxlintUnusedDisableDirectivesSeverity.WARN to "Warn",
-                    OxlintUnusedDisableDirectivesSeverity.DENY to "Deny",
-                )
-                val reverseOptions = options.entries.associateBy({ it.value }, { it.key })
-
-                comboBox(options.values).bindItem({
-                    return@bindItem options[settings.unusedDisableDirectivesSeverity]
-                }, {
-                    if (it != null) {
-                        settings.unusedDisableDirectivesSeverity = reverseOptions[it]!!
-                    }
-                })
-            }.enabledIf(!disabledConfiguration.selected)
-
-            // *********************
             // Supported file extensions row
             // *********************
             row(OxcBundle.message("oxlint.supported.extensions.label")) {
@@ -175,20 +131,10 @@ class OxlintConfigurable(private val project: Project) :
                 )
                 extensionsFieldCell.comment!!.addHyperlinkListener { event ->
                     if (event.eventType == HyperlinkEvent.EventType.ACTIVATED && event.description == "reset") {
-                        extensionsField.text = join(OxlintSettingsState.DEFAULT_EXTENSION_LIST)
+                        extensionsField.text = join(OxfmtSettingsState.DEFAULT_EXTENSION_LIST)
                     }
                 }
             }.bottomGap(BottomGap.MEDIUM).enabledIf(!disabledConfiguration.selected)
-
-            // *********************
-            // Type aware row
-            // *********************
-            row {
-                checkBox(OxcBundle.message("oxlint.type.aware.label")).bindSelected(
-                    { settings.typeAware },
-                    { settings.typeAware = it },
-                )
-            }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
             // Apply fixes on save row
@@ -254,7 +200,7 @@ class OxlintConfigurable(private val project: Project) :
     }
 
     private class ConfigurationModeProperty(
-        private val settings: OxlintSettings,
+        private val settings: OxfmtSettings,
         private val mode: ConfigurationMode,
     ) : MutableProperty<Boolean> {
         override fun get(): Boolean = settings.configurationMode == mode

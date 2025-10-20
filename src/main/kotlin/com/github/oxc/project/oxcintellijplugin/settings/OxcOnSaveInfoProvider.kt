@@ -6,10 +6,12 @@ import com.intellij.ide.actionsOnSave.ActionOnSaveInfo
 import com.intellij.ide.actionsOnSave.ActionOnSaveInfoProvider
 
 class OxcOnSaveInfoProvider : ActionOnSaveInfoProvider() {
+
     override fun getActionOnSaveInfos(context: ActionOnSaveContext): List<ActionOnSaveInfo> =
-        listOf(OxlintOnSaveFixAllActionInfo(context))
+        listOf(OxlintOnSaveFixAllActionInfo(context), OxfmtOnSaveFixAllActionInfo(context))
 
     override fun getSearchableOptions(): Collection<String> {
-        return listOf(OxcBundle.message("oxlint.fix.all.on.save.checkbox.on.actions.on.save.page"))
+        return listOf(OxcBundle.message("oxlint.fix.all.on.save.checkbox.on.actions.on.save.page"),
+            OxcBundle.message("oxlint.fix.all.on.save.checkbox.on.actions.on.save.page"))
     }
 }

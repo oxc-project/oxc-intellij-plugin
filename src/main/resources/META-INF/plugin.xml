@@ -14,11 +14,21 @@
         <iconProvider implementation="com.github.oxc.project.oxcintellijplugin.OxcIconProvider"/>
         <platform.lsp.serverSupportProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.lsp.OxlintLspServerSupportProvider"/>
+        <platform.lsp.serverSupportProvider
+                implementation="com.github.oxc.project.oxcintellijplugin.lsp.OxfmtLspServerSupportProvider"/>
 
         <projectConfigurable
                 parentId="tools"
                 instance="com.github.oxc.project.oxcintellijplugin.settings.OxlintConfigurable"
-                id="com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable"
+                id="com.github.oxc.project.oxcintellijplugin.settings.OxlintConfigurable"
+                nonDefaultProject="false"
+                bundle="messages.OxcBundle"
+                key="oxlint.name"
+        />
+        <projectConfigurable
+                parentId="tools"
+                instance="com.github.oxc.project.oxcintellijplugin.settings.OxfmtConfigurable"
+                id="com.github.oxc.project.oxcintellijplugin.settings.OxfmtConfigurable"
                 nonDefaultProject="false"
                 bundle="messages.OxcBundle"
                 key="oxlint.name"
@@ -30,22 +40,39 @@
         />
 
         <actionOnSave
-                id="OxcFixAllOnSaveAction"
+                id="OxlintFixAllOnSaveAction"
                 implementation="com.github.oxc.project.oxcintellijplugin.actions.OxlintFixAllOnSaveAction"
                 order="first, before FormatOnSaveAction"
+        />
+        <actionOnSave
+                id="OxfmtFixAllOnSaveAction"
+                implementation="com.github.oxc.project.oxcintellijplugin.actions.OxfmtFixAllOnSaveAction"
+                order="first, after OxlintFixAllOnSaveAction"
         />
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
-        <JsonSchema.ProviderFactory implementation="com.github.oxc.project.oxcintellijplugin.OxlintSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory
+                implementation="com.github.oxc.project.oxcintellijplugin.OxlintSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory
+                implementation="com.github.oxc.project.oxcintellijplugin.OxfmtSchemaProviderFactory"/>
     </extensions>
 
     <actions>
         <action
-                id="OxcApplyFixAllAction"
-                text="Apply Oxc Quick Fixes"
-                description="Apply Oxc quick fixes"
+                id="OxlintApplyFixAllAction"
+                text="Apply Oxlint Quick Fixes"
+                description="Apply Oxlint quick fixes"
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxlintFixAllAction"
+        >
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
+        <action
+                id="OxfmtApplyFixAllAction"
+                text="Apply Oxfmt Quick Fixes"
+                description="Apply Oxfmt quick fixes"
+                class="com.github.oxc.project.oxcintellijplugin.actions.OxfmtFixAllAction"
         >
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
@@ -57,10 +84,16 @@
                 class="com.github.oxc.project.oxcintellijplugin.listeners.OxlintConfigWatcher"
                 topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"
         />
+        <listener
+                class="com.github.oxc.project.oxcintellijplugin.listeners.OxfmtConfigWatcher"
+                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"
+        />
     </applicationListeners>
 
     <projectListeners>
         <listener class="com.github.oxc.project.oxcintellijplugin.listeners.OxlintEditorWatcher"
+                topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.listeners.OxfmtEditorWatcher"
                 topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
     </projectListeners>
 </idea-plugin>

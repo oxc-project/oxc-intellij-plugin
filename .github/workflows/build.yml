@@ -149,11 +149,15 @@ jobs:
             ${{ runner.os }}-npm-cache-dir
 
       - name: Setup Highlighting Custom Config Test
-        working-directory: src/test/testData/highlighting/custom-config
+        working-directory: src/test/testData/highlighting/lint/custom-config
         run: npm ci
 
       - name: Setup Highlighting Nested Config Test
-        working-directory: src/test/testData/highlighting/nested-config
+        working-directory: src/test/testData/highlighting/lint/nested-config
+        run: npm ci
+
+      - name: Setup Highlighting No Config Test
+        working-directory: src/test/testData/highlighting/lint/no-config
         run: npm ci
 
       # Run tests

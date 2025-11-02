@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
+import com.github.oxc.project.oxcintellijplugin.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsState.Companion.DEFAULT_EXTENSION_LIST
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SettingsCategory
@@ -7,11 +8,10 @@ import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
-import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.toImmutableMap
 
 @Service(Service.Level.PROJECT)
 @State(name = "OxcSettings", storages = [Storage("OxcSettings.xml")],
@@ -49,16 +49,46 @@ class OxcSettings(private val project: Project) :
             state.configPath = value
         }
 
+    var disableNestedConfig: Boolean
+        get() {
+            try {
+                return flags.getOrDefault(DISABLE_NESTED_CONFIG_KEY, "false").toBoolean()
+            } catch (exception: Exception) {
+                thisLogger().warn("Invalid value found for $DISABLE_NESTED_CONFIG_KEY", exception)
+                return false
+            }
+        }
+        set(value) {
+            flags[DISABLE_NESTED_CONFIG_KEY] = value.toString()
+        }
+
     var fixAllOnSave: Boolean
         get() = isEnabled() && state.fixAllOnSave
         set(value) {
             state.fixAllOnSave = value
         }
 
-    var flags: ImmutableMap<String, String>
-        get() = state.flags.toImmutableMap()
+    var fixKind: OxlintFixKind
+        get() {
+            try {
+                return OxlintFixKind.valueOf(
+                    flags.getOrDefault(FIX_KIND_KEY, OxlintFixKind.SAFE_FIX.name).uppercase())
+            } catch (exception: Exception) {
+                thisLogger().warn("Invalid value found for $FIX_KIND_KEY", exception)
+                return OxlintFixKind.SAFE_FIX
+            }
+        }
         set(value) {
-            state.flags = value.toMutableMap()
+            flags[FIX_KIND_KEY] = value.name
+        }
+
+    /**
+     * Only intended for legacy use. New config values should be in a separate property.
+     */
+    private var flags: MutableMap<String, String>
+        get() = state.flags
+        set(value) {
+            state.flags = value
         }
 
     var runTrigger
@@ -93,6 +123,10 @@ class OxcSettings(private val project: Project) :
     }
 
     companion object {
+
+        const val DISABLE_NESTED_CONFIG_KEY = "disable_nested_config";
+        const val FIX_KIND_KEY = "fix_kind";
+
         @JvmStatic
         fun getInstance(project: Project): OxcSettings = project.service()
     }

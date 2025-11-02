@@ -96,7 +96,10 @@ class OxcLspServerDescriptor(
 
         return mapOf(
             "configPath" to oxcPackage.configPath(),
-            "flags" to settings.flags,
+            "flags" to mapOf(
+                "disable_nested_config" to settings.disableNestedConfig.toString(),
+                "fix_kind" to settings.fixKind.toLspValue(),
+            ),
             "run" to settings.state.runTrigger.toLspValue(),
             "typeAware" to settings.typeAware,
             "unusedDisableDirectives" to settings.state.unusedDisableDirectives.toLspValue(),

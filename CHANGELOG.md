@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Replace flags configuration with dedicated UI components. The Oxc language server is shifting away from a generic
+  flags approach and this matches it. This also provides a better UI to users by exposing these options directly.
+
 ## [0.0.18] - 2025-10-19
 
 ### Changed

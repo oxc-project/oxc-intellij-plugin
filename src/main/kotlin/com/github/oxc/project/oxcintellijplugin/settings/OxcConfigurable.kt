@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.OxcBundle
 import com.github.oxc.project.oxcintellijplugin.OxcPackage
+import com.github.oxc.project.oxcintellijplugin.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
 import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
@@ -14,7 +15,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.ContextHelpLabel
-import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
@@ -25,15 +25,11 @@ import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.not
 import com.intellij.ui.layout.selected
-import com.intellij.ui.table.TableView
-import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.ListTableModel
 import com.intellij.util.ui.UIUtil
 import javax.swing.JCheckBox
 import javax.swing.JRadioButton
 import javax.swing.event.HyperlinkEvent
-import kotlinx.collections.immutable.toImmutableMap
 
 private const val HELP_TOPIC = "reference.settings.oxc"
 
@@ -205,29 +201,37 @@ class OxcConfigurable(private val project: Project) :
             }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
-            // Language Server Flags row
+            // Disable Nested Config row
             // *********************
-            row("Language Server Flags") {}
             row {
-                val table = TableView(
-                    ListTableModel<Flag>(createFlagKeyColumn(), createFlagValueColumn()))
+                checkBox(OxcBundle.message("oxc.disable.nested.config.label")).bindSelected(
+                    { settings.disableNestedConfig },
+                    { settings.disableNestedConfig = it },
+                )
+            }.enabledIf(!disabledConfiguration.selected)
+            // *********************
+            // Oxlint Fix Kind row
+            // *********************
+            row(OxcBundle.message("oxc.fix.kind.label")) {
+                // TODO: Probably a better way to do this map of enum to presentation text.
+                val options = mapOf(
+                    OxlintFixKind.SAFE_FIX to "Safe Fix",
+                    OxlintFixKind.SAFE_FIX_OR_SUGGESTION to "Safe Fix or Suggestion",
+                    OxlintFixKind.DANGEROUS_FIX to "Dangerous Fix",
+                    OxlintFixKind.DANGEROUS_FIX_OR_SUGGESTION to "Dangerous Fix or Suggestion",
+                    OxlintFixKind.NONE to "None",
+                    OxlintFixKind.ALL to "All",
+                )
+                val reverseOptions = options.entries.associateBy({ it.value }, { it.key })
 
-                cell(ToolbarDecorator.createDecorator(table).setAddAction {
-                    table.listTableModel.addRow(Flag("", ""))
-                }.setRemoveAction {
-                    val selectedRow = table.selectedRow
-                    if (selectedRow >= 0) {
-                        table.listTableModel.removeRow(selectedRow)
+                comboBox(options.values).bindItem({
+                    return@bindItem options[settings.fixKind]
+                }, {
+                    if (it != null) {
+                        settings.fixKind = reverseOptions[it]!!
                     }
-                }.createPanel()).align(AlignX.FILL).onApply {
-                    settings.flags = table.listTableModel.items.associate { it.key to it.value }
-                        .toImmutableMap()
-                }.onIsModified {
-                    settings.flags != table.listTableModel.items.associate { it.key to it.value }
-                }.onReset {
-                    table.listTableModel.items = settings.flags.map { Flag(it.key, it.value) }
-                }
-            }
+                })
+            }.enabledIf(!disabledConfiguration.selected)
 
             onApply {
                 if (project.isDefault) {
@@ -269,43 +273,5 @@ class OxcConfigurable(private val project: Project) :
 
     companion object {
         const val CONFIGURABLE_ID = "com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable"
-    }
-}
-
-private data class Flag(var key: String, var value: String)
-
-private abstract class EditableColumn<Item, Aspect>(private val name: String) :
-    ColumnInfo<Item, Aspect>(name) {
-
-    override fun isCellEditable(item: Item?): Boolean {
-        return true
-    }
-}
-
-private fun createFlagKeyColumn(): ColumnInfo<Flag, String> {
-    return object : EditableColumn<Flag, String>("Key") {
-        override fun setValue(item: Flag?, value: String?) {
-            if (item != null && value != null) {
-                item.key = value
-            }
-        }
-
-        override fun valueOf(item: Flag?): String? {
-            return item?.key
-        }
-    }
-}
-
-private fun createFlagValueColumn(): ColumnInfo<Flag, String> {
-    return object : EditableColumn<Flag, String>("Value") {
-        override fun setValue(item: Flag?, value: String?) {
-            if (item != null && value != null) {
-                item.value = value
-            }
-        }
-
-        override fun valueOf(item: Flag?): String? {
-            return item?.value
-        }
     }
 }

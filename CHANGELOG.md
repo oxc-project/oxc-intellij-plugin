@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.19] - 2025-11-02
+
 ### Changed
 
 - Replace flags configuration with dedicated UI components. The Oxc language server is shifting away from a generic
@@ -154,7 +156,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.18...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.19...HEAD
+[0.0.19]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.18...v0.0.19
 [0.0.18]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.15...v0.0.16

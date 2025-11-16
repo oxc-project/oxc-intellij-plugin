@@ -36,7 +36,7 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
             ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
         }
 
-        serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable))
+        serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

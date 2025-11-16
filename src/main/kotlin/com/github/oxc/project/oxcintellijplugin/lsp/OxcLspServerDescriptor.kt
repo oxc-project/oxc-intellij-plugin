@@ -3,6 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.lsp
 import com.github.oxc.project.oxcintellijplugin.OxcPackage
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
+import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -19,9 +20,10 @@ class OxcLspServerDescriptor(
     project: Project,
     root: VirtualFile,
     executable: String,
+    executableParameters: List<ProcessCommandParameter>,
 ) : LspServerDescriptor(project, "Oxc", root) {
     private val targetRun: OxcTargetRun = run {
-        val builder = OxcTargetRunBuilder(project).getBuilder(executable).setWorkingDirectory(root.path)
+        val builder = OxcTargetRunBuilder(project).getBuilder(executable).setWorkingDirectory(root.path).addParameters(executableParameters)
 
         builder.build()
     }

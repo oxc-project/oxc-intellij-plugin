@@ -17,6 +17,9 @@ class OxcSettingsState : BaseState() {
     @get:Attribute("binaryPath")
     var binaryPath by string()
 
+    @get:Attribute("binaryParameters")
+    var binaryParameters by list<String>()
+
     @get:Attribute("runTrigger")
     var runTrigger by enum(OxlintRunTrigger.ON_TYPE)
 

@@ -38,6 +38,13 @@ class OxcSettings(private val project: Project) :
             state.binaryPath = value
         }
 
+    var binaryParameters: MutableList<String>
+        get() = state.binaryParameters
+        set(value) {
+            state.binaryParameters.clear()
+            state.binaryParameters.addAll(value)
+        }
+
     var configPath: String
         get() = state.configPath ?: ""
         set(value) {

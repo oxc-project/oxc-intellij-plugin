@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added support for the upcoming 1.29.0 version of Oxlint which allows executing the language server through
+  `oxlint --lsp`. When using automatic configuration, this will be accommodated without change when updating to
+  a newer version of Oxlint. When using a manual configuration with a custom path to the language server, there is
+  a new checkbox that will need to be checked after updating.
+
 ## [0.0.19] - 2025-11-02
 
 ### Changed

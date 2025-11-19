@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.wsl.WSLCommandLineOptions
@@ -45,7 +46,7 @@ class GeneralProcessCommandBuilder : ProcessCommandBuilder {
     }
 
     override fun build(): OxcTargetRun {
-        val exec = executable ?: throw ExecutionException(OxlintBundle.message("oxc.language.server.not.found"))
+        val exec = executable ?: throw ExecutionException(OxlintBundle.message("oxlint.language.server.not.found"))
 
         command.withExePath(exec)
         workingDir?.let { command.withWorkingDirectory(Path(it)) }

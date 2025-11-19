@@ -1,7 +1,8 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
-import com.github.oxc.project.oxcintellijplugin.settings.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
@@ -10,7 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.text.SemVer
 import java.nio.file.Paths
 
-class OxcPackage(private val project: Project) {
+class OxlintPackage(private val project: Project) {
     private val packageName = "oxlint"
     private val packageDescription = NodePackageDescriptor(packageName)
 
@@ -38,7 +39,7 @@ class OxcPackage(private val project: Project) {
     }
 
     fun configPath(): String? {
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
@@ -50,28 +51,28 @@ class OxcPackage(private val project: Project) {
     fun binaryPath(
         virtualFile: VirtualFile,
     ): String? {
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
 
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> findOxcExecutable(virtualFile)
-            ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank { findOxcExecutable(virtualFile) }
+            ConfigurationMode.AUTOMATIC -> findOxlintExecutable(virtualFile)
+            ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank { findOxlintExecutable(virtualFile) }
         }
     }
 
     fun binaryParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
 
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> emptyList()
             ConfigurationMode.AUTOMATIC -> {
-                findOxcParameters(virtualFile)
+                findOxlintParameters(virtualFile)
             }
             ConfigurationMode.MANUAL -> {
                 if (settings.binaryPath.isBlank()) {
-                    findOxcParameters(virtualFile)
+                    findOxlintParameters(virtualFile)
                 } else {
                     settings.binaryParameters.map { ProcessCommandParameter.Value(it) }
                 }
@@ -80,11 +81,11 @@ class OxcPackage(private val project: Project) {
     }
 
     fun isEnabled(): Boolean {
-        val settings = OxcSettings.getInstance(project)
+        val settings = OxlintSettings.getInstance(project)
         return settings.configurationMode != ConfigurationMode.DISABLED
     }
 
-    private fun findOxcExecutable(virtualFile: VirtualFile): String? {
+    private fun findOxlintExecutable(virtualFile: VirtualFile): String? {
         val oxlintPackage = getPackage(virtualFile) ?: return null
         val path = oxlintPackage.getAbsolutePackagePathToRequire(project)
         if (path != null) {
@@ -100,7 +101,7 @@ class OxcPackage(private val project: Project) {
         return null
     }
 
-    private fun findOxcParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
+    private fun findOxlintParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
         val oxlintPackage = getPackage(virtualFile) ?: return emptyList()
         val version = oxlintPackage.getVersion(project)
 

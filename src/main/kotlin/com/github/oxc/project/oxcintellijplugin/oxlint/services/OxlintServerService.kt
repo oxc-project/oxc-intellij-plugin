@@ -1,7 +1,7 @@
-package com.github.oxc.project.oxcintellijplugin.services
+package com.github.oxc.project.oxcintellijplugin.oxlint.services
 
-import com.github.oxc.project.oxcintellijplugin.OxlintBundle
-import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
+import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.command.WriteCommandAction
@@ -18,15 +18,15 @@ import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeActionTriggerKind
 
 @Service(Service.Level.PROJECT)
-class OxcServerService(private val project: Project) {
+class OxlintServerService(private val project: Project) {
     private val groupId = "Oxc"
 
     companion object {
-        fun getInstance(project: Project): OxcServerService = project.getService(OxcServerService::class.java)
+        fun getInstance(project: Project): OxlintServerService = project.getService(OxlintServerService::class.java)
     }
 
     private fun getServer(file: VirtualFile) =
-        LspServerManager.getInstance(project).getServersForProvider(OxcLspServerSupportProvider::class.java)
+        LspServerManager.getInstance(project).getServersForProvider(OxlintLspServerSupportProvider::class.java)
             .firstOrNull { server -> server.descriptor.isSupportedFile(file) }
 
     suspend fun fixAll(document: Document) {
@@ -39,7 +39,7 @@ class OxcServerService(private val project: Project) {
     suspend fun fixAll(file: VirtualFile, document: Document) {
         val server = getServer(file) ?: return
 
-        val commandName = OxlintBundle.message("oxc.run.quickfix")
+        val commandName = OxlintBundle.message("oxlint.run.quickfix")
 
         val codeActionParams = CodeActionParams(server.getDocumentIdentifier(file),
             getLsp4jRange(document, 0, document.textLength),
@@ -66,18 +66,18 @@ class OxcServerService(private val project: Project) {
     }
 
     fun restartServer() {
-        LspServerManager.getInstance(project).stopAndRestartIfNeeded(OxcLspServerSupportProvider::class.java)
+        LspServerManager.getInstance(project).stopAndRestartIfNeeded(OxlintLspServerSupportProvider::class.java)
     }
 
     fun stopServer() {
-        LspServerManager.getInstance(project).stopServers(OxcLspServerSupportProvider::class.java)
+        LspServerManager.getInstance(project).stopServers(OxlintLspServerSupportProvider::class.java)
     }
 
     fun notifyRestart() {
         NotificationGroupManager.getInstance()
             .getNotificationGroup("Oxc")
             .createNotification(
-                OxlintBundle.message("oxc.language.server.restarted"),
+                OxlintBundle.message("oxlint.language.server.restarted"),
                 "",
                 NotificationType.INFORMATION
             )

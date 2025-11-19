@@ -1,4 +1,4 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
 enum class OxlintRunTrigger {
     ON_SAVE,

@@ -1,6 +1,7 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.extensions.configureByFileAndCheckLanguageServerHighlighting
+import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerDescriptor
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.builders.ModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
@@ -20,6 +21,6 @@ class NoConfigHighlightingTest :
     fun testRootFileHighlighting() {
         myFixture.copyDirectoryToProject("no-config", "")
 
-        myFixture.configureByFileAndCheckLanguageServerHighlighting("index.expected.js")
+        myFixture.configureByFileAndCheckLanguageServerHighlighting(OxlintLspServerDescriptor::class.java, "index.expected.js")
     }
 }

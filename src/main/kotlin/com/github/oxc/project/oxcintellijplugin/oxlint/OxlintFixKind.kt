@@ -1,4 +1,4 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
 enum class OxlintFixKind {
     SAFE_FIX,

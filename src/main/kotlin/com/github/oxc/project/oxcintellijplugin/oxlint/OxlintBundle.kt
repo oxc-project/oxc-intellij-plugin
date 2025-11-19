@@ -1,4 +1,4 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

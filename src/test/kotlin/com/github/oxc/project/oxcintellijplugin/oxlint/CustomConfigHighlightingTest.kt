@@ -1,8 +1,9 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.extensions.configureByFileAndCheckLanguageServerHighlighting
-import com.github.oxc.project.oxcintellijplugin.settings.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerDescriptor
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.builders.ModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
@@ -18,14 +19,14 @@ class CustomConfigHighlightingTest :
         (myFixture as CodeInsightTestFixtureImpl).canChangeDocumentDuringHighlighting(true)
         myFixture.testDataPath = "src/test/testData/oxlint/highlighting"
 
-        val oxcSettings = OxcSettings.getInstance(myFixture.project)
-        oxcSettings.configPath = "${myFixture.tempDirPath}/custom-oxlint.jsonc"
-        oxcSettings.configurationMode = ConfigurationMode.MANUAL
+        val oxlintSettings = OxlintSettings.getInstance(myFixture.project)
+        oxlintSettings.configPath = "${myFixture.tempDirPath}/custom-oxlint.jsonc"
+        oxlintSettings.configurationMode = ConfigurationMode.MANUAL
     }
 
     fun testRootFileHighlighting() {
         myFixture.copyDirectoryToProject("custom-config", "")
 
-        myFixture.configureByFileAndCheckLanguageServerHighlighting("index.expected.js")
+        myFixture.configureByFileAndCheckLanguageServerHighlighting(OxlintLspServerDescriptor::class.java, "index.expected.js")
     }
 }

@@ -1,7 +1,7 @@
-package com.github.oxc.project.oxcintellijplugin.settings
+package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
-import com.github.oxc.project.oxcintellijplugin.OxlintRunTrigger
-import com.github.oxc.project.oxcintellijplugin.OxlintUnusedDisableDirectivesSeverity
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintRunTrigger
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintUnusedDisableDirectivesSeverity
 import com.intellij.openapi.components.BaseState
 import com.intellij.util.xml.Attribute
 import com.intellij.util.xmlb.annotations.XMap
@@ -12,7 +12,7 @@ enum class ConfigurationMode {
     MANUAL
 }
 
-class OxcSettingsState : BaseState() {
+class OxlintSettingsState : BaseState() {
 
     @get:Attribute("binaryPath")
     var binaryPath by string()

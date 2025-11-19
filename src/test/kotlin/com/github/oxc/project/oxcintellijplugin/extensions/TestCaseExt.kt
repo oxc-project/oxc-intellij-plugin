@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServer
+import com.intellij.platform.lsp.api.LspServerDescriptor
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.LspServerManagerListener
 import com.intellij.platform.lsp.api.LspServerState
@@ -17,7 +18,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.runBlocking
 
-fun CodeInsightTestFixture.configureByFileAndCheckLanguageServerHighlighting(filePath: String) {
+fun CodeInsightTestFixture.configureByFileAndCheckLanguageServerHighlighting(lspServerDescriptorClass: Class<out LspServerDescriptor>, filePath: String) {
     val configuredFile = this.configureByFile(filePath).virtualFile
     val project = this.project
     val fixture = this
@@ -27,7 +28,7 @@ fun CodeInsightTestFixture.configureByFileAndCheckLanguageServerHighlighting(fil
             val expectedHighlightingData = ExpectedHighlightingData(editor.document, true, true,
                 true, false)
             expectedHighlightingData.init()
-            waitForLanguageServerDiagnostics(project, configuredFile)
+            waitForLanguageServerDiagnostics(project, lspServerDescriptorClass, configuredFile)
 
             (fixture as CodeInsightTestFixtureImpl).collectAndCheckHighlighting(
                 expectedHighlightingData)
@@ -35,7 +36,7 @@ fun CodeInsightTestFixture.configureByFileAndCheckLanguageServerHighlighting(fil
     }
 }
 
-private fun waitForLanguageServerDiagnostics(project: Project,
+private fun waitForLanguageServerDiagnostics(project: Project, lspServerDescriptorClass: Class<out LspServerDescriptor>,
     fileNeedingDiagnostics: VirtualFile, timeout: Duration = 10.seconds) {
     val diagnosticsReceived = AtomicBoolean()
     val shutdownReceived = AtomicBoolean()
@@ -45,6 +46,9 @@ private fun waitForLanguageServerDiagnostics(project: Project,
         LspServerManager.getInstance(project)
             .addLspServerManagerListener(object : LspServerManagerListener {
                 override fun serverStateChanged(lspServer: LspServer) {
+                    if (!lspServerDescriptorClass.isInstance(lspServer.descriptor)) {
+                        return
+                    }
                     if (lspServer.state in arrayOf(LspServerState.ShutdownNormally,
                             LspServerState.ShutdownUnexpectedly)
                     ) {
@@ -53,6 +57,9 @@ private fun waitForLanguageServerDiagnostics(project: Project,
                 }
 
                 override fun diagnosticsReceived(lspServer: LspServer, file: VirtualFile) {
+                    if (!lspServerDescriptorClass.isInstance(lspServer.descriptor)) {
+                        return
+                    }
                     if (file != fileNeedingDiagnostics) {
                         return
                     }

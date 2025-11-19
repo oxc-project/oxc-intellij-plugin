@@ -1,7 +1,7 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
-import com.github.oxc.project.oxcintellijplugin.extensions.isOxcConfigFile
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.extensions.isOxlintConfigFile
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
@@ -10,17 +10,17 @@ import com.jetbrains.jsonSchema.extension.SchemaType
 import com.jetbrains.jsonSchema.remote.JsonFileResolver
 import org.jetbrains.annotations.Nls
 
-class OxcSchemaProviderFactory : JsonSchemaProviderFactory {
+class OxlintSchemaProviderFactory : JsonSchemaProviderFactory {
 
     override fun getProviders(project: Project): List<JsonSchemaFileProvider?> {
         return listOf(object : JsonSchemaFileProvider {
             override fun isAvailable(file: VirtualFile): Boolean {
-                val settings = OxcSettings.getInstance(project)
-                return settings.state.configPath == file.path || file.isOxcConfigFile()
+                val settings = OxlintSettings.getInstance(project)
+                return settings.state.configPath == file.path || file.isOxlintConfigFile()
             }
 
             override fun getName(): @Nls String {
-                return OxlintBundle.message("oxc.schema.name")
+                return OxlintBundle.message("oxlint.schema.name")
             }
 
             override fun getSchemaFile(): VirtualFile? {

@@ -1,6 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.extensions
 
-import com.github.oxc.project.oxcintellijplugin.OxcPackage
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 
@@ -23,13 +23,13 @@ private fun VirtualFile.findNearestFile(
     return null
 }
 
-fun VirtualFile.isOxcConfigFile(): Boolean =
-    OxcPackage.configValidExtensions.map { "${OxcPackage.CONFIG_NAME}.$it" }.contains(this.name)
+fun VirtualFile.isOxlintConfigFile(): Boolean =
+    OxlintPackage.configValidExtensions.map { "${OxlintPackage.CONFIG_NAME}.$it" }.contains(this.name)
 
 fun VirtualFile.isPackageJsonFile(): Boolean = this.name == "package.json"
 
-fun VirtualFile.findNearestOxcConfig(root: VirtualFile? = null): VirtualFile? =
-    this.findNearestFile({ f -> f.isOxcConfigFile() }, root)
+fun VirtualFile.findNearestOxlintConfig(root: VirtualFile? = null): VirtualFile? =
+    this.findNearestFile({ f -> f.isOxlintConfigFile() }, root)
 
 fun VirtualFile.findNearestPackageJson(root: VirtualFile? = null): VirtualFile? =
     this.findNearestFile({ f -> f.isPackageJsonFile() }, root)

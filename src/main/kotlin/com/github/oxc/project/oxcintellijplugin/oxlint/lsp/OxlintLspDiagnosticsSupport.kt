@@ -1,22 +1,22 @@
-package com.github.oxc.project.oxcintellijplugin.lsp
+package com.github.oxc.project.oxcintellijplugin.oxlint.lsp
 
-import com.github.oxc.project.oxcintellijplugin.OxlintBundle
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.Diagnostic
 
-class OxcLspDiagnosticsSupport : LspDiagnosticsSupport() {
+class OxlintLspDiagnosticsSupport : LspDiagnosticsSupport() {
 
     override fun getMessage(diagnostic: Diagnostic): String {
         thisLogger().debug("Creating message for diagnostic: $diagnostic")
         return "${diagnostic.source}: ${diagnostic.message} ${
-            diagnostic.code?.get() ?: OxlintBundle.message("oxc.diagnostic.unknown.code")
+            diagnostic.code?.get() ?: OxlintBundle.message("oxlint.diagnostic.unknown.code")
         }"
     }
 
     override fun getTooltip(diagnostic: Diagnostic): String {
         thisLogger().debug("Creating tooltip for diagnostic: $diagnostic")
-        var rule = diagnostic.code?.get() ?: OxlintBundle.message("oxc.diagnostic.unknown.code")
+        var rule = diagnostic.code?.get() ?: OxlintBundle.message("oxlint.diagnostic.unknown.code")
         if (diagnostic.codeDescription?.href != null) {
             rule = "<a href=\"${diagnostic.codeDescription.href}\">${rule}</a>"
         }

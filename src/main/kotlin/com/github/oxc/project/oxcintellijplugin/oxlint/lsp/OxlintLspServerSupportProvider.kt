@@ -1,9 +1,9 @@
-package com.github.oxc.project.oxcintellijplugin.lsp
+package com.github.oxc.project.oxcintellijplugin.oxlint.lsp
 
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
-import com.github.oxc.project.oxcintellijplugin.OxcPackage
-import com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintConfigurable
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
@@ -14,17 +14,17 @@ import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.lsWidget.LspServerWidgetItem
 import kotlin.io.path.Path
 
-class OxcLspServerSupportProvider : LspServerSupportProvider {
+class OxlintLspServerSupportProvider : LspServerSupportProvider {
     override fun fileOpened(project: Project,
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter) {
         thisLogger().debug("Handling fileOpened for ${file.path}")
 
-        if (!OxcSettings.getInstance(project).fileSupported(file)) {
+        if (!OxlintSettings.getInstance(project).fileSupported(file)) {
             return
         }
 
-        val oxc = OxcPackage(project)
+        val oxc = OxlintPackage(project)
         if (!oxc.isEnabled()) {
             return
         }
@@ -36,11 +36,11 @@ class OxcLspServerSupportProvider : LspServerSupportProvider {
             ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
         }
 
-        serverStarter.ensureServerStarted(OxcLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))
+        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,
         currentFile: VirtualFile?): LspServerWidgetItem {
-        return LspServerWidgetItem(lspServer, currentFile, OxcIcons.OxcRound, OxcConfigurable::class.java)
+        return LspServerWidgetItem(lspServer, currentFile, OxcIcons.OxcRound, OxlintConfigurable::class.java)
     }
 }

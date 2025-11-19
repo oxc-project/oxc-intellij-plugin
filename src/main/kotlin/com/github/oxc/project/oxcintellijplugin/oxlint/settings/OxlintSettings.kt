@@ -1,7 +1,7 @@
-package com.github.oxc.project.oxcintellijplugin.settings
+package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
-import com.github.oxc.project.oxcintellijplugin.OxlintFixKind
-import com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsState.Companion.DEFAULT_EXTENSION_LIST
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettingsState.Companion.DEFAULT_EXTENSION_LIST
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SettingsCategory
 import com.intellij.openapi.components.SimplePersistentStateComponent
@@ -16,8 +16,8 @@ import java.io.File
 @Service(Service.Level.PROJECT)
 @State(name = "OxcSettings", storages = [Storage("OxcSettings.xml")],
     category = SettingsCategory.TOOLS)
-class OxcSettings(private val project: Project) :
-    SimplePersistentStateComponent<OxcSettingsState>(OxcSettingsState()) {
+class OxlintSettings(private val project: Project) :
+    SimplePersistentStateComponent<OxlintSettingsState>(OxlintSettingsState()) {
 
     var configurationMode: ConfigurationMode
         get() = state.configurationMode
@@ -135,6 +135,6 @@ class OxcSettings(private val project: Project) :
         const val FIX_KIND_KEY = "fix_kind";
 
         @JvmStatic
-        fun getInstance(project: Project): OxcSettings = project.service()
+        fun getInstance(project: Project): OxlintSettings = project.service()
     }
 }

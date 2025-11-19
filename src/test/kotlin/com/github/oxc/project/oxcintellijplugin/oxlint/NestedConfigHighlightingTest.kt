@@ -1,6 +1,7 @@
-package com.github.oxc.project.oxcintellijplugin
+package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.extensions.configureByFileAndCheckLanguageServerHighlighting
+import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerDescriptor
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.builders.ModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
@@ -20,12 +21,12 @@ class NestedConfigHighlightingTest :
     fun testRootFileHighlighting() {
         myFixture.copyDirectoryToProject("nested-config", "")
 
-        myFixture.configureByFileAndCheckLanguageServerHighlighting("index.expected.js")
+        myFixture.configureByFileAndCheckLanguageServerHighlighting(OxlintLspServerDescriptor::class.java, "index.expected.js")
     }
 
     fun testSubdirectoryFileHighlighting() {
         myFixture.copyDirectoryToProject("nested-config", "")
 
-        myFixture.configureByFileAndCheckLanguageServerHighlighting("subdirectory/index.expected.js")
+        myFixture.configureByFileAndCheckLanguageServerHighlighting(OxlintLspServerDescriptor::class.java, "subdirectory/index.expected.js")
     }
 }

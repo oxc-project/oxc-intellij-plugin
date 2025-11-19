@@ -1,6 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.actions
 
-import com.github.oxc.project.oxcintellijplugin.OxcBundle
+import com.github.oxc.project.oxcintellijplugin.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
 import com.intellij.ide.actionsOnSave.impl.ActionsOnSaveFileDocumentManagerListener
@@ -22,7 +22,7 @@ class OxcFixAllOnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnS
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
 
         runWithModalProgressBlocking(project,
-            OxcBundle.message("oxc.run.fix.all")) {
+            OxlintBundle.message("oxc.run.fix.all")) {
             try {
                 withTimeout(5_000) {
                     documents.filter {
@@ -36,8 +36,8 @@ class OxcFixAllOnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnS
                 }
             } catch (e: Exception) {
                 notificationGroup.createNotification(
-                    title = OxcBundle.message("oxc.fix.all.on.save.failure.label"),
-                    content = OxcBundle.message(
+                    title = OxlintBundle.message("oxc.fix.all.on.save.failure.label"),
+                    content = OxlintBundle.message(
                         "oxc.fix.all.on.save.failure.description",
                         e.message.toString()
                     ),

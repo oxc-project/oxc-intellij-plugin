@@ -7,14 +7,14 @@ import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
 import com.intellij.testFramework.fixtures.ModuleFixture
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 
-@TestDataPath("\$CONTENT_ROOT/testData/highlighting")
+@TestDataPath("\$CONTENT_ROOT/testData/oxlint/highlighting")
 class NoConfigHighlightingTest :
     CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleFixture>>() {
 
     override fun setUp() {
         super.setUp()
         (myFixture as CodeInsightTestFixtureImpl).canChangeDocumentDuringHighlighting(true)
-        myFixture.testDataPath = "src/test/testData/highlighting"
+        myFixture.testDataPath = "src/test/testData/oxlint/highlighting"
     }
 
     fun testRootFileHighlighting() {

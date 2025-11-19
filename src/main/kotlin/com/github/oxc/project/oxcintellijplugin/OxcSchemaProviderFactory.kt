@@ -20,7 +20,7 @@ class OxcSchemaProviderFactory : JsonSchemaProviderFactory {
             }
 
             override fun getName(): @Nls String {
-                return OxcBundle.message("oxc.schema.name")
+                return OxlintBundle.message("oxc.schema.name")
             }
 
             override fun getSchemaFile(): VirtualFile? {

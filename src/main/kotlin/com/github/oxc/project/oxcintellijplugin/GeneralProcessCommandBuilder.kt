@@ -45,7 +45,7 @@ class GeneralProcessCommandBuilder : ProcessCommandBuilder {
     }
 
     override fun build(): OxcTargetRun {
-        val exec = executable ?: throw ExecutionException(OxcBundle.message("oxc.language.server.not.found"))
+        val exec = executable ?: throw ExecutionException(OxlintBundle.message("oxc.language.server.not.found"))
 
         command.withExePath(exec)
         workingDir?.let { command.withWorkingDirectory(Path(it)) }

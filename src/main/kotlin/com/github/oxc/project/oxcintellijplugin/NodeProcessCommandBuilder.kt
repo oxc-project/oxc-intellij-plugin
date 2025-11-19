@@ -53,7 +53,7 @@ class NodeProcessCommandBuilder(
     }
 
     override fun build(): OxcTargetRun {
-        val exec = executable ?: throw ExecutionException(OxcBundle.message("oxc.language.server.not.found"))
+        val exec = executable ?: throw ExecutionException(OxlintBundle.message("oxc.language.server.not.found"))
 
         workingDir?.let { builder.setWorkingDirectory(target.path(it)) }
         builder.addParameter(target.path(exec))

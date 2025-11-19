@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.actions
 
-import com.github.oxc.project.oxcintellijplugin.OxcBundle
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
+import com.github.oxc.project.oxcintellijplugin.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.services.OxcServerService
 import com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable
 import com.github.oxc.project.oxcintellijplugin.settings.OxcSettings
@@ -37,27 +37,27 @@ class OxcFixAllAction : AnAction(), DumbAware {
         val settings = OxcSettings.getInstance(project)
 
         if (!settings.fileSupported(virtualFile)) {
-            notificationGroup.createNotification(title = OxcBundle.message("oxc.file.not.supported.title"),
-                content = OxcBundle.message("oxc.file.not.supported.description", virtualFile.name),
+            notificationGroup.createNotification(title = OxlintBundle.message("oxc.file.not.supported.title"),
+                content = OxlintBundle.message("oxc.file.not.supported.description", virtualFile.name),
                 type = NotificationType.WARNING)
-                .addAction(NotificationAction.createSimple(OxcBundle.message("oxc.configure.extensions.link")) {
+                .addAction(NotificationAction.createSimple(OxlintBundle.message("oxc.configure.extensions.link")) {
                     ShowSettingsUtil.getInstance().showSettingsDialog(project, OxcConfigurable::class.java)
                 }).notify(project)
             return
         }
 
         runWithModalProgressBlocking(project,
-            OxcBundle.message("oxc.run.fix.all")) {
+            OxlintBundle.message("oxc.run.fix.all")) {
             try {
                 withTimeout(5_000) {
                     OxcServerService.getInstance(project).fixAll(virtualFile, document)
                 }
-                notificationGroup.createNotification(title = OxcBundle.message("oxc.fix.all.success.label"),
-                    content = OxcBundle.message("oxc.fix.all.success.description"),
+                notificationGroup.createNotification(title = OxlintBundle.message("oxc.fix.all.success.label"),
+                    content = OxlintBundle.message("oxc.fix.all.success.description"),
                     type = NotificationType.INFORMATION).notify(project)
             } catch (e: Exception) {
-                notificationGroup.createNotification(title = OxcBundle.message("oxc.fix.all.failure.label"),
-                    content = OxcBundle.message("oxc.fix.all.failure.description", e.message.toString()),
+                notificationGroup.createNotification(title = OxlintBundle.message("oxc.fix.all.failure.label"),
+                    content = OxlintBundle.message("oxc.fix.all.failure.description", e.message.toString()),
                     type = NotificationType.ERROR).notify(project)
             }
         }

@@ -5,18 +5,18 @@ import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
 
 @NonNls
-private const val BUNDLE = "messages.OxcBundle"
+private const val OXLINT_BUNDLE = "messages.OxlintBundle"
 
-object OxcBundle : DynamicBundle(BUNDLE) {
+object OxlintBundle : DynamicBundle(OXLINT_BUNDLE) {
 
     @JvmStatic
-    fun message(@PropertyKey(resourceBundle = BUNDLE) key: String,
+    fun message(@PropertyKey(resourceBundle = OXLINT_BUNDLE) key: String,
         vararg params: Any) =
         getMessage(key, *params)
 
     @Suppress("unused")
     @JvmStatic
-    fun messagePointer(@PropertyKey(resourceBundle = BUNDLE) key: String,
+    fun messagePointer(@PropertyKey(resourceBundle = OXLINT_BUNDLE) key: String,
         vararg params: Any) =
         getLazyMessage(key, *params)
 }

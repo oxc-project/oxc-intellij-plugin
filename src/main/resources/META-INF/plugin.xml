@@ -7,7 +7,7 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>
 
-    <resource-bundle>messages.OxcBundle</resource-bundle>
+    <resource-bundle>messages.OxlintBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Oxc" displayType="BALLOON"/>
@@ -20,7 +20,7 @@
                 instance="com.github.oxc.project.oxcintellijplugin.settings.OxcConfigurable"
                 id="com.github.oxc.project.oxcintellijplugin.settings.OxcSettingsConfigurable"
                 nonDefaultProject="false"
-                bundle="messages.OxcBundle"
+                bundle="messages.OxlintBundle"
                 key="oxc.name"
         />
         <actionOnSaveInfoProvider

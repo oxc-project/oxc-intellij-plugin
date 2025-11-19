@@ -1,6 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.services
 
-import com.github.oxc.project.oxcintellijplugin.OxcBundle
+import com.github.oxc.project.oxcintellijplugin.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -39,7 +39,7 @@ class OxcServerService(private val project: Project) {
     suspend fun fixAll(file: VirtualFile, document: Document) {
         val server = getServer(file) ?: return
 
-        val commandName = OxcBundle.message("oxc.run.quickfix")
+        val commandName = OxlintBundle.message("oxc.run.quickfix")
 
         val codeActionParams = CodeActionParams(server.getDocumentIdentifier(file),
             getLsp4jRange(document, 0, document.textLength),
@@ -77,7 +77,7 @@ class OxcServerService(private val project: Project) {
         NotificationGroupManager.getInstance()
             .getNotificationGroup("Oxc")
             .createNotification(
-                OxcBundle.message("oxc.language.server.restarted"),
+                OxlintBundle.message("oxc.language.server.restarted"),
                 "",
                 NotificationType.INFORMATION
             )

@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 
-import com.github.oxc.project.oxcintellijplugin.OxcBundle
+import com.github.oxc.project.oxcintellijplugin.OxlintBundle
 import com.intellij.ide.actionsOnSave.ActionOnSaveBackedByOwnConfigurable
 import com.intellij.ide.actionsOnSave.ActionOnSaveComment
 import com.intellij.ide.actionsOnSave.ActionOnSaveContext
@@ -12,7 +12,7 @@ class OxcOnSaveFixAllActionInfo(actionOnSaveContext: ActionOnSaveContext) :
         OxcConfigurable::class.java) {
 
     override fun getActionOnSaveName() =
-        OxcBundle.message("oxc.run.fix.all.on.save.checkbox.on.actions.on.save.page")
+        OxlintBundle.message("oxc.run.fix.all.on.save.checkbox.on.actions.on.save.page")
 
     override fun isApplicableAccordingToStoredState(): Boolean =
         OxcSettings.getInstance(project).configurationMode != ConfigurationMode.DISABLED
@@ -41,8 +41,8 @@ class OxcOnSaveFixAllActionInfo(actionOnSaveContext: ActionOnSaveContext) :
     override fun getActionLinks() = listOf(createGoToPageInSettingsLink(OxcConfigurable.CONFIGURABLE_ID))
 
     private fun comment(): ActionOnSaveComment? {
-        if (!isSaveActionApplicable) return ActionOnSaveComment.info(OxcBundle.message("oxc.on.save.comment.disabled"))
+        if (!isSaveActionApplicable) return ActionOnSaveComment.info(OxlintBundle.message("oxc.on.save.comment.disabled"))
 
-        return ActionOnSaveComment.info(OxcBundle.message("oxc.on.save.comment.fix.all"))
+        return ActionOnSaveComment.info(OxlintBundle.message("oxc.on.save.comment.fix.all"))
     }
 }

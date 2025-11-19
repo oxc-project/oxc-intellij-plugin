@@ -70,7 +70,7 @@ class OxcTargetRunBuilder(val project: Project) {
         executable: String,
     ): ProcessCommandBuilder {
         if (executable.isEmpty()) {
-            throw ExecutionException(OxcBundle.message("oxc.language.server.not.found"))
+            throw ExecutionException(OxlintBundle.message("oxc.language.server.not.found"))
         }
 
         val settings = OxcSettings.getInstance(project)

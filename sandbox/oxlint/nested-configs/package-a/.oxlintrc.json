@@ -1,5 +1,5 @@
 {
-  "$schema": "../../sandbox/node_modules/oxlint/configuration_schema.json",
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
   "plugins": [
     "react",
     "unicorn",
@@ -8,7 +8,10 @@
   ],
   "categories": {},
   "rules": {
-    "unicorn/no-new-array": "error"
+    "unicorn/no-new-array": "warn",
+    "eslint/no-debugger": "error",
+    "oxc/double-comparisons": "error",
+    "react/forward-ref-uses-ref": "error"
   },
   "settings": {
     "jsx-a11y": {

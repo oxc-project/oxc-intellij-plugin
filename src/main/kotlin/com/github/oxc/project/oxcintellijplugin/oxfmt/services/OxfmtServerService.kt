@@ -1,8 +1,8 @@
-package com.github.oxc.project.oxcintellijplugin.oxlint.services
+package com.github.oxc.project.oxcintellijplugin.oxfmt.services
 
 import com.github.oxc.project.oxcintellijplugin.NOTIFICATION_GROUP
-import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
-import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
+import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtBundle
+import com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.command.WriteCommandAction
@@ -19,15 +19,19 @@ import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeActionTriggerKind
 
 @Service(Service.Level.PROJECT)
-class OxlintServerService(private val project: Project) {
-    private val groupId = "Oxc"
+class OxfmtServerService(private val project: Project) {
+
+    private val PROVIDER_CLASS = OxfmtLspServerSupportProvider::class.java
+    private val GROUP_ID = "Oxc"
 
     companion object {
-        fun getInstance(project: Project): OxlintServerService = project.getService(OxlintServerService::class.java)
+
+        fun getInstance(project: Project): OxfmtServerService =
+            project.getService(OxfmtServerService::class.java)
     }
 
     private fun getServer(file: VirtualFile) =
-        LspServerManager.getInstance(project).getServersForProvider(OxlintLspServerSupportProvider::class.java)
+        LspServerManager.getInstance(project).getServersForProvider(PROVIDER_CLASS)
             .firstOrNull { server -> server.descriptor.isSupportedFile(file) }
 
     suspend fun fixAll(document: Document) {
@@ -40,19 +44,20 @@ class OxlintServerService(private val project: Project) {
     suspend fun fixAll(file: VirtualFile, document: Document) {
         val server = getServer(file) ?: return
 
-        val commandName = OxlintBundle.message("oxlint.run.quickfix")
+        val commandName = OxfmtBundle.message("oxfmt.run.quickfix")
 
         val codeActionParams = CodeActionParams(server.getDocumentIdentifier(file),
-            getLsp4jRange(document, 0, document.textLength),
-            CodeActionContext().apply {
+            getLsp4jRange(document, 0, document.textLength), CodeActionContext().apply {
                 diagnostics = emptyList()
                 only = listOf("source.fixAll.oxc")
                 triggerKind = CodeActionTriggerKind.Automatic
             })
 
-        val codeActionResults = server.sendRequest { it.textDocumentService.codeAction(codeActionParams) }
+        val codeActionResults = server.sendRequest {
+            it.textDocumentService.codeAction(codeActionParams)
+        }
 
-        WriteCommandAction.runWriteCommandAction(project, commandName, groupId, {
+        WriteCommandAction.runWriteCommandAction(project, commandName, GROUP_ID, {
             codeActionResults?.forEach {
                 // Only apply preferred actions which contain real fixes.
                 // non-preferred options contain fixes such as disable-next-line.
@@ -67,21 +72,16 @@ class OxlintServerService(private val project: Project) {
     }
 
     fun restartServer() {
-        LspServerManager.getInstance(project).stopAndRestartIfNeeded(OxlintLspServerSupportProvider::class.java)
+        LspServerManager.getInstance(project).stopAndRestartIfNeeded(PROVIDER_CLASS)
     }
 
     fun stopServer() {
-        LspServerManager.getInstance(project).stopServers(OxlintLspServerSupportProvider::class.java)
+        LspServerManager.getInstance(project).stopServers(PROVIDER_CLASS)
     }
 
     fun notifyRestart() {
-        NotificationGroupManager.getInstance()
-            .getNotificationGroup(NOTIFICATION_GROUP)
-            .createNotification(
-                OxlintBundle.message("oxlint.language.server.restarted"),
-                "",
-                NotificationType.INFORMATION
-            )
-            .notify(project)
+        NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP)
+            .createNotification(OxfmtBundle.message("oxfmt.language.server.restarted"), "",
+                NotificationType.INFORMATION).notify(project)
     }
 }

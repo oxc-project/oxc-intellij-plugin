@@ -1,8 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.extensions.configureByFileAndCheckLanguageServerHighlighting
 import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerDescriptor
-import com.github.oxc.project.oxcintellijplugin.oxlint.settings.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.builders.ModuleFixtureBuilder

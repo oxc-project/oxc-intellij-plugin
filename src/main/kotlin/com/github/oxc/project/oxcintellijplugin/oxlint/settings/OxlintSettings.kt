@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettingsState.Companion.DEFAULT_EXTENSION_LIST
 import com.intellij.openapi.components.Service

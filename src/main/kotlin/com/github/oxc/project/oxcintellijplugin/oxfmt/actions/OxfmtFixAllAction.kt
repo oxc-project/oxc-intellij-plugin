@@ -1,11 +1,11 @@
-package com.github.oxc.project.oxcintellijplugin.oxlint.actions
+package com.github.oxc.project.oxcintellijplugin.oxfmt.actions
 
 import com.github.oxc.project.oxcintellijplugin.NOTIFICATION_GROUP
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
-import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
-import com.github.oxc.project.oxcintellijplugin.oxlint.services.OxlintServerService
-import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintConfigurable
-import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtBundle
+import com.github.oxc.project.oxcintellijplugin.oxfmt.services.OxfmtServerService
+import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtConfigurable
+import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -24,7 +24,7 @@ import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import java.io.IOException
 import kotlinx.coroutines.withTimeout
 
-class OxlintFixAllAction : AnAction(), DumbAware {
+class OxfmtFixAllAction : AnAction(), DumbAware {
     init {
         templatePresentation.icon = OxcIcons.OxcRound
     }
@@ -35,30 +35,37 @@ class OxlintFixAllAction : AnAction(), DumbAware {
 
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP)
 
-        val settings = OxlintSettings.getInstance(project)
+        val settings = OxfmtSettings.getInstance(project)
 
         if (!settings.fileSupported(virtualFile)) {
-            notificationGroup.createNotification(title = OxlintBundle.message("oxlint.file.not.supported.title"),
-                content = OxlintBundle.message("oxlint.file.not.supported.description", virtualFile.name),
+            notificationGroup.createNotification(
+                title = OxfmtBundle.message("oxfmt.file.not.supported.title"),
+                content = OxfmtBundle.message("oxfmt.file.not.supported.description",
+                    virtualFile.name),
                 type = NotificationType.WARNING)
-                .addAction(NotificationAction.createSimple(OxlintBundle.message("oxlint.configure.extensions.link")) {
-                    ShowSettingsUtil.getInstance().showSettingsDialog(project, OxlintConfigurable::class.java)
+                .addAction(NotificationAction.createSimple(
+                    OxfmtBundle.message("oxfmt.configure.extensions.link")) {
+                    ShowSettingsUtil.getInstance()
+                        .showSettingsDialog(project, OxfmtConfigurable::class.java)
                 }).notify(project)
             return
         }
 
         runWithModalProgressBlocking(project,
-            OxlintBundle.message("oxlint.run.fix.all")) {
+            OxfmtBundle.message("oxfmt.run.fix.all")) {
             try {
                 withTimeout(5_000) {
-                    OxlintServerService.getInstance(project).fixAll(virtualFile, document)
+                    OxfmtServerService.getInstance(project).fixAll(virtualFile, document)
                 }
-                notificationGroup.createNotification(title = OxlintBundle.message("oxlint.fix.all.success.label"),
-                    content = OxlintBundle.message("oxlint.fix.all.success.description"),
+                notificationGroup.createNotification(
+                    title = OxfmtBundle.message("oxfmt.fix.all.success.label"),
+                    content = OxfmtBundle.message("oxfmt.fix.all.success.description"),
                     type = NotificationType.INFORMATION).notify(project)
             } catch (e: Exception) {
-                notificationGroup.createNotification(title = OxlintBundle.message("oxlint.fix.all.failure.label"),
-                    content = OxlintBundle.message("oxlint.fix.all.failure.description", e.message.toString()),
+                notificationGroup.createNotification(
+                    title = OxfmtBundle.message("oxfmt.fix.all.failure.label"),
+                    content = OxfmtBundle.message("oxfmt.fix.all.failure.description",
+                        e.message.toString()),
                     type = NotificationType.ERROR).notify(project)
             }
         }
@@ -66,7 +73,7 @@ class OxlintFixAllAction : AnAction(), DumbAware {
 
     override fun update(e: AnActionEvent) {
         val project = e.project ?: return
-        val settings = OxlintSettings.getInstance(project)
+        val settings = OxfmtSettings.getInstance(project)
 
         val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
         val enabled = file != null && settings.fileSupported(file) && settings.isEnabled()

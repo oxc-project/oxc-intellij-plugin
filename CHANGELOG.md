@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.20] - 2025-11-19
+
 ### Added
 
 - Added support for the upcoming 1.29.0 version of Oxlint which allows executing the language server through
@@ -163,7 +165,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.19...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.20...HEAD
+[0.0.20]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.19...v0.0.20
 [0.0.19]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.18...v0.0.19
 [0.0.18]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.16...v0.0.17

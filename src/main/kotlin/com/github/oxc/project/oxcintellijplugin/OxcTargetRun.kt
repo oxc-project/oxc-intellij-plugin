@@ -2,7 +2,6 @@ package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
@@ -68,18 +67,17 @@ sealed interface OxcTargetRun {
 
 class OxcTargetRunBuilder(val project: Project) {
     fun getBuilder(
+        configMode: ConfigurationMode,
         executable: String,
     ): ProcessCommandBuilder {
         if (executable.isEmpty()) {
             throw ExecutionException(OxlintBundle.message("oxlint.language.server.not.found"))
         }
 
-        val settings = OxlintSettings.getInstance(project)
-        val configurationMode = settings.configurationMode
         val isNodeJs = File(executable).useLines { it.firstOrNull() }
             ?.startsWith("#!/usr/bin/env node") == true
 
-        val builder: ProcessCommandBuilder = if (configurationMode == ConfigurationMode.MANUAL && !isNodeJs) {
+        val builder: ProcessCommandBuilder = if (configMode == ConfigurationMode.MANUAL && !isNodeJs) {
             GeneralProcessCommandBuilder()
         } else {
             val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter

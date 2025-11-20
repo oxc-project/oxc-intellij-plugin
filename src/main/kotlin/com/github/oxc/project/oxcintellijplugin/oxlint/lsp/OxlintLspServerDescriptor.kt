@@ -23,7 +23,8 @@ class OxlintLspServerDescriptor(
     executableParameters: List<ProcessCommandParameter>,
 ) : LspServerDescriptor(project, "Oxlint", root) {
     private val targetRun: OxcTargetRun = run {
-        val builder = OxcTargetRunBuilder(project).getBuilder(executable).setWorkingDirectory(root.path).addParameters(executableParameters)
+        val oxlintSettings = OxlintSettings.getInstance(project)
+        val builder = OxcTargetRunBuilder(project).getBuilder(oxlintSettings.configurationMode, executable).setWorkingDirectory(root.path).addParameters(executableParameters)
 
         builder.build()
     }

@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for Oxfmt.
+  - Format on save
+  - Reformat code action
+  - Right click and apply quick fixes
+  - New settings for Oxfmt separate from the Oxlint settings
+
 ## [0.0.20] - 2025-11-19
 
 ### Added

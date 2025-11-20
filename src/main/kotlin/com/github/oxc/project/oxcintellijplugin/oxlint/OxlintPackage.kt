@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
-import com.github.oxc.project.oxcintellijplugin.oxlint.settings.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage

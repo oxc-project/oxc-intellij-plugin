@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage

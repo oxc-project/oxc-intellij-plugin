@@ -1,7 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
-import com.github.oxc.project.oxcintellijplugin.oxlint.settings.ConfigurationMode
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler

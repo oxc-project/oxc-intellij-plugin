@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.services
 
+import com.github.oxc.project.oxcintellijplugin.NOTIFICATION_GROUP
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
 import com.intellij.notification.NotificationGroupManager
@@ -75,7 +76,7 @@ class OxlintServerService(private val project: Project) {
 
     fun notifyRestart() {
         NotificationGroupManager.getInstance()
-            .getNotificationGroup("Oxc")
+            .getNotificationGroup(NOTIFICATION_GROUP)
             .createNotification(
                 OxlintBundle.message("oxlint.language.server.restarted"),
                 "",

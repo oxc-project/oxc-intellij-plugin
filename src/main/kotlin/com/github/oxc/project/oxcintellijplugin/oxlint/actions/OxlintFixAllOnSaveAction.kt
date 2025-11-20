@@ -1,0 +1,48 @@
+package com.github.oxc.project.oxcintellijplugin.oxlint.actions
+
+import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
+import com.github.oxc.project.oxcintellijplugin.oxlint.services.OxlintServerService
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
+import com.intellij.ide.actionsOnSave.impl.ActionsOnSaveFileDocumentManagerListener
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.Project
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import kotlinx.coroutines.withTimeout
+
+class OxlintFixAllOnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
+    override fun isEnabledForProject(project: Project): Boolean {
+        return OxlintSettings.getInstance(project).fixAllOnSave
+    }
+
+    override fun processDocuments(project: Project,
+        documents: Array<Document>) {
+        val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
+
+        runWithModalProgressBlocking(project,
+            OxlintBundle.message("oxlint.run.fix.all")) {
+            try {
+                withTimeout(5_000) {
+                    documents.filter {
+                        val settings = OxlintSettings.getInstance(project)
+                        val manager = FileDocumentManager.getInstance()
+                        val virtualFile = manager.getFile(it) ?: return@filter false
+                        return@filter settings.fileSupported(virtualFile)
+                    }.forEach {
+                        OxlintServerService.getInstance(project).fixAll(it)
+                    }
+                }
+            } catch (e: Exception) {
+                notificationGroup.createNotification(
+                    title = OxlintBundle.message("oxlint.fix.all.on.save.failure.label"),
+                    content = OxlintBundle.message(
+                        "oxlint.fix.all.on.save.failure.description",
+                        e.message.toString()
+                    ),
+                    type = NotificationType.ERROR).notify(project)
+            }
+        }
+    }
+}

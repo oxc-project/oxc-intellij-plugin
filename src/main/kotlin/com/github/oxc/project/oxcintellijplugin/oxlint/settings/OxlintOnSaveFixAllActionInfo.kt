@@ -1,6 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
-
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.intellij.ide.actionsOnSave.ActionOnSaveBackedByOwnConfigurable
 import com.intellij.ide.actionsOnSave.ActionOnSaveComment

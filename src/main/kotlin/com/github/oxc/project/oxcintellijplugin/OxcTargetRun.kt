@@ -6,6 +6,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.wsl.WSLDistribution
+import com.intellij.execution.wsl.WslPath
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
@@ -73,8 +74,19 @@ class OxcTargetRunBuilder(val project: Project) {
             throw ExecutionException(OxlintBundle.message("oxlint.language.server.not.found"))
         }
 
-        val isNodeJs = File(executable).useLines { it.firstOrNull() }
-            ?.startsWith("#!/usr/bin/env node") == true
+        // Detect if it's a WSL path
+        val wslPath = WslPath.parseWindowsUncPath(executable)
+
+        // For WSL paths, always use NodeProcessCommandBuilder as it handles WSL correctly
+        // Otherwise, check the shebang only for local Windows paths
+        val isNodeJs = if (wslPath != null) {
+            true
+        } else {
+            runCatching {
+                File(executable).useLines { it.firstOrNull() }
+                    ?.startsWith("#!/usr/bin/env node")
+            }.getOrNull() == true
+        }
 
         val builder: ProcessCommandBuilder = if (configMode == ConfigurationMode.MANUAL && !isNodeJs) {
             GeneralProcessCommandBuilder()

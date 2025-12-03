@@ -7,11 +7,15 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>JavaScript</depends>
 
+    <resource-bundle>messages.OxfmtBundle</resource-bundle>
     <resource-bundle>messages.OxlintBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Oxc" displayType="BALLOON"/>
         <iconProvider implementation="com.github.oxc.project.oxcintellijplugin.OxcIconProvider"/>
+
+        <platform.lsp.serverSupportProvider
+                implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider"/>
         <platform.lsp.serverSupportProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider"/>
 
@@ -23,6 +27,15 @@
                 bundle="messages.OxlintBundle"
                 key="oxlint.name"
         />
+        <projectConfigurable
+                parentId="tools"
+                instance="com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtConfigurable"
+                id="OxfmtConfigurable"
+                nonDefaultProject="false"
+                bundle="messages.OxfmtBundle"
+                key="oxfmt.name"
+        />
+
         <actionOnSaveInfoProvider
                 id="OxcOnSaveInfoProvider"
                 implementation="com.github.oxc.project.oxcintellijplugin.settings.OxcOnSaveInfoProvider"
@@ -34,10 +47,16 @@
                 implementation="com.github.oxc.project.oxcintellijplugin.oxlint.actions.OxlintFixAllOnSaveAction"
                 order="first, before FormatOnSaveAction"
         />
+        <actionOnSave
+                id="OxfmtFixAllOnSaveAction"
+                implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.actions.OxfmtFixAllOnSaveAction"
+                order="first, before FormatOnSaveAction"
+        />
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
         <JsonSchema.ProviderFactory implementation="com.github.oxc.project.oxcintellijplugin.oxlint.OxlintSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtSchemaProviderFactory"/>
     </extensions>
 
     <actions>
@@ -50,6 +69,15 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
+        <action
+                id="OxfmtApplyFixAllAction"
+                text="Apply Oxfmt Quick Fixes"
+                description="Apply Oxfmt quick fixes"
+                class="com.github.oxc.project.oxcintellijplugin.oxfmt.actions.OxfmtFixAllAction"
+        >
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
     </actions>
 
     <applicationListeners>
@@ -57,10 +85,16 @@
                 class="com.github.oxc.project.oxcintellijplugin.oxlint.listeners.OxlintConfigWatcher"
                 topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"
         />
+        <listener
+                class="com.github.oxc.project.oxcintellijplugin.oxfmt.listeners.OxfmtConfigWatcher"
+                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"
+        />
     </applicationListeners>
 
     <projectListeners>
         <listener class="com.github.oxc.project.oxcintellijplugin.oxlint.listeners.OxlintEditorWatcher"
+                topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.oxfmt.listeners.OxfmtEditorWatcher"
                 topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
     </projectListeners>
 </idea-plugin>

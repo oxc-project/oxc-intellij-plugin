@@ -74,11 +74,9 @@ class OxcTargetRunBuilder(val project: Project) {
             throw ExecutionException(OxlintBundle.message("oxlint.language.server.not.found"))
         }
 
-        // Detect if it's a WSL path
         val wslPath = WslPath.parseWindowsUncPath(executable)
 
         // For WSL paths, always use NodeProcessCommandBuilder as it handles WSL correctly
-        // Otherwise, check the shebang only for local Windows paths
         val isNodeJs = if (wslPath != null) {
             true
         } else {

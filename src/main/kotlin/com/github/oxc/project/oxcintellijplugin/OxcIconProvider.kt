@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.extensions.isOxfmtConfigFile
 import com.github.oxc.project.oxcintellijplugin.extensions.isOxlintConfigFile
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.ide.IconProvider
@@ -24,6 +25,9 @@ class OxcIconProvider : IconProvider(), DumbAware {
             return OxcIcons.OxcRound
         }
         if (file.isOxlintConfigFile()) {
+            return OxcIcons.OxcRound
+        }
+        if (file.isOxfmtConfigFile()) {
             return OxcIcons.OxcRound
         }
 

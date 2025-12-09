@@ -12,6 +12,10 @@
   - Right click and apply quick fixes
   - New settings for Oxfmt separate from the Oxlint settings
 
+### Fixed
+
+- Fixed WSL with PNPM usage.
+
 ## [0.0.20] - 2025-11-19
 
 ### Added

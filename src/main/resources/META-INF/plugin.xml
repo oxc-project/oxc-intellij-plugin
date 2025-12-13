@@ -5,7 +5,7 @@
     <vendor email="boshenc@gmail.com" url="https://oxc.rs">Oxc</vendor>
 
     <depends>com.intellij.modules.platform</depends>
-    <depends>JavaScript</depends>
+    <depends>com.intellij.modules.lsp</depends>
 
     <resource-bundle>messages.OxfmtBundle</resource-bundle>
     <resource-bundle>messages.OxlintBundle</resource-bundle>

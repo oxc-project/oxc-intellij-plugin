@@ -7,6 +7,6 @@
   },
   "private": true,
   "devDependencies": {
-    "oxlint": "1.32.0"
+    "oxlint": "1.33.0"
   }
 }

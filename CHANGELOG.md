@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for using the plugin within free IDEs.
+
+### Changed
+
+- Minimum IDE version has been updated to 2025.2.1.
+
 ## [0.0.22] - 2025-12-24
 
 ### Fixed

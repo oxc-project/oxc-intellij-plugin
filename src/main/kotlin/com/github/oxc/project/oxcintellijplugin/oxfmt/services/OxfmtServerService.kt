@@ -57,7 +57,8 @@ class OxfmtServerService(private val project: Project) {
                     val startLineOffset = document.getLineStartOffset(it.range.start.line)
                     val endLineOffset = document.getLineStartOffset(it.range.end.line)
                     document.replaceString(startLineOffset + it.range.start.character,
-                        endLineOffset + it.range.end.character, it.newText)
+                        endLineOffset + it.range.end.character,
+                        it.newText.lines().joinToString(separator = "\n"))
                 }
             })
     }

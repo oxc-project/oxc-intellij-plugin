@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Normalize text newlines when using Oxfmt fixes or format on save.
+
 ## [0.0.21] - 2025-12-09
 
 ### Added

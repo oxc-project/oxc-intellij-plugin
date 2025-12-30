@@ -12,14 +12,26 @@ The Oxidation Compiler is creating a suite of high-performance tools for JavaScr
 
 ## Oxlint
 
-This is the linter for oxc. The currently supported features are listed below.
+A high-performance JavaScript/TypeScript linter.
 
-- Highlighting for warnings or errors identified by Oxlint.
-- Quick fixes to fix a warning or error when possible.
-- JSON schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
-  file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
-- Command to fix all auto-fixable content within the current text editor.
+- Inline diagnostics with highlighting for warnings and errors.
+- Quick fixes to resolve issues when available.
+- Command to apply all auto-fixable issues in the current editor.
 - Automatically apply fixes on save.
+- Configurable run trigger: lint on type or on save.
+- Type-aware rules support for enhanced linting.
+- Custom icons for Oxlint configuration files.
+- JSON schema validation for `.oxlintrc.json` configuration files.
+- Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts, .vue, .svelte, .astro).
+
+## Oxfmt
+
+A high-performance JavaScript/TypeScript formatter.
+
+- Format code via right-click context menu.
+- Automatically format on save.
+- JSON schema validation for `.oxfmtrc.json` configuration files.
+- Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts).
 
 <!-- Plugin description end -->
 

@@ -7,6 +7,6 @@
   },
   "private": true,
   "devDependencies": {
-    "oxfmt": "0.25.0"
+    "oxfmt": "0.26.0"
   }
 }

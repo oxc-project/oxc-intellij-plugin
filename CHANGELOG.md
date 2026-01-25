@@ -11,6 +11,7 @@
 ### Changed
 
 - Minimum IDE version has been updated to 2025.2.1.
+- Update to new Oxc icon.
 
 ## [0.0.22] - 2025-12-24
 

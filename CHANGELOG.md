@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix icon size.
+
 ## [0.0.23] - 2026-01-25
 
 ### Added

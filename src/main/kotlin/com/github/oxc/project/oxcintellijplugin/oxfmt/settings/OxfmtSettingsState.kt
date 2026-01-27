@@ -26,6 +26,10 @@ class OxfmtSettingsState : BaseState() {
         val DEFAULT_EXTENSION_LIST = listOf(
             ".js", ".jsx", ".cjs", ".mjs",
             ".ts", ".tsx", ".cts", ".mts",
+            ".json", ".json5",
+            ".html", ".css", ".scss", ".less",
+            ".gql", ".graphql",
+            ".yml", ".yaml"
         )
     }
 }

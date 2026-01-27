@@ -31,7 +31,7 @@ A high-performance JavaScript/TypeScript formatter.
 - Format code via right-click context menu.
 - Automatically format on save.
 - JSON schema validation for `.oxfmtrc.json` configuration files.
-- Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts).
+- Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts, .json, .json5, .html, .css, .scss, .less, .gql, .graphql, .yml, .yaml).
 
 <!-- Plugin description end -->
 

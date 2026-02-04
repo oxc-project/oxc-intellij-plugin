@@ -31,7 +31,7 @@ A high-performance JavaScript/TypeScript formatter.
 - Format code via right-click context menu.
 - Automatically format on save.
 - JSON schema validation for `.oxfmtrc.json` configuration files.
-- Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts, .json, .json5, .html, .css, .scss, .less, .gql, .graphql, .yml, .yaml).
+- Configurable file formats JavaScript, TypeScript, JSON, HMYL, Markdown, MDX, CSS, SCSS, GrapghQL, TOML, YAML and more. [See the full list](https://github.com/oxc-project/oxc-intellij-plugin/blob/main/src/main/kotlin/com/github/oxc/project/oxcintellijplugin/oxfmt/settings/OxfmtSettingsState.kt).
 
 <!-- Plugin description end -->
 

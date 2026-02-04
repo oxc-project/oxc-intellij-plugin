@@ -24,12 +24,41 @@ class OxfmtSettingsState : BaseState() {
     companion object {
 
         val DEFAULT_EXTENSION_LIST = listOf(
+            // JS/TS
             ".js", ".jsx", ".cjs", ".mjs",
             ".ts", ".tsx", ".cts", ".mts",
-            ".json", ".json5",
-            ".html", ".css", ".scss", ".less",
-            ".gql", ".graphql",
-            ".yml", ".yaml"
+            "._js", ".bones", ".es", ".es6", ".gs", ".jake", ".javascript",
+            ".jsb", ".jscad", ".jsfl", ".jslib", ".jsm", ".jspre", ".jss",
+            ".njs", ".pac", ".sjs", ".ssjs", ".xsjs", ".xsjslib",
+            ".start.frag", ".end.frag"
+            // JSON
+            ".json", ".4DForm", ".4DProject", ".avsc", ".geojson", ".gltf",
+            ".har", ".ice", ".JSON-tmLanguage", ".json.example", ".mcmeta",
+            ".sarif", ".tact", ".tfstate", ".tfstate.backup", ".topojson",
+            ".webapp", ".webmanifest", ".yy", ".yyp",
+            // JSONC
+            ".jsonc", ".json5" ".code-snippets", ".code-workspace", ".sublime-build",
+            ".sublime-color-scheme", ".sublime-commands", ".sublime-completions",
+            ".sublime-keymap", ".sublime-macro", ".sublime-menu", ".sublime-mousemap",
+            ".sublime-project", ".sublime-settings", ".sublime-theme",
+            ".sublime-workspace", ".sublime_metrics", ".sublime_session",
+            // HTML
+            ".html", ".hta", ".htm", ".inc", ".xht", ".xhtml",
+            // Frameworks
+            ".handlebars", ".hbs", ".mjml", ".vue",
+            // CSS
+            ".css", ".pcss", ".postcss", ".less", ".scss", ".wxss",
+            // GraphQL
+            ".gql", ".graphql", ".graphqls",
+            // Markdown
+            ".md", ".livemd", ".markdown", ".mdown", ".mdwn", ".mdx", ".mkd",
+            ".mkdn", ".mkdown", ".ronn", ".scd", ".workbook",
+            // YAML
+            ".yaml", ".yaml-tmlanguage", ".yml", ".mir", ".reek", ".rviz",
+            ".sublime-syntax", ".syntax",
+            // TOML
+            ".toml",
+            ".toml.example",
         )
     }
 }

@@ -30,7 +30,7 @@ class OxfmtSettingsState : BaseState() {
             "._js", ".bones", ".es", ".es6", ".gs", ".jake", ".javascript",
             ".jsb", ".jscad", ".jsfl", ".jslib", ".jsm", ".jspre", ".jss",
             ".njs", ".pac", ".sjs", ".ssjs", ".xsjs", ".xsjslib",
-            ".start.frag", ".end.frag"
+            ".start.frag", ".end.frag",
             // JSON
             ".json", ".4DForm", ".4DProject", ".avsc", ".geojson", ".gltf",
             ".har", ".ice", ".JSON-tmLanguage", ".json.example", ".mcmeta",

@@ -29,6 +29,8 @@ A high-performance JavaScript/TypeScript linter.
 A high-performance JavaScript/TypeScript formatter.
 
 - Format code via right-click context menu.
+- Format code with the built-in actions and their shortcuts (<kbd>Code</kbd> > <kbd>Reformat Code</kbd>, <kbd>
+  Code</kbd> > <kbd>Reformat File...</kbd>)
 - Automatically format on save.
 - JSON schema validation for `.oxfmtrc.json` configuration files.
 - Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts).

@@ -32,7 +32,11 @@ class OxlintLspServerDescriptor(
     override fun isSupportedFile(file: VirtualFile): Boolean {
         thisLogger().debug("file.path ${file.path}")
         return OxlintSettings.getInstance(project).fileSupported(file) && roots.any { root ->
-            file.toNioPath().startsWith(root.toNioPath())
+            try {
+                file.toNioPath().startsWith(root.toNioPath())
+            } catch (_: Exception) {
+                file.path.startsWith(root.path)
+            }
         }
     }
 

@@ -41,8 +41,8 @@ sealed interface OxcTargetRun {
                 run.startProcessEx().processHandler
             }
 
-        override fun toTargetPath(path: String) = run.convertLocalPathToTargetPath(path)
-        override fun toLocalPath(path: String) = run.convertTargetPathToLocalPath(path)
+        override fun toTargetPath(path: String) = runCatching { run.convertLocalPathToTargetPath(path) }.getOrDefault(path)
+        override fun toLocalPath(path: String) = runCatching { run.convertTargetPathToLocalPath(path) }.getOrDefault(path)
     }
 
     class General(
@@ -89,10 +89,7 @@ class OxcTargetRunBuilder(val project: Project) {
         val builder: ProcessCommandBuilder = if (configMode == ConfigurationMode.MANUAL && !isNodeJs) {
             GeneralProcessCommandBuilder()
         } else {
-            val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
-            if (interpreter !is NodeJsLocalInterpreter && interpreter !is WslNodeInterpreter) {
-                throw ExecutionException(JavaScriptBundle.message("lsp.interpreter.error"))
-            }
+            val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter ?: throw ExecutionException(JavaScriptBundle.message("lsp.interpreter.error"));
             NodeProcessCommandBuilder(project, interpreter)
         }
 

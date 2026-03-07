@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Remove trailing slash from workspaceUri which causes the language server to behave differently.
+
 ## [0.0.24] - 2026-01-26
 
 ### Fixed

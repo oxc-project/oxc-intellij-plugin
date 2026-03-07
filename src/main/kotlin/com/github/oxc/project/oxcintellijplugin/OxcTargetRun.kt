@@ -33,11 +33,17 @@ sealed interface OxcTargetRun {
     class Node(private val run: NodeTargetRun) : OxcTargetRun {
         override fun startProcess(): OSProcessHandler =
             wrapStartProcess {
-                if (!run.envData.envs.contains("RUST_LOG")) {
-                    val logger = Logger.getInstance("#com.github.oxc.project.oxcintellijplugin")
-                    val level = if (logger.isTraceEnabled) "TRACE" else if (logger.isDebugEnabled) "DEBUG" else "INFO"
-                    run.envData = run.envData.with(mapOf("RUST_LOG" to level))
+                val logger = Logger.getInstance("#com.github.oxc.project.oxcintellijplugin")
+                val level = if (logger.isTraceEnabled) "TRACE" else if (logger.isDebugEnabled) "DEBUG" else "INFO"
+
+                val additionalProperties = mutableMapOf<String, String>()
+                if (!run.envData.envs.contains("OXC_LOG")) {
+                    additionalProperties["OXC_LOG"] = level
                 }
+                if (!run.envData.envs.contains("RUST_LOG")) {
+                    additionalProperties["RUST_LOG"] = level
+                }
+                run.envData = run.envData.with(additionalProperties)
                 run.startProcessEx().processHandler
             }
 

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-03-08
+
+### Fixed
+
+- Remove trailing slash from workspaceUri which causes the language server to behave differently.
+
 ## [0.0.24] - 2026-01-26
 
 ### Fixed
@@ -202,7 +208,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.24...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.25...HEAD
+[0.0.25]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.24...v0.0.25
 [0.0.24]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.22...v0.0.23
 [0.0.22]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.21...v0.0.22

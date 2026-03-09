@@ -51,7 +51,7 @@ class OxfmtLspServerDescriptor(
 
     override fun createInitializationOptions(): Any {
         val initializationOptions = roots.map {
-            return@map mapOf("workspaceUri" to it.toNioPath().toUri().toString(),
+            return@map mapOf("workspaceUri" to it.toNioPath().toUri().toString().removeSuffix("/"),
                 "options" to createWorkspaceConfig(it))
         }
         thisLogger().debug("Initialization options: $initializationOptions")

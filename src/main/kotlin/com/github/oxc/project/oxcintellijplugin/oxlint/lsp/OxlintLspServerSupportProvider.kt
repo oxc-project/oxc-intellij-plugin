@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
+import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpNodePackage
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
@@ -31,7 +32,11 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
         val executable = oxc.binaryPath(file) ?: return
         val nodePackage = oxc.getPackage(file)
         val root = if (nodePackage != null) {
-            VirtualFileManager.getInstance().findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent ?: return
+            if (nodePackage is YarnPnpNodePackage) {
+                nodePackage.getPackageJson(project)?.parent ?: return
+            } else {
+                VirtualFileManager.getInstance().findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent ?: return
+            }
         } else {
             ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
         }

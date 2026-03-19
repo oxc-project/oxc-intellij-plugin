@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Yarn PnP should now properly detect content root and enable the Oxfmt and Oxlint language servers.
+
 ## [0.0.25] - 2026-03-08
 
 ### Fixed

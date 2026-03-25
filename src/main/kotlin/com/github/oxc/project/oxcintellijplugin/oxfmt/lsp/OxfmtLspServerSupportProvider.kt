@@ -8,11 +8,10 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.lsp.api.LspServer
 import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.lsWidget.LspServerWidgetItem
-import kotlin.io.path.Path
+import com.intellij.openapi.roots.ModuleRootManager
 
 class OxfmtLspServerSupportProvider : LspServerSupportProvider {
 
@@ -30,14 +29,13 @@ class OxfmtLspServerSupportProvider : LspServerSupportProvider {
             return
         }
         val executable = oxfmt.binaryPath(file) ?: return
-        val nodePackage = oxfmt.getPackage(file)
-        val root = if (nodePackage != null) {
-            VirtualFileManager.getInstance()
-                .findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent
+
+        val projectRootManager = ProjectRootManager.getInstance(project)
+        val root = projectRootManager.fileIndex.getContentRootForFile(file)
+            ?: projectRootManager.fileIndex.getModuleForFile(file)?.let {
+                ModuleRootManager.getInstance(it).contentRoots.firstOrNull()
+            }
             ?: return
-        } else {
-            ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
-        }
 
         serverStarter.ensureServerStarted(
             OxfmtLspServerDescriptor(project, root, executable, oxfmt.binaryParameters(file)))

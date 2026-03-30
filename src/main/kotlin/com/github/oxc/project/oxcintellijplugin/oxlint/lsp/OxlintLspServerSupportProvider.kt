@@ -1,6 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.lsp
 
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
+import com.github.oxc.project.oxcintellijplugin.extensions.findNearestOxlintConfig
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
@@ -30,10 +32,17 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
         }
         val executable = oxc.binaryPath(file) ?: return
         val nodePackage = oxc.getPackage(file)
-        val root = if (nodePackage != null) {
+        val projectRoot = if (nodePackage != null) {
             VirtualFileManager.getInstance().findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent ?: return
         } else {
             ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
+        }
+
+        val configurationMode = OxlintSettings.getInstance(project).configurationMode
+        val root = if (configurationMode == ConfigurationMode.AUTOMATIC) {
+            file.findNearestOxlintConfig(root = projectRoot)?.parent ?: projectRoot
+        } else {
+            projectRoot
         }
 
         serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))

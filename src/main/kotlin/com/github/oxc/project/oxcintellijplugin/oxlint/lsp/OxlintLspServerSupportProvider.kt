@@ -20,7 +20,7 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
     override fun fileOpened(project: Project,
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter) {
-        thisLogger().debug("Handling fileOpened for ${file.path}")
+        thisLogger().debug("[fileOpened] ${file.path}")
 
         if (!OxlintSettings.getInstance(project).fileSupported(file)) {
             return
@@ -44,6 +44,8 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
         } else {
             projectRoot
         }
+        thisLogger().debug("[fileOpened] ${file.path} - projectRoot ${projectRoot}")
+        thisLogger().debug("[fileOpened] ${file.path} - root ${root}")
 
         serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))
     }

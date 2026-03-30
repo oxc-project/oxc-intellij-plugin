@@ -31,9 +31,14 @@ class OxlintLspServerDescriptor(
 
     override fun isSupportedFile(file: VirtualFile): Boolean {
         thisLogger().debug("file.path ${file.path}")
-        return OxlintSettings.getInstance(project).fileSupported(file) && roots.any { root ->
-            file.toNioPath().startsWith(root.toNioPath())
+        if (!OxlintSettings.getInstance(project).fileSupported(file)) return false
+        val configurationMode = OxlintSettings.getInstance(project).configurationMode
+        if (configurationMode != ConfigurationMode.AUTOMATIC) {
+            return roots.any { root -> file.toNioPath().startsWith(root.toNioPath()) }
         }
+        val projectRoot = roots.minByOrNull { it.toNioPath().nameCount } ?: return false
+        val nearestConfigDir = file.findNearestOxlintConfig(root = projectRoot)?.parent ?: projectRoot
+        return roots.any { it == nearestConfigDir }
     }
 
     override fun createCommandLine(): GeneralCommandLine {

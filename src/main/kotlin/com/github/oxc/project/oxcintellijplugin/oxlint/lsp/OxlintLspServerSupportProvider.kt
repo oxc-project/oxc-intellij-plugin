@@ -1,6 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.lsp
 
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
+import com.github.oxc.project.oxcintellijplugin.extensions.findNearestOxlintConfig
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings

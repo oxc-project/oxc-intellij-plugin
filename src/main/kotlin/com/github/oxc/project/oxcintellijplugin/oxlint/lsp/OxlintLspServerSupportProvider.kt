@@ -30,10 +30,17 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
         }
         val executable = oxc.binaryPath(file) ?: return
         val nodePackage = oxc.getPackage(file)
-        val root = if (nodePackage != null) {
+        val projectRoot = if (nodePackage != null) {
             VirtualFileManager.getInstance().findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent ?: return
         } else {
             ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
+        }
+
+        val configurationMode = OxlintSettings.getInstance(project).configurationMode
+        val root = if (configurationMode == ConfigurationMode.AUTOMATIC) {
+            file.findNearestOxlintConfig(root = projectRoot)?.parent ?: projectRoot
+        } else {
+            projectRoot
         }
 
         serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))

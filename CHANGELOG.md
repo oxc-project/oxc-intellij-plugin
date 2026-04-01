@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.26] - 2026-04-01
+
 ### Added
 
 - Remote interpreters (such as SSH, Docker, etc.) should now be supported.
@@ -216,7 +218,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.25...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.26...HEAD
+[0.0.26]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.24...v0.0.25
 [0.0.24]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.22...v0.0.23

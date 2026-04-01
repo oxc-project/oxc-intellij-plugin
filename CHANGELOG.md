@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Remote interpreters (such as SSH, Docker, etc.) should now be supported.
+
 ### Fixed
 
 - Yarn PnP should now properly detect content root and enable the Oxfmt and Oxlint language servers.

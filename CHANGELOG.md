@@ -4,12 +4,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- Support additional file extensions by default with Oxfmt.
+
+### Fixed
+
+- Fix error that read access is only allowed within a read action.
+
 ## [0.0.26] - 2026-04-01
 
 ### Added
 
 - Remote interpreters (such as SSH, Docker, etc.) should now be supported.
-- Support additional file extensions by default with Oxfmt.
 
 ### Fixed
 

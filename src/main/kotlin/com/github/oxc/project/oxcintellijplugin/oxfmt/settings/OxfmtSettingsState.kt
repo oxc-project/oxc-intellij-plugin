@@ -37,7 +37,7 @@ class OxfmtSettingsState : BaseState() {
             ".sarif", ".tact", ".tfstate", ".tfstate.backup", ".topojson",
             ".webapp", ".webmanifest", ".yy", ".yyp",
             // JSONC
-            ".jsonc", ".json5" ".code-snippets", ".code-workspace", ".sublime-build",
+            ".jsonc", ".json5", ".code-snippets", ".code-workspace", ".sublime-build",
             ".sublime-color-scheme", ".sublime-commands", ".sublime-completions",
             ".sublime-keymap", ".sublime-macro", ".sublime-menu", ".sublime-mousemap",
             ".sublime-project", ".sublime-settings", ".sublime-theme",

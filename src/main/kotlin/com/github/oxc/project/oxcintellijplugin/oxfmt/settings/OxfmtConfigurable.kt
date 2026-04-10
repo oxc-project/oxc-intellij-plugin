@@ -157,10 +157,10 @@ class OxfmtConfigurable(private val project: Project) :
         val input = field.text
         val extensions = input.split(",").map { it.trim() }
 
-        val invalidExtension = extensions.find { !it.matches(Regex("^\\.[a-zA-Z0-9]+$")) }
+        val invalidExtension = extensions.find { !it.startsWith(".") }
         return if (invalidExtension != null) {
             ValidationInfo(
-                "Invalid extension: $invalidExtension. Must start with '.' and contain only alphanumeric characters.",
+                "Invalid extension: $invalidExtension. Must start with '.'.",
                 field)
         } else {
             null

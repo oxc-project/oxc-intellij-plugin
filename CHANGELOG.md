@@ -9,6 +9,7 @@
 ### Added
 
 - Remote interpreters (such as SSH, Docker, etc.) should now be supported.
+- Support additional file extensions by default with Oxfmt.
 
 ### Fixed
 

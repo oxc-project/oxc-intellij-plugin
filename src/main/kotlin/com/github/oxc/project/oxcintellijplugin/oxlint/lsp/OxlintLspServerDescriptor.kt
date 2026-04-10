@@ -99,6 +99,9 @@ class OxlintLspServerDescriptor(
 
         return mapOf(
             "configPath" to oxlintPackage.configPath(),
+            "disableNestedConfig" to settings.disableNestedConfig,
+            "fixKind" to settings.fixKind.toLspValue(),
+            // Deprecated flags kept for backward compat with older servers
             "flags" to mapOf(
                 "disable_nested_config" to settings.disableNestedConfig.toString(),
                 "fix_kind" to settings.fixKind.toLspValue(),

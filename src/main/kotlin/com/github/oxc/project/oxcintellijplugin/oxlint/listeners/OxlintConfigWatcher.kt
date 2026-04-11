@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.listeners
 
 import com.github.oxc.project.oxcintellijplugin.extensions.isOxlintConfigFile
+import com.github.oxc.project.oxcintellijplugin.extensions.isViteConfigFile
 import com.github.oxc.project.oxcintellijplugin.oxlint.services.OxlintServerService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
@@ -11,7 +12,7 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 class OxlintConfigWatcher : BulkFileListener {
     override fun after(events: List<VFileEvent>) {
         val configChanged = events.any { event ->
-            return@any event.file?.isOxlintConfigFile() == true
+            return@any event.file?.isOxlintConfigFile() == true || event.file?.isViteConfigFile() == true
         }
 
         if (configChanged) {

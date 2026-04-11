@@ -1,6 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt
 
-import com.github.oxc.project.oxcintellijplugin.extensions.isOxfmtConfigFile
+import com.github.oxc.project.oxcintellijplugin.extensions.isOxfmtJsonConfigFile
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -16,7 +16,7 @@ class OxfmtSchemaProviderFactory : JsonSchemaProviderFactory {
         return listOf(object : JsonSchemaFileProvider {
             override fun isAvailable(file: VirtualFile): Boolean {
                 val settings = OxfmtSettings.getInstance(project)
-                return settings.state.configPath == file.path || file.isOxfmtConfigFile()
+                return settings.state.configPath == file.path || file.isOxfmtJsonConfigFile()
             }
 
             override fun getName(): @Nls String {

@@ -88,8 +88,8 @@ class OxfmtPackage(private val project: Project) {
     }
 
     companion object {
-
         const val CONFIG_NAME = ".oxfmtrc"
-        val CONFIG_VALID_EXTENSIONS = listOf("json", "jsonc")
+        const val CONFIG_TS_NAME = "oxfmt.config.ts"
+        val CONFIG_VALID_JSON_EXTENSIONS = listOf("json", "jsonc")
     }
 }

@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt.listeners
 
 import com.github.oxc.project.oxcintellijplugin.extensions.isOxfmtConfigFile
+import com.github.oxc.project.oxcintellijplugin.extensions.isViteConfigFile
 import com.github.oxc.project.oxcintellijplugin.oxfmt.services.OxfmtServerService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
@@ -12,7 +13,7 @@ class OxfmtConfigWatcher : BulkFileListener {
 
     override fun after(events: List<VFileEvent>) {
         val configChanged = events.any { event ->
-            return@any event.file?.isOxfmtConfigFile() == true
+            return@any event.file?.isOxfmtConfigFile() == true || event.file?.isViteConfigFile() == true
         }
 
         if (configChanged) {

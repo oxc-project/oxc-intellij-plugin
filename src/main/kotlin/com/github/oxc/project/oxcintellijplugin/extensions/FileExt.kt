@@ -15,3 +15,6 @@ fun VirtualFile.isOxfmtJsonConfigFile(): Boolean =
 
 fun VirtualFile.isOxfmtConfigFile(): Boolean =
     isOxfmtJsonConfigFile() || this.name == OxfmtPackage.CONFIG_TS_NAME
+
+fun VirtualFile.isViteConfigFile(): Boolean =
+    this.name == "vite.config.js" || this.name == "vite.config.ts"

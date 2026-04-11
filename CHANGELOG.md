@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.28] - 2026-04-11
+
 ### Added
 
 - Add support to restart the language server automatically for oxfmt.config.ts, oxlint.config.ts, and vite.config.{js,ts}.
@@ -237,7 +239,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.27...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.28...HEAD
+[0.0.28]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.24...v0.0.25

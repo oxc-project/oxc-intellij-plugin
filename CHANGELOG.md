@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support to restart the language server automatically for oxfmt.config.ts, oxlint.config.ts, and vite.config.{js,ts}.
+- Add icon for oxfmt.config.ts and oxlint.config.ts.
+
+### Fixed
+
+- Properly resolve nested configs for Oxlint.
+
 ## [0.0.27] - 2026-04-10
 
 ### Added

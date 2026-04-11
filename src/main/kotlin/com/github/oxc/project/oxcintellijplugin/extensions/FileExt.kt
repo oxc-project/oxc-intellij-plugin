@@ -24,8 +24,11 @@ private fun VirtualFile.findNearestFile(
     return null
 }
 
-fun VirtualFile.isOxlintConfigFile(): Boolean =
+fun VirtualFile.isOxlintJsonConfigFile(): Boolean =
     OxlintPackage.configValidExtensions.map { "${OxlintPackage.CONFIG_NAME}.$it" }.contains(this.name)
+
+fun VirtualFile.isOxlintConfigFile(): Boolean =
+    isOxlintJsonConfigFile() || this.name == OxlintPackage.CONFIG_TS_NAME
 
 fun VirtualFile.isOxfmtConfigFile(): Boolean =
     OxfmtPackage.CONFIG_VALID_EXTENSIONS.map { "${OxfmtPackage.CONFIG_NAME}.$it" }.contains(this.name)

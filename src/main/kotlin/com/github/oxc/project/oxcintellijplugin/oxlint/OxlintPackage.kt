@@ -114,7 +114,8 @@ class OxlintPackage(private val project: Project) {
 
     companion object {
         const val CONFIG_NAME = ".oxlintrc"
+        const val CONFIG_TS_NAME = "oxlint.config.ts"
         val OXLINT_FIRST_LSP_VERSION = SemVer("1.29.0", 1, 29, 0)
-        val configValidExtensions = listOf("json")
+        val configValidExtensions = listOf("json", "jsonc")
     }
 }

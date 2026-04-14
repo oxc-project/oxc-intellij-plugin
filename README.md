@@ -33,7 +33,8 @@ A high-performance JavaScript/TypeScript formatter.
   Code</kbd> > <kbd>Reformat File...</kbd>)
 - Automatically format on save.
 - JSON schema validation for `.oxfmtrc.json` configuration files.
-- Configurable file formats JavaScript, TypeScript, JSON, HMYL, Markdown, MDX, CSS, SCSS, GrapghQL, TOML, YAML and more. [See the full list](https://github.com/oxc-project/oxc-intellij-plugin/blob/main/src/main/kotlin/com/github/oxc/project/oxcintellijplugin/oxfmt/settings/OxfmtSettingsState.kt).
+- Configurable file formats JavaScript, TypeScript, JSON, HMYL, Markdown, MDX, CSS, SCSS, GrapghQL, TOML, YAML and
+  more. [See the full list](https://github.com/oxc-project/oxc-intellij-plugin/blob/main/src/main/kotlin/com/github/oxc/project/oxcintellijplugin/oxfmt/settings/OxfmtSettingsState.kt).
 
 <!-- Plugin description end -->
 
@@ -49,5 +50,21 @@ A high-performance JavaScript/TypeScript formatter.
   Download the [latest release](https://github.com/oxc-project/oxc-intellij-plugin/releases/latest) and install it
   manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+
+## Troubleshooting
+
+IntelliJ provides log files for standard logs as well as the LSP integration. The plugin uses the regular log
+directories which can be found
+here https://www.jetbrains.com/help/idea/directories-used-by-the-ide-to-store-settings-caches-plugins-and-logs.html#logs-directory.
+All LSP logs are output to `language-services/Oxfmt*` or `language-services/Oxlint*`. Non-LSP logs are output to
+`idea.log`.
+
+The log level can be configured with the information available
+here https://youtrack.jetbrains.com/articles/SUPPORT-A-43/How-to-enable-debug-logging-in-IntelliJ-IDEA.
+`com.github.oxc.project.oxcintellijplugin:all` - Enable debug logging for the plugin.
+`com.intellij.platform.lsp:all` - Enable debug logging for LSP integrations.
+
+Enabling both debug logging for the plugin and debug logging for LSP integrations will typically provide useful
+information for investigating problems.
 
 ---

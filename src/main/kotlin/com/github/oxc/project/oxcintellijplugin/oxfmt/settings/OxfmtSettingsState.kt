@@ -18,6 +18,9 @@ class OxfmtSettingsState : BaseState() {
     @get:Attribute("fixAllOnSave")
     var fixAllOnSave by property(false)
 
+    @get:Attribute("preferOxfmtCodeStyleSettings")
+    var preferOxfmtCodeStyleSettings by property(false)
+
     @get:Attribute("supportedExtensions")
     var supportedExtensions by list<String>()
 

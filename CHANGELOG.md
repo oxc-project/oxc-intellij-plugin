@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for applying Oxfmt code style which will update the IntelliJ code style settings to match the Oxfmt
+  settings.
+  - This only works for JSON config files. TypeScript/JavaScript files could probably be added with some effort.
+  - This can be enabled within the Oxfmt settings.
+  - Code style should be automatically applied when modifying a config file. If necessary, there is an action for
+    "Import Oxfmt Code Style".
+
 ### Fixed
 
 - Warm the WSL mntRoot cache, to avoid synchronous execution on the EDT errors.

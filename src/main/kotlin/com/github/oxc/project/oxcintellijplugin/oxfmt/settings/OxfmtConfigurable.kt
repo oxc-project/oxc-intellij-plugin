@@ -12,6 +12,7 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
@@ -34,6 +35,7 @@ class OxfmtConfigurable(private val project: Project) :
     BoundSearchableConfigurable(OxfmtBundle.message("oxfmt.name"), HELP_TOPIC, CONFIGURABLE_ID) {
 
     lateinit var fixAllOnSaveCheckBox: JCheckBox
+    lateinit var preferOxfmtCodeStyleSettingsCheckBox: JCheckBox
     lateinit var disabledConfiguration: JRadioButton
     private lateinit var automaticConfiguration: JRadioButton
     private lateinit var manualConfiguration: JRadioButton
@@ -142,10 +144,22 @@ class OxfmtConfigurable(private val project: Project) :
                 cell(link)
             }.enabledIf(!disabledConfiguration.selected)
 
+            // *********************
+            // Prefer Oxfmt Code Style Settings row
+            // *********************
+            row {
+                preferOxfmtCodeStyleSettingsCheckBox = checkBox(
+                    OxfmtBundle.message("oxfmt.checkbox.code.style.modification")).bindSelected(
+                    { settings.preferOxfmtCodeStyleSettings },
+                    { settings.preferOxfmtCodeStyleSettings = it },
+                ).component
+            }.enabledIf(!disabledConfiguration.selected)
+
             onApply {
                 if (project.isDefault) {
                     return@onApply
                 }
+                CodeStyleSettingsManager.getInstance(project).notifyCodeStyleSettingsChanged()
                 ApplicationManager.getApplication().invokeLater {
                     server.restartServer()
                 }

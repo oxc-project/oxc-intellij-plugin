@@ -14,6 +14,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Oxc" displayType="BALLOON"/>
         <iconProvider implementation="com.github.oxc.project.oxcintellijplugin.OxcIconProvider"/>
+        <codeStyleSettingsModifier
+                implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier"
+                order="first, before org.editorconfig.EditorConfigCodeStyleSettingsModifier"/>
 
         <registryKey key="oxc.lint.fix.all.timeout.ms"
                      defaultValue="30000"
@@ -89,12 +92,19 @@
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxlintRestartServerAction"
         />
     </actions>
-    
+
     <actions resource-bundle="messages.OxfmtBundle">
         <action
                 id="OxfmtRestartServerAction"
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxfmtRestartServerAction"
         />
+        <action
+                id="OxfmtImportCodeStyleAction"
+                class="com.github.oxc.project.oxcintellijplugin.oxfmt.actions.OxfmtImportCodeStyleAction"
+        >
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
     </actions>
 
     <applicationListeners>

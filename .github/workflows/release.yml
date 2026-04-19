@@ -24,6 +24,7 @@ jobs:
       - name: Fetch Sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           ref: ${{ github.event.release.tag_name }}
 
       # Set up Java environment for the next steps
@@ -43,11 +44,10 @@ jobs:
       - name: Export Properties
         id: properties
         shell: bash
+        env:
+          RELEASE_BODY: ${{ github.event.release.body }}
         run: |
-          CHANGELOG="$(cat << 'EOM' | sed -e 's/^[[:space:]]*$//g' -e '/./,$!d'
-          ${{ github.event.release.body }}
-          EOM
-          )"
+          CHANGELOG="$(printf '%s\n' "$RELEASE_BODY" | sed -e 's/^[[:space:]]*$//g' -e '/./,$!d')"
           
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
@@ -74,15 +74,17 @@ jobs:
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" ./build/distributions/*
 
       # Create a pull request
       - name: Create Pull Request
         if: ${{ steps.properties.outputs.changelog != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="$RELEASE_TAG"
           BRANCH="changelog-update-$VERSION"
           LABEL="release changelog"
 

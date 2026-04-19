@@ -36,6 +36,8 @@ jobs:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       # Set up Java environment for the next steps
       - name: Setup Java
@@ -56,7 +58,7 @@ jobs:
 
       # Wait for IDEA to be started
       - name: Health Check
-        uses: jtalk/url-health-check-action@v4
+        uses: jtalk/url-health-check-action@b716ccb6645355dd9fcce8002ce460e5474f7f00 # v4
         with:
           url: http://127.0.0.1:8082
           max-attempts: 15

@@ -135,7 +135,7 @@ jobs:
           echo "NPM_CACHE_DIR=$(npm config get cache)" >> $GITHUB_OUTPUT
 
       - name: Save and restore NPM cache on main
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         if: ${{ github.ref == 'refs/heads/main' }}
         with:
           path: ${{ steps.npm_cache_dir.outputs.NPM_CACHE_DIR }}
@@ -144,7 +144,7 @@ jobs:
             ${{ runner.os }}-npm-cache-dir
 
       - name: Restore NPM cache on PR
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         if: ${{ github.ref != 'refs/heads/main' }}
         with:
           path: ${{ steps.npm_cache_dir.outputs.NPM_CACHE_DIR }}
@@ -202,7 +202,7 @@ jobs:
 
       # Cache Plugin Verifier IDEs
       - name: Setup Plugin Verifier IDEs Cache
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ needs.build.outputs.pluginVerifierHomeDir }}/ides
           key: plugin-verifier-${{ hashFiles('build/listProductsReleases.txt') }}

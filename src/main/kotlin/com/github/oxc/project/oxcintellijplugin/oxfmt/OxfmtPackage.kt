@@ -58,11 +58,13 @@ class OxfmtPackage(
         val settings = OxfmtSettings.getInstance(project)
         val configurationMode = settings.configurationMode
 
+        // We need to prefer `vite-plus` over `oxfmt` because it may be also available as npm hoists it.
+        // It can't detect the `vite.config.ts` configuration if we prefer the dedicated package instead.
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> findOxfmtExecutable(virtualFile) ?: vitePlus.findOxfmtExecutable(virtualFile)
+            ConfigurationMode.AUTOMATIC -> vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
             ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank {
-                findOxfmtExecutable(virtualFile) ?: vitePlus.findOxfmtExecutable(virtualFile)
+                vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
             }
         }
     }

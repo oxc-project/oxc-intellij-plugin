@@ -58,11 +58,13 @@ class OxlintPackage(
         val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
 
+        // We need to prefer `vite-plus` over `oxlint` because it may be also available as npm hoists it.
+        // It can't detect the `vite.config.ts` configuration if we prefer the dedicated package instead.
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> findOxlintExecutable(virtualFile) ?: vitePlus.findOxlintExecutable(virtualFile)
+            ConfigurationMode.AUTOMATIC -> vitePlus.findOxlintExecutable(virtualFile) ?: findOxlintExecutable(virtualFile)
             ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank {
-                findOxlintExecutable(virtualFile) ?: vitePlus.findOxlintExecutable(virtualFile)
+                vitePlus.findOxlintExecutable(virtualFile) ?: findOxlintExecutable(virtualFile)
             }
         }
     }
@@ -108,6 +110,11 @@ class OxlintPackage(
     }
 
     private fun findOxlintParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
+        val vitePlusPackage = vitePlus.getPackage(virtualFile)
+        if (vitePlusPackage != null) {
+            return listOf(ProcessCommandParameter.Value("--lsp"))
+        }
+
         val oxlintPackage = getPackage(virtualFile)
         if (oxlintPackage != null) {
             val version = oxlintPackage.getVersion(project)
@@ -117,11 +124,6 @@ class OxlintPackage(
             } else {
                 emptyList()
             }
-        }
-
-        val vitePlusPackage = vitePlus.getPackage(virtualFile)
-        if (vitePlusPackage != null) {
-            return listOf(ProcessCommandParameter.Value("--lsp"))
         }
 
         return emptyList()

@@ -56,7 +56,7 @@ class VitePlusPackage(private val project: Project) {
     }
 
     companion object {
-        const val CONFIG_NAME = "vite.config.ts"
+        const val CONFIG_NAME = "vite.config"
         val configValidExtensions = listOf("ts", "mts", "cts", "js", "mjs", "cjs")
     }
 }

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for detecting Vite+ installations and using the correct tools from that installation.
+
 ## [0.0.28] - 2026-04-11
 
 ### Added

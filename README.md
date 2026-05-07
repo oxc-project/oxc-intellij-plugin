@@ -23,6 +23,7 @@ A high-performance JavaScript/TypeScript linter.
 - Custom icons for Oxlint configuration files.
 - JSON schema validation for `.oxlintrc.json` configuration files.
 - Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts, .vue, .svelte, .astro).
+- Vite+ Support
 
 ## Oxfmt
 
@@ -35,6 +36,7 @@ A high-performance JavaScript/TypeScript formatter.
 - JSON schema validation for `.oxfmtrc.json` configuration files.
 - Configurable file formats JavaScript, TypeScript, JSON, HMYL, Markdown, MDX, CSS, SCSS, GrapghQL, TOML, YAML and
   more. [See the full list](https://github.com/oxc-project/oxc-intellij-plugin/blob/main/src/main/kotlin/com/github/oxc/project/oxcintellijplugin/oxfmt/settings/OxfmtSettingsState.kt).
+- Vite+ Support
 
 <!-- Plugin description end -->
 

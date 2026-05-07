@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.extensions
 
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
+import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
 import com.intellij.openapi.vfs.VirtualFile
 
 fun VirtualFile.isOxlintJsonConfigFile(): Boolean =
@@ -17,4 +18,4 @@ fun VirtualFile.isOxfmtConfigFile(): Boolean =
     isOxfmtJsonConfigFile() || this.name == OxfmtPackage.CONFIG_TS_NAME
 
 fun VirtualFile.isViteConfigFile(): Boolean =
-    this.name == "vite.config.js" || this.name == "vite.config.ts"
+    VitePlusPackage.configValidExtensions.map { "${VitePlusPackage.CONFIG_NAME}.$it" }.contains(this.name)

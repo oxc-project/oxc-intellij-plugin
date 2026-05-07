@@ -3,6 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
+import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
@@ -10,8 +11,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.Paths
 
-class OxfmtPackage(private val project: Project) {
-
+class OxfmtPackage(
+    private val project: Project,
+    private val vitePlus: VitePlusPackage = VitePlusPackage(project)
+) {
     private val packageName = "oxfmt"
     private val packageDescription = NodePackageDescriptor(packageName)
 
@@ -55,11 +58,13 @@ class OxfmtPackage(private val project: Project) {
         val settings = OxfmtSettings.getInstance(project)
         val configurationMode = settings.configurationMode
 
+        // We need to prefer `vite-plus` over `oxfmt` because it may be also available as npm hoists it.
+        // It can't detect the `vite.config.ts` configuration if we prefer the dedicated package instead.
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> findOxfmtExecutable(virtualFile)
+            ConfigurationMode.AUTOMATIC -> vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
             ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank {
-                findOxfmtExecutable(virtualFile)
+                vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
             }
         }
     }

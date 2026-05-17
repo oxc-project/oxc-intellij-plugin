@@ -73,8 +73,13 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       # Build plugin
-      - name: Build plugin
-        run: ./gradlew buildPlugin
+      - name: Build and Sign plugin
+        # Secrets are not available to PRs. In those cases, the plugin will still be built unsigned.
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin
 
       # Prepare plugin archive content for creating artifact
       - name: Prepare Plugin Artifact
@@ -82,7 +87,11 @@ jobs:
         shell: bash
         run: |
           cd ${{ github.workspace }}/build/distributions
-          FILENAME=`ls *.zip`
+          FILENAME="$(shopt -s nullglob; echo *signed.zip)"
+          if test -z "$FILENAME"
+          then
+            FILENAME=$(ls *.zip)
+          fi
           unzip "$FILENAME" -d content
 
           echo "filename=${FILENAME:0:-4}" >> $GITHUB_OUTPUT
@@ -249,3 +258,4 @@ jobs:
           ${{ needs.build.outputs.changelog }}
           EOM
           )"
+          gh release upload v${{ needs.build.outputs.version }} ./build/distributions/*

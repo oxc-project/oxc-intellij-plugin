@@ -65,17 +65,15 @@ jobs:
       - name: Publish Plugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew publishPlugin
-
-      # Upload artifact as a release asset
-      - name: Upload Release Asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" ./build/distributions/*
+        # Information on the upload can be found here https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html.
+        run: |
+          gh release download $RELEASE_TAG --pattern "*signed.zip"
+          FILENAME=`ls *signed.zip`
+          curl -i --header "Authorization: Bearer $PUBLISH_TOKEN" \
+          -F pluginId=27061 \
+          -F file=@$FILENAME \
+          https://plugins.jetbrains.com/api/updates/upload
 
       # Create a pull request
       - name: Create Pull Request

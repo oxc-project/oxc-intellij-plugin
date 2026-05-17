@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Workflow changes to support GitHub immutable releases. No real plugin changes. This may fail to release correctly.
+
 ## [0.0.29] - 2026-05-09
 
 ### Added

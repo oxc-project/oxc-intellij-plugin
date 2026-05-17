@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.29] - 2026-05-09
+
 ### Added
 
 - Add support for detecting Vite+ installations and using the correct tools from that installation.
@@ -243,7 +245,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.28...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.29...HEAD
+[0.0.29]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.28...v0.0.29
 [0.0.28]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.25...v0.0.26

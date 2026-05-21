@@ -32,6 +32,7 @@ jobs:
       version: ${{ steps.properties.outputs.version }}
       changelog: ${{ steps.properties.outputs.changelog }}
       pluginVerifierHomeDir: ${{ steps.properties.outputs.pluginVerifierHomeDir }}
+      pluginArtifactId: ${{ steps.artifact.outputs.artifact-id }}
     steps:
 
       # Check out current repository
@@ -246,6 +247,14 @@ jobs:
             --jq '.[] | select(.draft == true) | .id' \
             | xargs -I '{}' gh api -X DELETE repos/{owner}/{repo}/releases/{}
 
+      - name: Download Plugin Artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        id: artifact-download
+        with:
+          artifact-ids: ${{ needs.build.outputs.pluginArtifactId }}
+          path: plugin-artifact
+          skip-decompress: true
+
       # Create a new release draft which is not publicly visible and requires manual acceptance
       - name: Create Release Draft
         env:
@@ -258,4 +267,4 @@ jobs:
           ${{ needs.build.outputs.changelog }}
           EOM
           )"
-          gh release upload v${{ needs.build.outputs.version }} ./build/distributions/*
+          gh release upload v${{ needs.build.outputs.version }} ${{ steps.artifact-download.outputs.download-path }}/*.zip

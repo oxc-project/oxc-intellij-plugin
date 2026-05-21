@@ -6,7 +6,15 @@
 
 ### Changed
 
-- Workflow changes to support GitHub immutable releases. No real plugin changes. This may fail to release correctly.
+- Workflow changes to support GitHub immutable releases. No real plugin changes.
+  This may fail to release correctly.
+
+## [0.0.30] - 2026-05-20
+
+### Changed
+
+- Workflow changes to support GitHub immutable releases. No real plugin changes.
+  This failed to release correctly and was never published to JetBrains.
 
 ## [0.0.29] - 2026-05-09
 
@@ -249,7 +257,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.29...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.30...HEAD
+[0.0.30]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.29...v0.0.30
 [0.0.29]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.28...v0.0.29
 [0.0.28]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.26...v0.0.27

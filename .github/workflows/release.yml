@@ -64,6 +64,7 @@ jobs:
       # Publish the plugin to JetBrains Marketplace
       - name: Publish Plugin
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         # Information on the upload can be found here https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html.

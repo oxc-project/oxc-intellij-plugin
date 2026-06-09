@@ -79,6 +79,18 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
+        <action
+                id="OxlintRestartServerAction"
+                text="Restart Oxlint Server"
+                description="Restart the Oxlint language server"
+                class="com.github.oxc.project.oxcintellijplugin.actions.OxlintRestartServerAction"
+        />
+        <action
+                id="OxfmtRestartServerAction"
+                text="Restart Oxfmt Server"
+                description="Restart the Oxfmt language server"
+                class="com.github.oxc.project.oxcintellijplugin.actions.OxfmtRestartServerAction"
+        />
     </actions>
 
     <applicationListeners>

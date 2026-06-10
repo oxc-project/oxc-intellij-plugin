@@ -43,10 +43,10 @@
                 order="after FormatOnSaveInfoProvider, after EsLintOnSaveInfoProvider, before FileWatcherOnSaveInfoProvider, before UploadOnSaveInfoProvider"
         />
 
+        <!-- Runs in the document-updating phase, after FormatOnSaveAction and other legacy entries -->
         <actionOnSave
                 id="OxlintFixAllOnSaveAction"
                 implementation="com.github.oxc.project.oxcintellijplugin.oxlint.actions.OxlintFixAllOnSaveAction"
-                order="first, before FormatOnSaveAction"
         />
         <actionOnSave
                 id="OxfmtFixAllOnSaveAction"

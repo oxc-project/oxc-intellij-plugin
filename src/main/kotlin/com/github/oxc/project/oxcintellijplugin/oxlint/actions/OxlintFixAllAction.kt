@@ -50,7 +50,9 @@ class OxlintFixAllAction : AnAction(), DumbAware {
         runWithModalProgressBlocking(project,
             OxlintBundle.message("oxlint.run.fix.all")) {
             try {
-                withTimeout(5_000) {
+                // fixAll now runs a diagnostic pass before the code action, and a type-aware lint
+                // can take seconds per request, so 5s is no longer a realistic budget.
+                withTimeout(30_000) {
                     OxlintServerService.getInstance(project).fixAll(virtualFile, document)
                 }
                 notificationGroup.createNotification(title = OxlintBundle.message("oxlint.fix.all.success.label"),

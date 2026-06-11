@@ -81,14 +81,14 @@
         </action>
         <action
                 id="OxlintRestartServerAction"
-                text="Restart Oxlint Server"
-                description="Restart the Oxlint language server"
+                text="oxlint.restart.server.action.text"
+                description="oxlint.restart.server.action.description"
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxlintRestartServerAction"
         />
         <action
                 id="OxfmtRestartServerAction"
-                text="Restart Oxfmt Server"
-                description="Restart the Oxfmt language server"
+                text="oxfmt.restart.server.action.text"
+                description="oxfmt.restart.server.action.description"
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxfmtRestartServerAction"
         />
     </actions>

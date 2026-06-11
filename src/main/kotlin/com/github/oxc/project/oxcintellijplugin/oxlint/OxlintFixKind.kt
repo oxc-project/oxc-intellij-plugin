@@ -26,7 +26,7 @@ enum class OxlintFixKind {
         }
     }
 
-    fun includesSuggestions(): Boolean {
+    fun isSuggestion(): Boolean {
         return when (this) {
             SAFE_FIX_OR_SUGGESTION, DANGEROUS_FIX_OR_SUGGESTION, ALL -> true
             SAFE_FIX, DANGEROUS_FIX, NONE -> false

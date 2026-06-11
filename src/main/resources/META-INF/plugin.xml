@@ -15,6 +15,10 @@
         <notificationGroup id="Oxc" displayType="BALLOON"/>
         <iconProvider implementation="com.github.oxc.project.oxcintellijplugin.OxcIconProvider"/>
 
+        <registryKey key="oxc.lint.fix.all.timeout.ms"
+                     defaultValue="30000"
+                     description="Per-file timeout in milliseconds for computing oxlint fixes (diagnostic warm-up plus code action request). Used by 'Fix All' on save and the 'Apply Oxlint Quick Fixes' action. Values less than or equal to 0 fall back to the default."/>
+
         <platform.lsp.serverSupportProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider"/>
         <platform.lsp.serverSupportProvider
@@ -43,10 +47,10 @@
                 order="after FormatOnSaveInfoProvider, after EsLintOnSaveInfoProvider, before FileWatcherOnSaveInfoProvider, before UploadOnSaveInfoProvider"
         />
 
+        <!-- Runs in the document-updating phase, after FormatOnSaveAction and other legacy entries -->
         <actionOnSave
                 id="OxlintFixAllOnSaveAction"
                 implementation="com.github.oxc.project.oxcintellijplugin.oxlint.actions.OxlintFixAllOnSaveAction"
-                order="first, before FormatOnSaveAction"
         />
         <actionOnSave
                 id="OxfmtFixAllOnSaveAction"

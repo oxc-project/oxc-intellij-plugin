@@ -7,6 +7,9 @@ import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSuppor
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.editor.Document
@@ -14,12 +17,12 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerManager
+import com.intellij.platform.lsp.api.customization.LspIntentionAction
 import com.intellij.platform.lsp.util.getLsp4jRange
 import org.eclipse.lsp4j.CodeActionContext
 import org.eclipse.lsp4j.CodeActionKind
 import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeActionTriggerKind
-import org.eclipse.lsp4j.TextEdit
 
 @Service(Service.Level.PROJECT)
 class OxlintServerService(private val project: Project) {
@@ -43,13 +46,12 @@ class OxlintServerService(private val project: Project) {
     suspend fun fixAll(file: VirtualFile, document: Document): Boolean {
         val server = getServer(file) ?: return false
 
-        val commandName = OxlintBundle.message("oxlint.run.quickfix")
         val fixKind = OxlintSettings.getInstance(project).fixKind
         if (fixKind == OxlintFixKind.NONE) {
             return false
         }
         val codeActionKinds = when {
-            fixKind.includesSuggestions() -> listOf(CodeActionKind.QuickFix)
+            fixKind.isSuggestion() -> listOf(CodeActionKind.QuickFix)
             fixKind.isDangerous() -> listOf("source.fixAllDangerous.oxc")
             else -> listOf("source.fixAll.oxc")
         }
@@ -63,27 +65,27 @@ class OxlintServerService(private val project: Project) {
             })
 
         val codeActionResults = server.sendRequest { it.textDocumentService.codeAction(codeActionParams) }
-        val edits = codeActionResults.orEmpty()
+        val actions = codeActionResults.orEmpty()
             .filter { it.isRight && it.right.isPreferred }
-            .flatMap { it.right.edit?.changes?.get(server.getDocumentIdentifier(file).uri).orEmpty() }
+            .map { LspIntentionAction(server, it.right) }
+            .filter { ReadAction.compute<Boolean, Throwable> { it.isAvailable() } }
 
-        WriteCommandAction.runWriteCommandAction(project, commandName, groupId, {
-            applyTextEdits(document, edits)
+        WriteCommandAction.runWriteCommandAction(project, OxlintBundle.message("oxlint.run.quickfix"), groupId, {
+            invokeActions(actions, file)
         })
 
-        return edits.isNotEmpty()
+        return actions.isNotEmpty()
     }
 
-    private fun applyTextEdits(document: Document, edits: List<TextEdit>) {
-        edits.sortedWith(compareByDescending<TextEdit> { it.range.start.line }
-            .thenByDescending { it.range.start.character })
-            .forEach {
-                val startLineOffset = document.getLineStartOffset(it.range.start.line)
-                val endLineOffset = document.getLineStartOffset(it.range.end.line)
-                document.replaceString(startLineOffset + it.range.start.character,
-                    endLineOffset + it.range.end.character,
-                    it.newText.lines().joinToString(separator = "\n"))
-            }
+    private fun invokeActions(actions: List<LspIntentionAction>, file: VirtualFile) {
+        val application = ApplicationManager.getApplication()
+        val invoke = { actions.forEach { it.invoke(file) } }
+
+        if (application.isDispatchThread) {
+            invoke()
+        } else {
+            application.invokeAndWait(invoke, ModalityState.defaultModalityState())
+        }
     }
 
     fun restartServer() {

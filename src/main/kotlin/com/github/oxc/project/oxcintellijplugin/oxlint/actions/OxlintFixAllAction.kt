@@ -50,12 +50,14 @@ class OxlintFixAllAction : AnAction(), DumbAware {
         runWithModalProgressBlocking(project,
             OxlintBundle.message("oxlint.run.fix.all")) {
             try {
-                withTimeout(5_000) {
+                val fixesApplied = withTimeout(5_000) {
                     OxlintServerService.getInstance(project).fixAll(virtualFile, document)
                 }
-                notificationGroup.createNotification(title = OxlintBundle.message("oxlint.fix.all.success.label"),
-                    content = OxlintBundle.message("oxlint.fix.all.success.description"),
-                    type = NotificationType.INFORMATION).notify(project)
+                if (fixesApplied) {
+                    notificationGroup.createNotification(title = OxlintBundle.message("oxlint.fix.all.success.label"),
+                        content = OxlintBundle.message("oxlint.fix.all.success.description"),
+                        type = NotificationType.INFORMATION).notify(project)
+                }
             } catch (e: Exception) {
                 notificationGroup.createNotification(title = OxlintBundle.message("oxlint.fix.all.failure.label"),
                     content = OxlintBundle.message("oxlint.fix.all.failure.description", e.message.toString()),

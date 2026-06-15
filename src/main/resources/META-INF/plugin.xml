@@ -60,7 +60,7 @@
         <JsonSchema.ProviderFactory implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtSchemaProviderFactory"/>
     </extensions>
 
-    <actions>
+    <actions resource-bundle="messages.OxlintBundle">
         <action
                 id="OxlintApplyFixAllAction"
                 text="Apply Oxlint Quick Fixes"
@@ -81,14 +81,13 @@
         </action>
         <action
                 id="OxlintRestartServerAction"
-                text="oxlint.restart.server.action.text"
-                description="oxlint.restart.server.action.description"
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxlintRestartServerAction"
         />
+    </actions>
+    
+    <actions resource-bundle="messages.OxfmtBundle">
         <action
                 id="OxfmtRestartServerAction"
-                text="oxfmt.restart.server.action.text"
-                description="oxfmt.restart.server.action.description"
                 class="com.github.oxc.project.oxcintellijplugin.actions.OxfmtRestartServerAction"
         />
     </actions>

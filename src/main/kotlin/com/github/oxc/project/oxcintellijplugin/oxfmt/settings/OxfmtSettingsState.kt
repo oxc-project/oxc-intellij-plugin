@@ -45,7 +45,7 @@ class OxfmtSettingsState : BaseState() {
             // HTML
             ".html", ".hta", ".htm", ".inc", ".xht", ".xhtml",
             // Frameworks
-            ".handlebars", ".hbs", ".mjml", ".vue",
+            ".handlebars", ".hbs", ".mjml", ".vue", ".svelte",
             // CSS
             ".css", ".pcss", ".postcss", ".less", ".scss", ".wxss",
             // GraphQL

@@ -266,5 +266,5 @@ jobs:
             --notes "$(cat << 'EOM'
           ${{ needs.build.outputs.changelog }}
           EOM
-          )"
-          gh release upload v${{ needs.build.outputs.version }} ${{ steps.artifact-download.outputs.download-path }}/*/*signed.zip
+          )" \
+          ${{ steps.artifact-download.outputs.download-path }}/*/*signed.zip

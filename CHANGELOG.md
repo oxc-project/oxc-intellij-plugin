@@ -8,6 +8,7 @@
 
 - Oxfmt and Oxlint can be restarted using an action now (typically from the shift + shift shortcut) instead of only from
   the toolbar.
+- Add Svelte to the Oxfmt default file extensions.
 
 ### Changed
 

@@ -18,4 +18,18 @@ enum class OxlintFixKind {
             ALL -> "all"
         }
     }
+
+    fun isDangerous(): Boolean {
+        return when (this) {
+            DANGEROUS_FIX, DANGEROUS_FIX_OR_SUGGESTION, ALL -> true
+            SAFE_FIX, SAFE_FIX_OR_SUGGESTION, NONE -> false
+        }
+    }
+
+    fun isSuggestion(): Boolean {
+        return when (this) {
+            SAFE_FIX_OR_SUGGESTION, DANGEROUS_FIX_OR_SUGGESTION, ALL -> true
+            SAFE_FIX, DANGEROUS_FIX, NONE -> false
+        }
+    }
 }

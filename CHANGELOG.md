@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- Oxfmt and Oxlint can be restarted using an action now (typically from the shift + shift shortcut) instead of only from
+  the toolbar.
+
+### Changed
+
+- When triggering Oxlint fix all action, only show notification if changes were actually applied.
+- When Oxlint `fixKind` is set to none and fixes are triggered through the Oxlint fix all action or fix all on save
+  action, don't send a message to the language server.
+
+### Fixed
+
+- When Oxlint `fixKind` is configured for dangerous fixes, the Oxlint fix all action and fix all on save action will now
+  correctly apply the dangerous fixes.
+
 ## [0.0.34] - 2026-06-10
 
 ### Changed

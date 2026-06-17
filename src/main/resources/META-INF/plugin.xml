@@ -60,7 +60,7 @@
         <JsonSchema.ProviderFactory implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtSchemaProviderFactory"/>
     </extensions>
 
-    <actions>
+    <actions resource-bundle="messages.OxlintBundle">
         <action
                 id="OxlintApplyFixAllAction"
                 text="Apply Oxlint Quick Fixes"
@@ -79,6 +79,17 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
+        <action
+                id="OxlintRestartServerAction"
+                class="com.github.oxc.project.oxcintellijplugin.actions.OxlintRestartServerAction"
+        />
+    </actions>
+    
+    <actions resource-bundle="messages.OxfmtBundle">
+        <action
+                id="OxfmtRestartServerAction"
+                class="com.github.oxc.project.oxcintellijplugin.actions.OxfmtRestartServerAction"
+        />
     </actions>
 
     <applicationListeners>

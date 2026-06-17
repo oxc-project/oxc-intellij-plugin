@@ -14,9 +14,11 @@
 - When triggering Oxlint fix all action, only show notification if changes were actually applied.
 - When Oxlint `fixKind` is set to none and fixes are triggered through the Oxlint fix all action or fix all on save
   action, don't send a message to the language server.
-- Send the correct Oxlint `only` parameter for `CodeActionKind` based on the configured `fixKind`.
-  suggestions -> `quickfix`, dangerous -> `source.fixAllDangerous.oxc`,
-  everything else (which is just SAFE_FIX) -> `quickfix`
+
+### Fixed
+
+- When Oxlint `fixKind` is configured for dangerous fixes, the Oxlint fix all action and fix all on save action will now
+  correctly apply the dangerous fixes.
 
 ## [0.0.34] - 2026-06-10
 

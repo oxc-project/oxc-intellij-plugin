@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.35] - 2026-06-17
+
 ### Added
 
 - Oxfmt and Oxlint can be restarted using an action now (typically from the shift + shift shortcut) instead of only from
@@ -297,7 +299,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.34...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.35...HEAD
+[0.0.35]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.34...v0.0.35
 [0.0.34]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.33...v0.0.34
 [0.0.33]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.32...v0.0.33
 [0.0.32]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.31...v0.0.32

@@ -20,7 +20,6 @@ import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.customization.LspIntentionAction
 import com.intellij.platform.lsp.util.getLsp4jRange
 import org.eclipse.lsp4j.CodeActionContext
-import org.eclipse.lsp4j.CodeActionKind
 import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeActionTriggerKind
 
@@ -51,7 +50,6 @@ class OxlintServerService(private val project: Project) {
             return false
         }
         val codeActionKinds = when {
-            fixKind.isSuggestion() -> listOf(CodeActionKind.QuickFix)
             fixKind.isDangerous() -> listOf("source.fixAllDangerous.oxc")
             else -> listOf("source.fixAll.oxc")
         }

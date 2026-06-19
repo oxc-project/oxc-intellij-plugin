@@ -15,10 +15,12 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.customization.LspIntentionAction
 import com.intellij.platform.lsp.util.getLsp4jRange
+import kotlinx.coroutines.withTimeout
 import org.eclipse.lsp4j.CodeActionContext
 import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeActionTriggerKind
@@ -29,6 +31,16 @@ class OxlintServerService(private val project: Project) {
 
     companion object {
         fun getInstance(project: Project): OxlintServerService = project.getService(OxlintServerService::class.java)
+
+        private const val FIX_ALL_TIMEOUT_REGISTRY_KEY = "oxc.lint.fix.all.timeout.ms"
+        private const val DEFAULT_FIX_ALL_TIMEOUT_MS = 30_000
+
+        // The platform's suspending sendRequest has no timeout of its own, so this bounds how
+        // long fixAll may delay a save or block the manual action for a single file.
+        private fun fixAllTimeoutMs(): Long {
+            val value = Registry.intValue(FIX_ALL_TIMEOUT_REGISTRY_KEY, DEFAULT_FIX_ALL_TIMEOUT_MS)
+            return (if (value > 0) value else DEFAULT_FIX_ALL_TIMEOUT_MS).toLong()
+        }
     }
 
     private fun getServer(file: VirtualFile) =
@@ -62,17 +74,25 @@ class OxlintServerService(private val project: Project) {
                 triggerKind = CodeActionTriggerKind.Invoked
             })
 
-        val codeActionResults = server.sendRequest { it.textDocumentService.codeAction(codeActionParams) }
+        // Bound the code-action round-trip with a per-file budget so a single slow file is
+        // skipped rather than starving the rest of a Save All batch.
+        val codeActionResults = withTimeout(fixAllTimeoutMs()) {
+            server.sendRequest { it.textDocumentService.codeAction(codeActionParams) }
+        }
         val actions = codeActionResults.orEmpty()
             .filter { it.isRight && it.right.isPreferred }
             .map { LspIntentionAction(server, it.right) }
             .filter { ReadAction.compute<Boolean, Throwable> { it.isAvailable() } }
 
+        if (actions.isEmpty()) {
+            return false
+        }
+
         WriteCommandAction.runWriteCommandAction(project, OxlintBundle.message("oxlint.run.quickfix"), groupId, {
             invokeActions(actions, file)
         })
 
-        return actions.isNotEmpty()
+        return true
     }
 
     private fun invokeActions(actions: List<LspIntentionAction>, file: VirtualFile) {

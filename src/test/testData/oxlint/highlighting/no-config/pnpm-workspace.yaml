@@ -1,0 +1,7 @@
+minimumReleaseAgeExclude:
+  - '@voidzero-dev/*'
+  - 'vite-plus'
+  - 'oxfmt'
+  - '@oxfmt/*'
+  - 'oxlint'
+  - '@oxlint/*'

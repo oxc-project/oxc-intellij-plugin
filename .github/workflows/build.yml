@@ -128,46 +128,51 @@ jobs:
         with:
           cache-read-only: 'true'
 
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
+        with:
+          version: ^11.0.0
+
       # Setup Node and install dependencies
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: .node-version
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
-      - name: Get NPM cache directory
-        id: npm_cache_dir
+      - name: Get PNPM cache directory
+        id: pnpm_cache_dir
         shell: bash
         run: |
-          echo "NPM_CACHE_DIR=$(npm config get cache)" >> $GITHUB_OUTPUT
+          echo "PNPM_CACHE_DIR=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
 
-      - name: Save and restore NPM cache on main
+      - name: Save and restore PNPM cache on main
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         if: ${{ github.ref == 'refs/heads/main' }}
         with:
-          path: ${{ steps.npm_cache_dir.outputs.NPM_CACHE_DIR }}
-          key: ${{ runner.os }}-npm-cache-dir-${{ hashFiles('package-lock.json') }}
+          path: ${{ steps.pnpm_cache_dir.outputs.PNPM_CACHE_DIR }}
+          key: ${{ runner.os }}-pnpm-cache-dir-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-npm-cache-dir
+            ${{ runner.os }}-pnpm-cache-dir
 
-      - name: Restore NPM cache on PR
+      - name: Restore PNPM cache on PR
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         if: ${{ github.ref != 'refs/heads/main' }}
         with:
-          path: ${{ steps.npm_cache_dir.outputs.NPM_CACHE_DIR }}
+          path: ${{ steps.pnpm_cache_dir.outputs.PNPM_CACHE_DIR }}
           key: |
-            ${{ runner.os }}-npm-cache-dir
+            ${{ runner.os }}-pnpm-cache-dir
 
       - name: Setup Oxlint Highlighting Custom Config Test
         working-directory: src/test/testData/oxlint/highlighting/custom-config
-        run: npm ci
+        run: pnpm ci
 
       - name: Setup Oxlint Highlighting Nested Config Test
         working-directory: src/test/testData/oxlint/highlighting/nested-config
-        run: npm ci
+        run: pnpm ci
 
       - name: Setup Oxlint Highlighting No Config Test
         working-directory: src/test/testData/oxlint/highlighting/nested-config
-        run: npm ci
+        run: pnpm ci
 
       # Run tests
       - name: Run Tests

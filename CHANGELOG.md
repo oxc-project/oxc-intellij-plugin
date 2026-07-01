@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Oxlint fix all on save now runs in the background instead of a blocking modal.
+- Oxlint fix all on save timeout has been changed to 30 seconds and is configurable with a registry setting
+  `oxc.lint.fix.all.timeout.ms`.
+
 ## [0.0.35] - 2026-06-17
 
 ### Added

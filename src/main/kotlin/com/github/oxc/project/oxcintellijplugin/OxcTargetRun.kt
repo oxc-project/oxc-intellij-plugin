@@ -12,6 +12,7 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
 import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
 import com.intellij.lang.javascript.JavaScriptBundle
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -31,6 +32,16 @@ sealed interface OxcTargetRun {
     fun toLocalPath(path: String): String
 
     class Node(private val run: NodeTargetRun) : OxcTargetRun {
+        init {
+            // WSLDistribution.getMntRoot() lazily runs `wsl.exe` the first time it is called.
+            // LspFileListener calls getFilePath() on the EDT, which would trigger that subprocess
+            // synchronously and log a "Synchronous execution on EDT" error. Pre-warming the cache
+            // on a pooled thread here means all subsequent EDT calls hit only the cached value.
+            ApplicationManager.getApplication().executeOnPooledThread {
+                runCatching { run.convertLocalPathToTargetPath("/") }
+            }
+        }
+
         override fun startProcess(): OSProcessHandler =
             wrapStartProcess {
                 val logger = Logger.getInstance("#com.github.oxc.project.oxcintellijplugin")
@@ -55,6 +66,15 @@ sealed interface OxcTargetRun {
         private val command: GeneralCommandLine,
         private val wslDistribution: WSLDistribution? = null,
     ) : OxcTargetRun {
+        init {
+            // Same WSLDistribution.getMntRoot() race as Node — pre-warm on a pooled thread.
+            if (wslDistribution != null) {
+                ApplicationManager.getApplication().executeOnPooledThread {
+                    runCatching { wslDistribution.getWslPath(Path("/")) }
+                }
+            }
+        }
+
         override fun startProcess(): OSProcessHandler =
             wrapStartProcess {
                 object : CapturingProcessHandler(command) {

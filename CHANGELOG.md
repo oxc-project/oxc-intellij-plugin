@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Warm the WSL mntRoot cache, to avoid synchronous execution on the EDT errors.
+
 ## [0.0.36] - 2026-07-01
 
 ### Changed

@@ -6,13 +6,14 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.wsl.WSLDistribution
+import com.intellij.execution.wsl.WslDistributionManager
 import com.intellij.execution.wsl.WslPath
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
-import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
-import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
 import com.intellij.lang.javascript.JavaScriptBundle
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
@@ -100,5 +101,26 @@ class OxcTargetRunBuilder(val project: Project) {
         }
 
         return builder.setExecutable(executable).setCharset(Charsets.UTF_8)
+    }
+
+    companion object {
+        init {
+            // Warm the `mntRoot` cache to avoid synchronous execution on EDT errors.
+            // https://github.com/oxc-project/oxc-intellij-plugin/issues/433
+            // This is a no-op on systems without WSL.
+            ApplicationManager.getApplication().executeOnPooledThread {
+                runCatching {
+                    WslDistributionManager.getInstance().installedDistributions.forEach { wslDistribution ->
+                        runCatching {
+                            wslDistribution.mntRoot
+                        }.onFailure { throwable ->
+                            thisLogger().warn("Failed to warm mntRoot cache " + wslDistribution.id, throwable)
+                        }
+                    }
+                }.onFailure { throwable ->
+                    thisLogger().warn("Failed to access installed WSL distributions", throwable)
+                }
+            }
+        }
     }
 }

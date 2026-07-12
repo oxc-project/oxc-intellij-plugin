@@ -15,12 +15,9 @@ class OxfmtPackage(
     private val project: Project,
     private val vitePlus: VitePlusPackage = VitePlusPackage(project)
 ) {
-    private val packageName = "oxfmt"
-    private val packageDescription = NodePackageDescriptor(packageName)
-
     fun getPackage(virtualFile: VirtualFile?): NodePackage? {
         if (virtualFile != null) {
-            val available = packageDescription.listAvailable(
+            val available = NODE_PACKAGE_DESCRIPTOR.listAvailable(
                 project,
                 NodeJsInterpreterManager.getInstance(project).interpreter,
                 virtualFile,
@@ -32,10 +29,10 @@ class OxfmtPackage(
             }
         }
 
-        val pkg = packageDescription.findUnambiguousDependencyPackage(project)
+        val pkg = NODE_PACKAGE_DESCRIPTOR.findUnambiguousDependencyPackage(project)
                   ?: NodePackage.findDefaultPackage(
                       project,
-                      packageName,
+                      PACKAGE_NAME,
                       NodeJsInterpreterManager.getInstance(project).interpreter
                   )
 
@@ -93,6 +90,11 @@ class OxfmtPackage(
     }
 
     companion object {
+
+        const val PACKAGE_NAME = "oxfmt"
+        val NODE_PACKAGE_DESCRIPTOR = NodePackageDescriptor(PACKAGE_NAME)
+        val EMPTY_NODE_PACKAGE = NODE_PACKAGE_DESCRIPTOR.createPackage("")
+
         const val CONFIG_NAME = ".oxfmtrc"
         const val CONFIG_TS_NAME = "oxfmt.config.ts"
         val CONFIG_VALID_JSON_EXTENSIONS = listOf("json", "jsonc")

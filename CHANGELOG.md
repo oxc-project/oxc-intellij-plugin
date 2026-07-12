@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.37] - 2026-07-12
+
 ### Added
 
 - Add support for applying Oxfmt code style which will update the IntelliJ code style settings to match the Oxfmt
@@ -320,7 +322,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.36...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.37...HEAD
+[0.0.37]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.36...v0.0.37
 [0.0.36]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.35...v0.0.36
 [0.0.35]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.34...v0.0.35
 [0.0.34]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.33...v0.0.34

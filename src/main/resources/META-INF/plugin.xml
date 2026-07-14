@@ -21,6 +21,9 @@
         <registryKey key="oxc.lint.fix.all.timeout.ms"
                      defaultValue="30000"
                      description="Per-file timeout in milliseconds for computing oxlint fixes (diagnostic warm-up plus code action request). Used by 'Fix All' on save and the 'Apply Oxlint Quick Fixes' action. Values less than or equal to 0 fall back to the default."/>
+        <registryKey key="oxc.lint.pull.diagnostics"
+                     defaultValue="true"
+                     description="Declare LSP workspace.diagnostics.refreshSupport so that the Oxlint language server serves pull diagnostics driven by the IDE highlighting daemon instead of linting on every keystroke (push mode). Only applies when the run trigger is 'On Type'. Takes effect after the Oxlint server is restarted."/>
 
         <platform.lsp.serverSupportProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider"/>

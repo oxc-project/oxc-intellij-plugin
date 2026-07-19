@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for jsonc files with the Oxfmt code style importer.
+
+### Fixed
+
+- Oxfmt save action runs after Oxlint and other save actions (such as optimize imports).
+
 ## [0.0.37] - 2026-07-12
 
 ### Added

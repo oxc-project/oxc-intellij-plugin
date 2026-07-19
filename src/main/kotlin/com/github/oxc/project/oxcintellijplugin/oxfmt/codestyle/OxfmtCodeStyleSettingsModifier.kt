@@ -2,22 +2,19 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt.codestyle
 
 import com.github.oxc.project.oxcintellijplugin.extensions.findNearestOxfmtJsonConfigFile
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtBundle
-import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtConfigurable
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.intellij.ide.DataManager
 import com.intellij.lang.javascript.JavaScriptSupportLoader
 import com.intellij.lang.javascript.JavascriptLanguage
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 import com.intellij.lang.typescript.formatter.TypeScriptCodeStyleSettings
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.options.ex.ConfigurableWrapper
 import com.intellij.openapi.options.ex.Settings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.intellij.openapi.vfs.readText
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.codeStyle.modifier.CodeStyleSettingsModifier
@@ -86,8 +83,8 @@ class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
     private fun doModifySettings(settings: TransientCodeStyleSettings, psiFile: PsiFile): Boolean {
         val configFile = psiFile.virtualFile.findNearestOxfmtJsonConfigFile(
             psiFile.project.guessProjectDir()) ?: return false
-        val configElement = Gson().fromJson(configFile.readText(), JsonObject::class.java)
-        val config = OxfmtConfig.fromGsonJsonObject(configElement)
+        val project = psiFile.project
+        val config = project.service<OxfmtJsonParser>().parseConfigFile(configFile)
 
 //        var changedSettings = applyBasicOxfmtMappings(settings, config)
         var changedSettings = false

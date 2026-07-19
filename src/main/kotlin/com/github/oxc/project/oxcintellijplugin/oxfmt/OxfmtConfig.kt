@@ -1,6 +1,5 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt
 
-import com.google.gson.JsonObject
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 
 private const val BRACKET_SAME_LINE_DEFAULT = false
@@ -14,14 +13,18 @@ private const val TRAILING_COMMA_DEFAULT = "all"
 private const val USE_TABS_DEFAULT = false
 
 data class OxfmtConfig(val bracketSameLine: Boolean, val bracketSpacing: Boolean,
-    val lineSeparator: String, val printWidth: Int, val semi: Boolean,
-    val singleQuote: Boolean, val tabWidth: Int, val trailingComma: TrailingCommaOption,
-    val useTabs: Boolean) {
+    val lineSeparator: String, val printWidth: Int, val semi: Boolean, val singleQuote: Boolean,
+    val tabWidth: Int, val trailingComma: TrailingCommaOption, val useTabs: Boolean) {
 
     enum class TrailingCommaOption { none, all, es5
     }
 
     companion object {
+
+        val DEFAULT = OxfmtConfig(BRACKET_SAME_LINE_DEFAULT, BRACKET_SPACING_DEFAULT,
+            END_OF_LINE_DEFAULT, PRINT_WIDTH_DEFAULT, SEMI_DEFAULT, SINGLE_QUOTE_DEFAULT,
+            TAB_WIDTH_DEFAULT, TrailingCommaOption.valueOf(TRAILING_COMMA_DEFAULT),
+            USE_TABS_DEFAULT)
 
         fun convertTrailingCommaOption(
             trailingComma: TrailingCommaOption): JSCodeStyleSettings.TrailingCommaOption {
@@ -31,18 +34,6 @@ data class OxfmtConfig(val bracketSameLine: Boolean, val bracketSpacing: Boolean
                 TrailingCommaOption.all,
                     -> JSCodeStyleSettings.TrailingCommaOption.WhenMultiline
             }
-        }
-
-        fun fromGsonJsonObject(json: JsonObject): OxfmtConfig {
-            return OxfmtConfig(json.get("bracketSameLine")?.asBoolean ?: BRACKET_SAME_LINE_DEFAULT,
-                json.get("bracketSpacing")?.asBoolean ?: BRACKET_SPACING_DEFAULT,
-                json.get("endOfLine")?.asString ?: END_OF_LINE_DEFAULT,
-                json.get("printWidth")?.asInt ?: PRINT_WIDTH_DEFAULT,
-                json.get("semi")?.asBoolean ?: SEMI_DEFAULT,
-                json.get("singleQuote")?.asBoolean ?: SINGLE_QUOTE_DEFAULT,
-                json.get("tabWidth")?.asInt ?: TAB_WIDTH_DEFAULT, TrailingCommaOption.valueOf(
-                    json.get("trailingComma")?.asString ?: TRAILING_COMMA_DEFAULT),
-                json.get("useTabs")?.asBoolean ?: USE_TABS_DEFAULT)
         }
     }
 

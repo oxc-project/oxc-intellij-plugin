@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.38] - 2026-07-19
+
 ### Added
 
 - Add support for jsonc files with the Oxfmt code style importer.
@@ -330,7 +332,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.37...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.38...HEAD
+[0.0.38]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.37...v0.0.38
 [0.0.37]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.36...v0.0.37
 [0.0.36]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.35...v0.0.36
 [0.0.35]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.34...v0.0.35

@@ -59,7 +59,7 @@
         <actionOnSave
                 id="OxfmtFixAllOnSaveAction"
                 implementation="com.github.oxc.project.oxcintellijplugin.oxfmt.actions.OxfmtFixAllOnSaveAction"
-                order="first, before FormatOnSaveAction"
+                order="after FormatOnSaveAction, after OxlintFixAllOnSaveAction"
         />
     </extensions>
 

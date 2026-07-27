@@ -14,6 +14,7 @@ import com.intellij.platform.lsp.api.LspServerDescriptor
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
+import org.eclipse.lsp4j.DiagnosticWorkspaceCapabilities
 import org.eclipse.lsp4j.InitializeParams
 
 class OxlintLspServerDescriptor(
@@ -79,6 +80,13 @@ class OxlintLspServerDescriptor(
             return super.clientCapabilities.apply {
                 workspace.apply {
                     configuration = true
+                    // The server uses pull diagnostics only when the client declares both
+                    // textDocument.diagnostic and workspace.diagnostics.refreshSupport. The platform
+                    // declares only the former, leaving the server in push mode, where it runs a full
+                    // lint (and spawns tsgolint when type-aware is enabled) on every keystroke.
+                    // Declaring refreshSupport switches the server to pull mode, where lint runs are
+                    // driven by the IDE highlighting daemon instead. See oxc-intellij-plugin#366.
+                    diagnostics = DiagnosticWorkspaceCapabilities(true)
                 }
             }
         }
@@ -106,7 +114,9 @@ class OxlintLspServerDescriptor(
                 "disable_nested_config" to settings.disableNestedConfig.toString(),
                 "fix_kind" to settings.fixKind.toLspValue(),
             ),
-            "run" to settings.state.runTrigger.toLspValue(),
+            // The server's "run" option only decides when diagnostics are pushed, which no longer
+            // applies now that the client declares refreshSupport and the server serves pull
+            // diagnostics. Omitting it leaves the server at its default.
             "typeAware" to settings.typeAware,
             "unusedDisableDirectives" to settings.state.unusedDisableDirectives.toLspValue(),
         )

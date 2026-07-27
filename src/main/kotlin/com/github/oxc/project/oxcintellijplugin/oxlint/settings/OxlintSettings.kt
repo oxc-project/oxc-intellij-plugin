@@ -99,12 +99,6 @@ class OxlintSettings(private val project: Project) :
             state.flags = value
         }
 
-    var runTrigger
-        get() = state.runTrigger
-        set(value) {
-            state.runTrigger = value
-        }
-
     var typeAware
         get() = state.typeAware
         set(value) {

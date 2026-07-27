@@ -12,6 +12,7 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
@@ -20,10 +21,12 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.customization.LspIntentionAction
 import com.intellij.platform.lsp.util.getLsp4jRange
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeout
 import org.eclipse.lsp4j.CodeActionContext
 import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeActionTriggerKind
+import org.eclipse.lsp4j.DocumentDiagnosticParams
 
 @Service(Service.Level.PROJECT)
 class OxlintServerService(private val project: Project) {
@@ -66,7 +69,8 @@ class OxlintServerService(private val project: Project) {
             else -> listOf("source.fixAll.oxc")
         }
 
-        val codeActionParams = CodeActionParams(server.getDocumentIdentifier(file),
+        val documentId = server.getDocumentIdentifier(file)
+        val codeActionParams = CodeActionParams(documentId,
             getLsp4jRange(document, 0, document.textLength),
             CodeActionContext().apply {
                 diagnostics = emptyList()
@@ -74,10 +78,32 @@ class OxlintServerService(private val project: Project) {
                 triggerKind = CodeActionTriggerKind.Invoked
             })
 
-        // Bound the code-action round-trip with a per-file budget so a single slow file is
-        // skipped rather than starving the rest of a Save All batch.
+        // Bound the round-trips with a per-file budget so a single slow file is skipped rather
+        // than starving the rest of a Save All batch.
         val codeActionResults = withTimeout(fixAllTimeoutMs()) {
-            server.sendRequest { it.textDocumentService.codeAction(codeActionParams) }
+            // For a file open in the editor the server never lints on demand, it only serves its
+            // code-action cache. Ask for that cache first: when the highlighting daemon has
+            // already pulled diagnostics for the current text this costs one round-trip and no
+            // lint run.
+            val cached = server.sendRequest { it.textDocumentService.codeAction(codeActionParams) }
+            if (!cached.isNullOrEmpty()) {
+                cached
+            } else {
+                // The cache is dropped on every didChange and only refilled when diagnostics are
+                // pulled, and the daemon's pull is debounced. Saving right after typing therefore
+                // finds it empty. Pull diagnostics for the in-memory text to refill it, then ask
+                // again. See oxc-intellij-plugin#366.
+                try {
+                    server.sendRequest { it.textDocumentService.diagnostic(DocumentDiagnosticParams(documentId)) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Servers without pull diagnostics reject the request. Those run in push mode
+                    // and keep the code-action cache warm on didChange themselves.
+                    thisLogger().debug("textDocument/diagnostic failed while warming the fix-all cache", e)
+                }
+                server.sendRequest { it.textDocumentService.codeAction(codeActionParams) }
+            }
         }
         val actions = codeActionResults.orEmpty()
             .filter { it.isRight && it.right.isPreferred }

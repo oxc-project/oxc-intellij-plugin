@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Oxlint uses pull diagnostics instead of push diagnostics. The lint on type/save option has been removed from the
+  settings to simplify things, but if there's a need to add either option back open an issue and it can be discussed.
+
 ## [0.0.38] - 2026-07-19
 
 ### Added

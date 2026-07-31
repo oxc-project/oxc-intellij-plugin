@@ -4,7 +4,6 @@ import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
-import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintUnusedDisableDirectivesSeverity
 import com.github.oxc.project.oxcintellijplugin.oxlint.services.OxlintServerService
 import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
@@ -123,26 +122,6 @@ class OxlintConfigurable(private val project: Project) :
                     }.visibleIf(manualConfiguration.selected)
                 }
             }
-
-            // *********************
-            // Oxlint execution trigger row
-            // *********************
-            row(OxlintBundle.message("oxlint.settings.oxlintRunTrigger")) {
-                // TODO: Probably a better way to do this map of enum to presentation text.
-                val options = mapOf(
-                    OxlintRunTrigger.ON_SAVE to "On Save",
-                    OxlintRunTrigger.ON_TYPE to "On Type",
-                )
-                val reverseOptions = options.entries.associateBy({ it.value }, { it.key })
-
-                comboBox(options.values).bindItem({
-                    return@bindItem options[settings.runTrigger]
-                }, {
-                    if (it != null) {
-                        settings.runTrigger = reverseOptions[it]!!
-                    }
-                })
-            }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
             // Oxlint unused disable directives row

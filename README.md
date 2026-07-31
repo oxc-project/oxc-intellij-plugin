@@ -20,7 +20,6 @@ A high-performance JavaScript/TypeScript linter.
 - Automatically apply fixes on save.
   - Timeout for this is 30 seconds, but can be configured with an IntelliJ registry setting
     `oxc.lint.fix.all.timeout.ms`.
-- Configurable run trigger: lint on type or on save.
 - Type-aware rules support for enhanced linting.
 - Custom icons for Oxlint configuration files.
 - JSON schema validation for `.oxlintrc.json` configuration files.

@@ -1,7 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintRunTrigger
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintUnusedDisableDirectivesSeverity
 import com.intellij.openapi.components.BaseState
 import com.intellij.util.xml.Attribute
@@ -14,9 +13,6 @@ class OxlintSettingsState : BaseState() {
 
     @get:Attribute("binaryParameters")
     var binaryParameters by list<String>()
-
-    @get:Attribute("runTrigger")
-    var runTrigger by enum(OxlintRunTrigger.ON_TYPE)
 
     @get:Attribute("configurationMode")
     var configurationMode by enum(ConfigurationMode.AUTOMATIC)

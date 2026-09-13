@@ -6,6 +6,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.wsl.WSLCommandLineOptions
 import com.intellij.execution.wsl.WslPath
 import com.intellij.execution.wsl.getWslPathSafe
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
 import java.nio.charset.Charset
@@ -76,6 +77,10 @@ class GeneralProcessCommandBuilder : ProcessCommandBuilder {
 
             wslDistribution.patchCommandLine(command, null, options)
         } else {
+            if (SystemInfo.isWindows && (exec.endsWith(".cmd", true) || exec.endsWith(".bat", true))) {
+                command.withExePath(System.getenv("ComSpec") ?: "cmd.exe")
+                command.addParameters("/d", "/c", GeneralCommandLine.inescapableQuote(exec))
+            }
             command.addParameters(parameters.map { it.toString() })
         }
 

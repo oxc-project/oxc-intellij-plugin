@@ -1,14 +1,16 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
+import com.github.oxc.project.oxcintellijplugin.OxcServerCommand
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
+import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusNotifications
 import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import java.nio.file.Paths
 
 class OxfmtPackage(
@@ -49,25 +51,29 @@ class OxfmtPackage(
         }
     }
 
-    fun binaryPath(
-        virtualFile: VirtualFile,
-    ): String? {
+    fun resolveCommand(file: VirtualFile): OxcServerCommand? {
         val settings = OxfmtSettings.getInstance(project)
-        val configurationMode = settings.configurationMode
-
-        // We need to prefer `vite-plus` over `oxfmt` because it may be also available as npm hoists it.
-        // It can't detect the `vite.config.ts` configuration if we prefer the dedicated package instead.
-        return when (configurationMode) {
-            ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
-            ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank {
-                vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
+        if (settings.configurationMode == ConfigurationMode.DISABLED) return null
+        val manual = settings.configurationMode == ConfigurationMode.MANUAL && settings.binaryPath.isNotBlank()
+        if (!manual) {
+            val viteProject = vitePlus.detect(file, settings.binarySource, settings.vitePlusPath)
+            if (viteProject != null) {
+                val notifications = VitePlusNotifications.getInstance(project)
+                val executable = viteProject.vpPath
+                if (executable == null) {
+                    notifications.unavailable(viteProject.root.toString(), settings.vitePlusPath)
+                    return null
+                }
+                notifications.resolved(viteProject.root.toString(), settings.vitePlusPath)
+                val root = VirtualFileManager.getInstance().findFileByNioPath(viteProject.root) ?: return null
+                return OxcServerCommand(executable.toString(), listOf("fmt", "--lsp"), root, vitePlus = true)
             }
         }
-    }
-
-    fun binaryParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
-        return findOxfmtParameters(virtualFile)
+        val nodePackage = if (manual) null else getPackage(file)
+        val executable = if (manual) settings.binaryPath else nodePackage?.let(::findOxfmtExecutable) ?: return null
+        val root = OxcServerCommand.findRoot(project, file, nodePackage) ?: return null
+        val arguments = listOf("--lsp")
+        return OxcServerCommand(executable, arguments, root)
     }
 
     fun isEnabled(): Boolean {
@@ -75,18 +81,13 @@ class OxfmtPackage(
         return settings.configurationMode != ConfigurationMode.DISABLED
     }
 
-    private fun findOxfmtExecutable(virtualFile: VirtualFile): String? {
-        val oxfmtPackage = getPackage(virtualFile) ?: return null
+    private fun findOxfmtExecutable(oxfmtPackage: NodePackage): String? {
         val path = oxfmtPackage.getAbsolutePackagePathToRequire(project)
         if (path != null) {
             return Paths.get(path, "bin/oxfmt").toString()
         }
 
         return null
-    }
-
-    private fun findOxfmtParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
-        return listOf(ProcessCommandParameter.Value("--lsp"))
     }
 
     companion object {

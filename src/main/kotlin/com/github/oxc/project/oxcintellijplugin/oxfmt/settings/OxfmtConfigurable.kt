@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt.settings
 
+import com.github.oxc.project.oxcintellijplugin.BinarySource
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtBundle
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
@@ -18,6 +19,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.MutableProperty
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
@@ -79,6 +81,19 @@ class OxfmtConfigurable(private val project: Project) :
                 }
             }
 
+            row(OxfmtBundle.message("oxfmt.binary.source.label")) {
+                comboBox(BinarySource.entries).bindItem({ settings.binarySource }, {
+                    settings.binarySource = it ?: BinarySource.AUTO
+                }).comment(OxfmtBundle.message("oxfmt.binary.source.comment"))
+            }.enabledIf(!disabledConfiguration.selected)
+
+            row(OxfmtBundle.message("oxfmt.vite.plus.path.label")) {
+                @Suppress("UnstableApiUsage")
+                textFieldWithBrowseButton(OxfmtBundle.message("oxfmt.vite.plus.path.label"), project) { it.path }
+                    .align(AlignX.FILL).bindText(settings::vitePlusPath)
+                    .comment(OxfmtBundle.message("oxfmt.vite.plus.path.comment"))
+            }.enabledIf(!disabledConfiguration.selected)
+
             // *********************
             // Manual configuration row
             // *********************
@@ -99,6 +114,11 @@ class OxfmtConfigurable(private val project: Project) :
                     }.visibleIf(manualConfiguration.selected)
                 }
             }
+
+            row {
+                checkBox(OxfmtBundle.message("oxfmt.disable.nested.config.label"))
+                    .bindSelected(settings::disableNestedConfig)
+            }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
             // Supported file extensions row

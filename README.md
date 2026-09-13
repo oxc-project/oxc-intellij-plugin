@@ -54,6 +54,37 @@ A high-performance JavaScript/TypeScript formatter.
   manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
+## Vite+
+
+The plugin detects a direct `vite-plus` dependency in `dependencies` or `devDependencies`, starting
+from each opened file. It searches parent directories up to the monorepo root, including
+`pnpm-workspace.yaml`, `package.json` `workspaces`, and `lerna.json` boundaries. This also works when
+only a subdirectory of a monorepo is open in the IDE.
+
+Vite+ projects run `vp lint --lsp` and `vp fmt --lsp` from the package that declares the dependency.
+The plugin prefers a local installation, then checks `PATH` and the configured Node interpreter's
+default package locations. A transitive installation or global `vp` alone does not select Vite+.
+If Vite+ is selected but unavailable, the plugin shows an install hint and leaves that tool stopped.
+Install the dependencies, then use **Restart Oxlint Server** or **Restart Oxfmt Server** if the IDE
+has not detected the installation yet.
+
+Under **Settings/Preferences > Tools > Oxlint** and **Oxfmt**, select a **Binary source** independently:
+
+- **Automatic** (default): use Vite+ when the project declares it, otherwise use the standalone tool.
+- **Vite+**: use Vite+ even without a dependency declaration.
+- **Standalone Oxc**: use the standalone tool and ignore the Vite+ executable setting.
+
+Each tool also has an optional **Vite+ executable** path. An explicit path selects Vite+ in
+Automatic mode. Relative paths start at the project content root. A language server path in
+Manual configuration takes priority over both the source choice and the Vite+ path.
+For example, select **Standalone Oxc** for Oxlint and **Vite+** for Oxfmt to combine their sources.
+
+Vite+ servers always disable nested standalone configuration lookups so `vite.config.*` controls
+their configuration. This does not change the saved nested-config setting for standalone tools.
+Node entry points, including npm and pnpm shims, use the IDE's configured Node interpreter.
+Use `vite-plus` `0.3.2` or later if that interpreter is the only available Node runtime and `node`
+is absent from `PATH`.
+
 ## Troubleshooting
 
 IntelliJ provides log files for standard logs as well as the LSP integration. The plugin uses the regular log

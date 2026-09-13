@@ -4,16 +4,12 @@ import com.github.oxc.project.oxcintellijplugin.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
-import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpNodePackage
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.lsp.api.LspServer
 import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.lsWidget.LspServerWidgetItem
-import kotlin.io.path.Path
 
 class OxlintLspServerSupportProvider : LspServerSupportProvider {
     override fun fileOpened(project: Project,
@@ -29,19 +25,8 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
         if (!oxc.isEnabled()) {
             return
         }
-        val executable = oxc.binaryPath(file) ?: return
-        val nodePackage = oxc.getPackage(file)
-        val root = if (nodePackage != null) {
-            if (nodePackage is YarnPnpNodePackage) {
-                nodePackage.getPackageJson(project)?.parent ?: return
-            } else {
-                VirtualFileManager.getInstance().findFileByNioPath(Path(nodePackage.systemIndependentPath))?.parent?.parent ?: return
-            }
-        } else {
-            ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
-        }
-
-        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))
+        val command = oxc.resolveCommand(file) ?: return
+        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, command))
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

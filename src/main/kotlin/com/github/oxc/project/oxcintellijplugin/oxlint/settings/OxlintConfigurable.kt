@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
+import com.github.oxc.project.oxcintellijplugin.BinarySource
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
@@ -80,6 +81,19 @@ class OxlintConfigurable(private val project: Project) :
                             ConfigurationMode.MANUAL)).component
                 }
             }
+
+            row(OxlintBundle.message("oxlint.binary.source.label")) {
+                comboBox(BinarySource.entries).bindItem({ settings.binarySource }, {
+                    settings.binarySource = it ?: BinarySource.AUTO
+                }).comment(OxlintBundle.message("oxlint.binary.source.comment"))
+            }.enabledIf(!disabledConfiguration.selected)
+
+            row(OxlintBundle.message("oxlint.vite.plus.path.label")) {
+                @Suppress("UnstableApiUsage")
+                textFieldWithBrowseButton(OxlintBundle.message("oxlint.vite.plus.path.label"), project) { it.path }
+                    .align(AlignX.FILL).bindText(settings::vitePlusPath)
+                    .comment(OxlintBundle.message("oxlint.vite.plus.path.comment"))
+            }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
             // Manual configuration row

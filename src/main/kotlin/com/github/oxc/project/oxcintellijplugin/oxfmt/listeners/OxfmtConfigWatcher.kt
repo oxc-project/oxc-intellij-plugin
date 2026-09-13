@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.extensions.isOxfmtJsonConfigFile
 import com.github.oxc.project.oxcintellijplugin.extensions.isViteConfigFile
 import com.github.oxc.project.oxcintellijplugin.oxfmt.codestyle.OxfmtCodeStyleImporter
 import com.github.oxc.project.oxcintellijplugin.oxfmt.services.OxfmtServerService
+import com.github.oxc.project.oxcintellijplugin.viteplus.affectsVitePlusDiscovery
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.ProjectLocator
@@ -18,7 +19,8 @@ class OxfmtConfigWatcher : BulkFileListener {
 
     override fun after(events: List<VFileEvent>) {
         val configChanged = events.any { event ->
-            return@any event.file?.isOxfmtConfigFile() == true || event.file?.isViteConfigFile() == true
+            return@any event.file?.isOxfmtConfigFile() == true || event.file?.isViteConfigFile() == true ||
+                event.affectsVitePlusDiscovery()
         }
         val jsonConfigEvents = events.filter { event ->
             return@filter event.file?.isOxfmtJsonConfigFile() == true

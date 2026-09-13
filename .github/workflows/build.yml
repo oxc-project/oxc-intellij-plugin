@@ -166,7 +166,11 @@ jobs:
         run: npm ci
 
       - name: Setup Oxlint Highlighting No Config Test
-        working-directory: src/test/testData/oxlint/highlighting/nested-config
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Vite+ LSP Test
+        working-directory: src/test/testData/viteplus/lsp
         run: npm ci
 
       # Run tests

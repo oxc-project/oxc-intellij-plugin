@@ -20,12 +20,16 @@ import java.io.PipedOutputStream
 import java.lang.reflect.Proxy
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.startCoroutineUninterceptedOrReturn
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.future.await
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
@@ -43,6 +47,8 @@ import org.eclipse.lsp4j.TextDocumentItem
 import org.eclipse.lsp4j.UnregistrationParams
 import org.eclipse.lsp4j.WorkspaceFolder
 import org.eclipse.lsp4j.jsonrpc.Launcher
+import org.eclipse.lsp4j.jsonrpc.MessageConsumer
+import org.eclipse.lsp4j.jsonrpc.json.StreamMessageConsumer
 import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.LanguageServer
 
@@ -86,11 +92,15 @@ internal class OxcSaveSession(
         }
     } as LspServer
 
-    suspend fun <T> run(file: VirtualFile, document: Document, action: suspend (LspServer) -> T): T {
+    suspend fun <T> run(file: VirtualFile, document: Document, action: suspend (LspServer) -> T): T = coroutineScope {
         var handler: OSProcessHandler? = null
         var listening: Future<*>? = null
         val input = PipedInputStream(65536)
         val output = PipedOutputStream(input)
+        val writes = AppExecutorUtil.createBoundedApplicationPoolExecutor("${tool.displayName} save writes", 1)
+        val writeFailure = CompletableDeferred<Nothing>()
+        // A failed write must also release any requests waiting for a server response.
+        val failureMonitor = launch { writeFailure.await() }
         try {
             val process = withContext(Dispatchers.IO) {
                 // Retain ownership before withContext can discard its result on cancellation.
@@ -129,7 +139,28 @@ internal class OxcSaveSession(
                 override fun unregisterCapability(params: UnregistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
                 override fun refreshDiagnostics(): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
             }
-            val launcher = Launcher.Builder<LanguageServer>().setLocalService(client)
+            val launcher = object : Launcher.Builder<LanguageServer>() {
+                override fun wrapMessageConsumer(consumer: MessageConsumer): MessageConsumer {
+                    val wrapped = super.wrapMessageConsumer(consumer)
+                    if (consumer !is StreamMessageConsumer) return wrapped
+                    // Serialize all outgoing messages, including automatic replies and cancellation
+                    // notifications. A full stdin pipe must not block the save or its cleanup.
+                    return MessageConsumer { message ->
+                        try {
+                            writes.execute {
+                                try {
+                                    wrapped.consume(message)
+                                } catch (e: Exception) {
+                                    writeFailure.completeExceptionally(e)
+                                }
+                            }
+                        } catch (e: RejectedExecutionException) {
+                            // Late replies can race with transport shutdown.
+                            if (!writes.isShutdown) writeFailure.completeExceptionally(e)
+                        }
+                    }
+                }
+            }.setLocalService(client)
                 .setRemoteInterface(LanguageServer::class.java).setInput(input)
                 .setExecutorService(AppExecutorUtil.getAppExecutorService())
                 .setOutput(process.processInput!!).create()
@@ -144,9 +175,10 @@ internal class OxcSaveSession(
             }
             remote.textDocumentService.didOpen(DidOpenTextDocumentParams(item))
             state = LspServerState.Running
-            return action(server)
+            action(server)
         } finally {
             withContext(NonCancellable) {
+                failureMonitor.cancel()
                 if (::remote.isInitialized) {
                     withTimeoutOrNull(2_000) { runCatching { remote.shutdown().await() } }
                     runCatching { remote.exit() }
@@ -160,6 +192,7 @@ internal class OxcSaveSession(
                 listening?.cancel(true)
                 input.close()
                 output.close()
+                writes.shutdownNow()
                 state = LspServerState.ShutdownNormally
             }
         }

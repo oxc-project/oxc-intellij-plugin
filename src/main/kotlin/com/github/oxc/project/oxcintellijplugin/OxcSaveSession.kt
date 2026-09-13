@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
@@ -18,6 +19,7 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.lang.reflect.Proxy
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.startCoroutineUninterceptedOrReturn
@@ -85,50 +87,55 @@ internal class OxcSaveSession(
     } as LspServer
 
     suspend fun <T> run(file: VirtualFile, document: Document, action: suspend (LspServer) -> T): T {
-        val handler = withContext(Dispatchers.IO) { descriptor.startServerProcess() }
+        var handler: OSProcessHandler? = null
+        var listening: Future<*>? = null
         val input = PipedInputStream(65536)
         val output = PipedOutputStream(input)
-        handler.addProcessListener(object : ProcessListener {
-            override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                if (outputType == ProcessOutputTypes.STDOUT) {
-                    try {
-                        output.write(event.text.toByteArray(Charsets.UTF_8))
-                        // Wake the pipe reader instead of waiting for its one-second poll.
-                        output.flush()
-                    } catch (_: IOException) {
-                        // The process can still emit output while the session closes its pipe.
+        try {
+            val process = withContext(Dispatchers.IO) {
+                // Retain ownership before withContext can discard its result on cancellation.
+                descriptor.startServerProcess().also { handler = it }
+            }
+            process.addProcessListener(object : ProcessListener {
+                override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+                    if (outputType == ProcessOutputTypes.STDOUT) {
+                        try {
+                            output.write(event.text.toByteArray(Charsets.UTF_8))
+                            // Wake the pipe reader instead of waiting for its one-second poll.
+                            output.flush()
+                        } catch (_: IOException) {
+                            // The process can still emit output while the session closes its pipe.
+                        }
                     }
                 }
-            }
 
-            override fun processTerminated(event: ProcessEvent) {
-                output.close()
+                override fun processTerminated(event: ProcessEvent) {
+                    output.close()
+                }
+            })
+            val client = object : LanguageClient {
+                override fun telemetryEvent(value: Any?) = Unit
+                override fun publishDiagnostics(params: PublishDiagnosticsParams) = Unit
+                override fun showMessage(params: MessageParams) = Unit
+                override fun logMessage(params: MessageParams) = Unit
+                override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem> =
+                    CompletableFuture.completedFuture(null)
+                override fun configuration(params: ConfigurationParams): CompletableFuture<List<Any?>> =
+                    CompletableFuture.completedFuture(params.items.map { descriptor.getWorkspaceConfiguration(it) })
+                override fun workspaceFolders(): CompletableFuture<List<WorkspaceFolder>> =
+                    CompletableFuture.completedFuture(descriptor.roots.map { WorkspaceFolder(descriptor.getFileUri(it), it.name) })
+                // Registrations last only for this save; no editor or file watchers need to be installed.
+                override fun registerCapability(params: RegistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
+                override fun unregisterCapability(params: UnregistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
+                override fun refreshDiagnostics(): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
             }
-        })
-        val client = object : LanguageClient {
-            override fun telemetryEvent(value: Any?) = Unit
-            override fun publishDiagnostics(params: PublishDiagnosticsParams) = Unit
-            override fun showMessage(params: MessageParams) = Unit
-            override fun logMessage(params: MessageParams) = Unit
-            override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem> =
-                CompletableFuture.completedFuture(null)
-            override fun configuration(params: ConfigurationParams): CompletableFuture<List<Any?>> =
-                CompletableFuture.completedFuture(params.items.map { descriptor.getWorkspaceConfiguration(it) })
-            override fun workspaceFolders(): CompletableFuture<List<WorkspaceFolder>> =
-                CompletableFuture.completedFuture(descriptor.roots.map { WorkspaceFolder(descriptor.getFileUri(it), it.name) })
-            // Registrations last only for this save; no editor or file watchers need to be installed.
-            override fun registerCapability(params: RegistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
-            override fun unregisterCapability(params: UnregistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
-            override fun refreshDiagnostics(): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
-        }
-        val launcher = Launcher.Builder<LanguageServer>().setLocalService(client)
-            .setRemoteInterface(LanguageServer::class.java).setInput(input)
-            .setExecutorService(AppExecutorUtil.getAppExecutorService())
-            .setOutput(handler.processInput!!).create()
-        remote = launcher.remoteProxy
-        val listening = launcher.startListening()
-        handler.startNotify()
-        try {
+            val launcher = Launcher.Builder<LanguageServer>().setLocalService(client)
+                .setRemoteInterface(LanguageServer::class.java).setInput(input)
+                .setExecutorService(AppExecutorUtil.getAppExecutorService())
+                .setOutput(process.processInput!!).create()
+            remote = launcher.remoteProxy
+            listening = launcher.startListening()
+            process.startNotify()
             val params = readAction { descriptor.createInitializeParams() }
             initializeResult = withTimeout(30_000) { remote.initialize(params).await() }
             remote.initialized(InitializedParams())
@@ -140,11 +147,17 @@ internal class OxcSaveSession(
             return action(server)
         } finally {
             withContext(NonCancellable) {
-                withTimeoutOrNull(2_000) { runCatching { remote.shutdown().await() } }
-                runCatching { remote.exit() }
-                handler.destroyProcess()
-                withContext(Dispatchers.IO) { handler.waitFor(5_000) }
-                listening.cancel(true)
+                if (::remote.isInitialized) {
+                    withTimeoutOrNull(2_000) { runCatching { remote.shutdown().await() } }
+                    runCatching { remote.exit() }
+                }
+                handler?.let { process ->
+                    // Cancellation during startup can precede startNotify, which enables termination.
+                    if (!process.isStartNotified) process.startNotify()
+                    process.destroyProcess()
+                    withContext(Dispatchers.IO) { process.waitFor(5_000) }
+                }
+                listening?.cancel(true)
                 input.close()
                 output.close()
                 state = LspServerState.ShutdownNormally

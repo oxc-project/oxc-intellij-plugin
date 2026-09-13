@@ -216,4 +216,31 @@ class VitePlusIntegrationTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
         assertEquals(true, (standaloneLint.getWorkspaceConfiguration(item) as Map<*, *>)["disableNestedConfig"])
         assertEquals(true, (standaloneFmt.getWorkspaceConfiguration(item) as Map<*, *>)["fmt.disableNestedConfig"])
     }
+
+    fun testStandaloneScopesExcludeNestedWorkspacesForBothTools() {
+        add("package.json", """{"workspaces":["nested*"]}""")
+        install()
+        val outer = add("index.js")
+        for ((index, marker) in listOf("pnpm-workspace.yaml", "lerna.json", "package.json").withIndex()) {
+            add("nested$index/$marker", if (marker == "package.json") """{"workspaces":[]}""" else "{}")
+            val inner = add("nested$index/index.js")
+            for (source in listOf(BinarySource.AUTO, BinarySource.OXC)) {
+                lint.binarySource = source
+                fmt.binarySource = source
+                for ((outerCommand, innerCommand) in listOf(
+                    OxlintPackage(project).resolveCommand(outer)!! to OxlintPackage(project).resolveCommand(inner)!!,
+                    OxfmtPackage(project).resolveCommand(outer)!! to OxfmtPackage(project).resolveCommand(inner)!!,
+                )) {
+                    assertFalse(outerCommand.vitePlus)
+                    assertEquals(inner.parent, innerCommand.root)
+                    for (manual in listOf(false, true)) {
+                        assertTrue(outerCommand.supports(outer, project, source, "", manual))
+                        assertFalse(outerCommand.supports(inner, project, source, "", manual))
+                        assertTrue(innerCommand.supports(inner, project, source, "", manual))
+                        assertFalse(innerCommand.supports(outer, project, source, "", manual))
+                    }
+                }
+            }
+        }
+    }
 }

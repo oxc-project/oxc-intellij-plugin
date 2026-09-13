@@ -93,6 +93,8 @@ internal class OxcSaveSession(
                 if (outputType == ProcessOutputTypes.STDOUT) {
                     try {
                         output.write(event.text.toByteArray(Charsets.UTF_8))
+                        // Wake the pipe reader instead of waiting for its one-second poll.
+                        output.flush()
                     } catch (_: IOException) {
                         // The process can still emit output while the session closes its pipe.
                     }

@@ -81,7 +81,8 @@ For example, select **Standalone Oxc** for Oxlint and **Vite+** for Oxfmt to com
 
 The plugin keeps up to four recent package scopes running per tool, within the IDE's server limit.
 Selecting a file or applying fixes restarts an evicted scope. Recycling scopes restarts the retained
-servers for that tool; the other tool continues running.
+servers for that tool; the other tool continues running. Background saves preserve selected editor
+scopes within that limit.
 
 Vite+ servers always disable nested standalone configuration lookups so `vite.config.*` controls
 their configuration. This does not change the saved nested-config setting for standalone tools.

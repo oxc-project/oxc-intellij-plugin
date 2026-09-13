@@ -147,7 +147,7 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
                 commands.remove(command.root)
                 commands[command.root] = command
             }
-            trim(commands)
+            trim(tool, commands)
             if (!stopServers(tool)) return@enqueue
             for (command in commands.values) startServer(tool, command)
         }
@@ -176,13 +176,16 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
 
     private suspend fun ensureServer(tool: OxcLspTool, command: OxcServerCommand): LspServer? {
         val commands = pools.getValue(tool).commands
+        val previousRoots = commands.keys.toSet()
         val previous = commands.remove(command.root)
         commands[command.root] = command
-        val evicted = trim(commands)
-        if (evicted || previous != null && previous != command) {
+        val evicted = trim(tool, commands)
+        if (evicted && commands.keys != previousRoots || previous != null && previous != command) {
             if (!stopServers(tool)) return null
             for (retained in commands.values) startServer(tool, retained)
         }
+        // All available slots may already belong to selected editors in different splits.
+        if (command.root !in commands) return null
         return manager.getServersForProvider(tool.provider).firstOrNull { it.descriptor.roots.contentEquals(arrayOf(command.root)) }
             ?: startServer(tool, command)
     }
@@ -194,11 +197,17 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
         return ((10 - otherServers) / 2).coerceIn(1, 4)
     }
 
-    private fun trim(commands: LinkedHashMap<VirtualFile, OxcServerCommand>): Boolean {
+    private suspend fun trim(tool: OxcLspTool, commands: LinkedHashMap<VirtualFile, OxcServerCommand>): Boolean {
         val capacity = capacity()
+        if (commands.size <= capacity) return false
+        // Saving a background tab must not displace a selected editor's scope.
+        val selectedRoots = readAction {
+            FileEditorManager.getInstance(project).selectedFiles.mapNotNull { tool.resolve(project, it)?.root }.toSet()
+        }
         var removed = false
         while (commands.size > capacity) {
-            commands.remove(commands.keys.first())
+            val oldest = commands.keys.firstOrNull { it !in selectedRoots } ?: commands.keys.first()
+            commands.remove(oldest)
             removed = true
         }
         return removed

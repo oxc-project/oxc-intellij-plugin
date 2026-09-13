@@ -1,5 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.viteplus
 
+import com.github.oxc.project.oxcintellijplugin.BinarySource
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxfmt.actions.OxfmtFixAllOnSaveAction
 import com.github.oxc.project.oxcintellijplugin.OxcLspServerPool
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
@@ -145,6 +147,60 @@ class VitePlusLspTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleFi
         waitForServer(OxlintLspServerSupportProvider::class.java, second)
         waitForServer(OxfmtLspServerSupportProvider::class.java, second)
         assertTrue(oxcServerCount() <= 8)
+    }
+
+    fun testStandaloneNestedWorkspaceRoutesToOnlyOneServer() {
+        myFixture.testDataPath = "src/test/testData/oxlint/highlighting/no-config"
+        myFixture.copyDirectoryToProject("node_modules", "node_modules")
+        OxlintSettings.getInstance(project).binarySource = BinarySource.OXC
+        OxfmtSettings.getInstance(project).configurationMode = ConfigurationMode.DISABLED
+        myFixture.addFileToProject("nested-repo/pnpm-workspace.yaml", "packages: []")
+        myFixture.addFileToProject("nested-repo/package.json", "{}")
+        myFixture.addFileToProject("nested-repo/index.js", "debugger;")
+        val outer = myFixture.configureByFile("index.js").virtualFile
+        val outerServer = waitForServer(OxlintLspServerSupportProvider::class.java, outer)
+        val inner = myFixture.configureByFile("nested-repo/index.js").virtualFile
+        val innerServer = waitForServer(OxlintLspServerSupportProvider::class.java, inner)
+        assertEquals(inner.parent, innerServer.descriptor.roots.single())
+        assertFalse(outerServer.descriptor.isSupportedFile(inner))
+        val matching = LspServerManager.getInstance(project).getServersForProvider(OxlintLspServerSupportProvider::class.java)
+            .filter { it.state == LspServerState.Running && it.descriptor.isSupportedFile(inner) }
+        assertEquals(listOf(innerServer), matching)
+    }
+
+    fun testSaveAllFormatsBackgroundFilesAndKeepsSelectedScopeRunning() {
+        OxlintSettings.getInstance(project).configurationMode = ConfigurationMode.DISABLED
+        myFixture.addFileToProject("pnpm-workspace.yaml", "packages: [packages/*]")
+        for (i in 1..6) {
+            myFixture.addFileToProject("packages/p$i/package.json", """{"devDependencies":{"vite-plus":"*"}}""")
+            myFixture.addFileToProject("packages/p$i/index.js", "console.log(\"hello\");\n")
+        }
+        for (i in 1..6) {
+            val file = myFixture.configureByFile("packages/p$i/index.js").virtualFile
+            waitForServer(OxfmtLspServerSupportProvider::class.java, file)
+        }
+        val selected = myFixture.configureByFile("packages/p1/index.js").virtualFile
+        waitForServer(OxfmtLspServerSupportProvider::class.java, selected)
+        val documents = (2..6).map { i ->
+            val file = myFixture.findFileInTempDir("packages/p$i/index.js")
+            FileDocumentManager.getInstance().getDocument(file)!!.also { document ->
+                WriteCommandAction.runWriteCommandAction(project) { document.setText("console.log(\"unsaved\");\n") }
+            }
+        }
+        // The real Save All action has a five-second budget for the entire batch.
+        OxfmtFixAllOnSaveAction().processDocuments(project, documents.toTypedArray())
+        for ((index, document) in documents.withIndex()) {
+            assertEquals("Background document ${index + 2}", "console.log('unsaved')\n", document.text)
+        }
+        PlatformTestUtil.waitWithEventsDispatching("Pool did not settle after Save All", {
+            OxcLspServerPool.getInstance(project).isIdle
+        }, 30)
+        assertEquals(selected, FileEditorManager.getInstance(project).selectedFiles.single())
+        val servers = LspServerManager.getInstance(project).getServersForProvider(OxfmtLspServerSupportProvider::class.java)
+        assertTrue("Background saves evicted the selected editor", servers.any {
+            it.state == LspServerState.Running && it.descriptor.isSupportedFile(selected)
+        })
+        assertTrue(servers.size <= 4)
     }
 
     fun testRapidScopeChangesAndRestartKeepTheSelectedPackageRunning() {

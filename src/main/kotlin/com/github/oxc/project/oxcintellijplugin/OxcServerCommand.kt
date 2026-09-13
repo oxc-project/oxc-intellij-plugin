@@ -20,7 +20,11 @@ data class OxcServerCommand(
     fun supports(file: VirtualFile, project: Project, source: BinarySource, vpPath: String, manualBinary: Boolean): Boolean {
         if (!file.toNioPath().startsWith(root.toNioPath())) return false
         val viteRoot = if (manualBinary) null else VitePlusPackage(project).projectRoot(file, source, vpPath)
-        return if (vitePlus) viteRoot == root.toNioPath() else viteRoot == null
+        return if (vitePlus) {
+            viteRoot == root.toNioPath()
+        } else {
+            viteRoot == null && VitePlusDetector().workspaceRoot(file.toNioPath(), root.toNioPath()) == root.toNioPath()
+        }
     }
 
     companion object {

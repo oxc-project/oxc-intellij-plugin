@@ -1,0 +1,8 @@
+{
+  "name": "vite-plus-lsp-fixture",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "vite-plus": "0.3.1"
+  }
+}

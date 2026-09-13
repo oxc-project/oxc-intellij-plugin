@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.KillableProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
@@ -186,8 +187,16 @@ internal class OxcSaveSession(
                 handler?.let { process ->
                     // Cancellation during startup can precede startNotify, which enables termination.
                     if (!process.isStartNotified) process.startNotify()
-                    process.destroyProcess()
-                    withContext(Dispatchers.IO) { process.waitFor(5_000) }
+                    withContext(Dispatchers.IO) {
+                        // Graceful destruction flushes stdin in the IDE's killable handler.
+                        // A blocked writer holds that stream lock, so terminate without flushing.
+                        if (process is KillableProcessHandler && process.canKillProcess()) {
+                            process.killProcess()
+                        } else {
+                            process.destroyProcess()
+                        }
+                        process.waitFor(5_000)
+                    }
                 }
                 listening?.cancel(true)
                 input.close()

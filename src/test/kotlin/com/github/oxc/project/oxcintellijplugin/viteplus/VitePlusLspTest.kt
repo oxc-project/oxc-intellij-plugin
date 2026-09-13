@@ -14,6 +14,8 @@ import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
+import com.intellij.notification.Notification
+import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.vfs.VirtualFile
@@ -31,6 +33,7 @@ import com.intellij.testFramework.builders.ModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
 import com.intellij.testFramework.fixtures.ModuleFixture
 import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentLinkedQueue
 import org.eclipse.lsp4j.DocumentDiagnosticParams
 import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.FormattingOptions
@@ -84,6 +87,26 @@ class VitePlusLspTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleFi
         WriteCommandAction.runWriteCommandAction(project) { vp.rename(this, "vp") }
         waitForServer(OxlintLspServerSupportProvider::class.java, file)
         assertViteFormatting(waitForServer(OxfmtLspServerSupportProvider::class.java, file), file)
+    }
+
+    fun testEarlyVitePlusExitShowsLaunchFailureForBothTools() {
+        val notifications = ConcurrentLinkedQueue<Notification>()
+        project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
+            override fun notify(notification: Notification) {
+                if (notification.title == "Vite+ language server") notifications.add(notification)
+            }
+        })
+        val invalid = myFixture.addFileToProject("invalid-vp.js", "process.exit(23);\n").virtualFile
+        OxlintSettings.getInstance(project).vitePlusPath = invalid.path
+        OxfmtSettings.getInstance(project).vitePlusPath = invalid.path
+        myFixture.configureByFile("index.js")
+        PlatformTestUtil.waitWithEventsDispatching("Early process exit did not report both tool failures", {
+            listOf("Oxlint", "Oxfmt").all { tool -> notifications.any {
+                it.content.contains("could not start the $tool language server")
+            } }
+        }, 15)
+        assertEquals("Repeated starts must not duplicate failure notifications", 2, notifications.size)
+        notifications.forEach { it.expire() }
     }
 
     fun testNestedStandaloneWorkspaceHasItsOwnServer() {

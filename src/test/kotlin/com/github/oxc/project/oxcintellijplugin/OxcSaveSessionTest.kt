@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
+import com.intellij.execution.process.KillableProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -136,7 +137,8 @@ class OxcSaveSessionTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<Modul
             override fun isSupportedFile(file: VirtualFile) = true
             override fun createCommandLine() = GeneralCommandLine(node.absolutePath, "-e", script)
             override fun startServerProcess(): OSProcessHandler {
-                return object : OSProcessHandler(createCommandLine()) {
+                // The IDE uses this handler, whose graceful destroy flushes stdin first.
+                return object : KillableProcessHandler(createCommandLine()) {
                     override fun getProcessInput(): OutputStream = object : FilterOutputStream(super.getProcessInput()!!) {
                         override fun write(bytes: ByteArray, offset: Int, length: Int) {
                             if (length > 1_000_000) sendingDocument.countDown()
@@ -173,7 +175,7 @@ class OxcSaveSessionTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<Modul
             jobRef.get()?.cancel()
             handlerRef.get()?.let { handler ->
                 if (!handler.isStartNotified) handler.startNotify()
-                handler.destroyProcess()
+                (handler as KillableProcessHandler).killProcess()
                 handler.waitFor(5_000)
             }
             PlatformTestUtil.waitWithEventsDispatching("Save did not stop after test cleanup", { future.isDone }, 10)

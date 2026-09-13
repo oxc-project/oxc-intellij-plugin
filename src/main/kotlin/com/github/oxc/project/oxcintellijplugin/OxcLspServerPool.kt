@@ -234,7 +234,7 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
             return null
         }
         manager.ensureServerStarted(tool.provider, descriptor)
-        return withTimeoutOrNull(30_000) {
+        val server = withTimeoutOrNull(30_000) {
             while (!project.isDisposed && scope.isActive) {
                 manager.getServersForProvider(tool.provider)
                     .firstOrNull { it.descriptor.roots.contentEquals(descriptor.roots) && it.state != LspServerState.Initializing }
@@ -243,6 +243,11 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
             }
             null
         }
+        // Some IDE versions omit serverStopped when the process exits before initialization.
+        if (command.vitePlus && server?.state == LspServerState.ShutdownUnexpectedly) {
+            VitePlusNotifications.getInstance(project).launchFailed(command.root.path, tool.displayName)
+        }
+        return server
     }
 
     companion object {

@@ -79,6 +79,10 @@ Automatic mode. Relative paths start at the project content root. A language ser
 Manual configuration takes priority over both the source choice and the Vite+ path.
 For example, select **Standalone Oxc** for Oxlint and **Vite+** for Oxfmt to combine their sources.
 
+The plugin keeps up to four recent package scopes running per tool, within the IDE's server limit.
+Selecting a file or applying fixes restarts an evicted scope. Recycling scopes restarts the retained
+servers for that tool; the other tool continues running.
+
 Vite+ servers always disable nested standalone configuration lookups so `vite.config.*` controls
 their configuration. This does not change the saved nested-config setting for standalone tools.
 Node entry points, including npm and pnpm shims, use the IDE's configured Node interpreter.

@@ -1,5 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.lsp
 
+import com.github.oxc.project.oxcintellijplugin.OxcLspServerPool
+import com.github.oxc.project.oxcintellijplugin.OxcLspTool
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintConfigurable
@@ -25,8 +27,7 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
         if (!oxc.isEnabled()) {
             return
         }
-        val command = oxc.resolveCommand(file) ?: return
-        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, command))
+        OxcLspServerPool.getInstance(project).fileOpened(OxcLspTool.OXLINT, file, allowEviction = false)
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

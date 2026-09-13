@@ -162,6 +162,26 @@ class VitePlusIntegrationTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
         assertTrue(plainCommand.supports(plain, project, BinarySource.AUTO, "", false))
     }
 
+    fun testStandaloneWorkspaceRootsDoNotCollideWithParentViteServers() {
+        add("package.json", """{"devDependencies":{"vite-plus":"*"}}""")
+        install()
+        val outer = add("index.js")
+        for ((index, marker) in listOf("pnpm-workspace.yaml", "lerna.json", "package.json").withIndex()) {
+            add("nested$index/$marker", if (marker == "package.json") """{"workspaces":[]}""" else "{}")
+            val inner = add("nested$index/index.js")
+            for ((outerCommand, innerCommand) in listOf(
+                OxlintPackage(project).resolveCommand(outer)!! to OxlintPackage(project).resolveCommand(inner)!!,
+                OxfmtPackage(project).resolveCommand(outer)!! to OxfmtPackage(project).resolveCommand(inner)!!,
+            )) {
+                assertTrue(outerCommand.vitePlus)
+                assertFalse(innerCommand.vitePlus)
+                assertEquals(inner.parent, innerCommand.root)
+                assertNotSame(outerCommand.root, innerCommand.root)
+                assertFalse(outerCommand.supports(inner, project, BinarySource.AUTO, "", false))
+            }
+        }
+    }
+
     fun testViteNestedConfigOverridesAtInitializationAndConfigurationRequests() {
         add("package.json", """{"devDependencies":{"vite-plus":"*"}}""")
         install()

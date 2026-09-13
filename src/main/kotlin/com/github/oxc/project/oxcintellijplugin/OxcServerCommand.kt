@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
+import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusDetector
 import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpNodePackage
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.openapi.project.Project
@@ -24,12 +25,17 @@ data class OxcServerCommand(
 
     companion object {
         fun findRoot(project: Project, file: VirtualFile, nodePackage: NodePackage?): VirtualFile? {
-            return when (nodePackage) {
+            val contentRoot = ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file)
+            val packageRoot = when (nodePackage) {
                 null -> ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file)
                 is YarnPnpNodePackage -> nodePackage.getPackageJson(project)?.parent
                 else -> VirtualFileManager.getInstance().findFileByNioPath(Path.of(nodePackage.systemIndependentPath))
                     ?.parent?.parent
             }
+            val root = packageRoot?.takeIf { file.toNioPath().startsWith(it.toNioPath()) }
+                ?: contentRoot ?: return null
+            val workspace = VitePlusDetector().workspaceRoot(file.toNioPath(), root.toNioPath())
+            return VirtualFileManager.getInstance().findFileByNioPath(workspace)
         }
     }
 }

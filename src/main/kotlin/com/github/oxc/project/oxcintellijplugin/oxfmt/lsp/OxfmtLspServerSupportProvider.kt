@@ -1,5 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt.lsp
 
+import com.github.oxc.project.oxcintellijplugin.OxcLspServerPool
+import com.github.oxc.project.oxcintellijplugin.OxcLspTool
 import com.github.oxc.project.oxcintellijplugin.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtConfigurable
@@ -26,8 +28,7 @@ class OxfmtLspServerSupportProvider : LspServerSupportProvider {
         if (!oxfmt.isEnabled()) {
             return
         }
-        val command = oxfmt.resolveCommand(file) ?: return
-        serverStarter.ensureServerStarted(OxfmtLspServerDescriptor(project, command))
+        OxcLspServerPool.getInstance(project).fileOpened(OxcLspTool.OXFMT, file, allowEviction = false)
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

@@ -13,6 +13,16 @@ data class VitePlusProject(val root: Path, val vpPath: Path?)
 
 /** Ports https://github.com/voidzero-dev/vite-plus/pull/1614. No processes or project code run here. */
 class VitePlusDetector(private val windows: Boolean = System.getProperty("os.name").startsWith("Windows")) {
+    /** Keep a hoisted standalone install inside the file's own workspace. */
+    fun workspaceRoot(start: Path, fallbackRoot: Path): Path {
+        var dir = if (Files.isRegularFile(start)) start.parent else start
+        while (dir.startsWith(fallbackRoot) && dir != fallbackRoot) {
+            if (isWorkspaceRoot(dir, readPackageJson(dir))) return dir
+            dir = dir.parent
+        }
+        return fallbackRoot
+    }
+
     fun projectRoot(start: Path, force: Boolean = false, fallbackRoot: Path? = null): Path? {
         var dir = start.toAbsolutePath().normalize().let { if (Files.isRegularFile(it)) it.parent else it }
         while (true) {

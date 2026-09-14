@@ -12,6 +12,7 @@ import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusNotifications
 import com.intellij.execution.ExecutionException
 import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
@@ -214,7 +215,11 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
     }
 
     private suspend fun stopServers(tool: OxcLspTool): Boolean {
-        withContext(Dispatchers.EDT) { manager.stopServers(tool.provider) }
+        withContext(Dispatchers.EDT) {
+            // Invalidate IDE document events prepared in background read actions before shutdown.
+            // EDT alone lets their queued callbacks retain a server that is no longer running.
+            WriteAction.run<RuntimeException> { manager.stopServers(tool.provider) }
+        }
         // Wait for removal before submitting replacements to the IDE's asynchronous starter.
         return withTimeoutOrNull(30_000) {
             while (manager.getServersForProvider(tool.provider).isNotEmpty()) delay(10)

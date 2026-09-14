@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.BinarySource
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxfmt.actions.OxfmtFixAllOnSaveAction
 import com.github.oxc.project.oxcintellijplugin.OxcLspServerPool
+import com.github.oxc.project.oxcintellijplugin.OxcLspTool
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
 import com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider
 import com.github.oxc.project.oxcintellijplugin.oxfmt.services.OxfmtServerService
@@ -17,10 +18,13 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.notification.Notification
 import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.progress.ProgressManager
 import com.github.oxc.project.oxcintellijplugin.oxlint.services.OxlintServerService
 import kotlinx.coroutines.runBlocking
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -34,6 +38,11 @@ import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
 import com.intellij.testFramework.fixtures.ModuleFixture
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.LockSupport
+import com.intellij.util.concurrency.AppExecutorUtil
 import org.eclipse.lsp4j.DocumentDiagnosticParams
 import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.FormattingOptions
@@ -246,6 +255,50 @@ class VitePlusLspTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleFi
         assertNotSame(fmt, waitForServer(OxfmtLspServerSupportProvider::class.java, file))
         assertSame(lint, waitForServer(OxlintLspServerSupportProvider::class.java, file))
         assertTrue(oxcServerCount() <= 8)
+    }
+
+    fun testStoppingServersInvalidatesPendingDocumentEvents() {
+        val file = myFixture.configureByFile("index.js").virtualFile
+        val servers = listOf(
+            waitForServer(OxlintLspServerSupportProvider::class.java, file),
+            waitForServer(OxfmtLspServerSupportProvider::class.java, file),
+        )
+        val manager = LspServerManager.getInstance(project)
+        val captured = CountDownLatch(1)
+        val firstRead = AtomicBoolean(true)
+        val staleServers = ConcurrentLinkedQueue<LspServer>()
+        // The IDE collects didOpen targets in a background read action, then delivers on EDT.
+        // Hold the first snapshot until shutdown starts to force that same lifecycle race.
+        val pending = ReadAction.nonBlocking<List<LspServer>> {
+            val targets = OxcLspTool.entries.flatMap { manager.getServersForProvider(it.provider) }
+                .filter { it.state == LspServerState.Running }
+            if (firstRead.getAndSet(false)) {
+                captured.countDown()
+                val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
+                while (targets.any { it.state == LspServerState.Running }) {
+                    ProgressManager.checkCanceled()
+                    check(System.nanoTime() < deadline) { "Shutdown did not invalidate the pending read" }
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1))
+                }
+            }
+            targets
+        }.expireWith(testRootDisposable)
+            .finishOnUiThread(ModalityState.nonModal()) { targets ->
+                staleServers.addAll(targets.filter { it.state != LspServerState.Running })
+            }.submit(AppExecutorUtil.getAppExecutorService())
+        try {
+            assertTrue("Document event did not capture running servers", captured.await(10, TimeUnit.SECONDS))
+            val pool = OxcLspServerPool.getInstance(project)
+            OxcLspTool.entries.forEach { pool.stop(it) }
+            PlatformTestUtil.waitWithEventsDispatching("Shutdown and document event did not finish", {
+                pool.isIdle && pending.isDone
+            }, 20)
+            pending.get()
+            assertTrue(servers.all { it.state == LspServerState.ShutdownNormally })
+            assertTrue("Document event retained stopped servers: $staleServers", staleServers.isEmpty())
+        } finally {
+            pending.cancel()
+        }
     }
 
     fun testColdLintSaveFixesTheUnsavedDocument() {

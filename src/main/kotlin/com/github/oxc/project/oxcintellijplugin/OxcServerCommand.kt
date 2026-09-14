@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
-import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
 import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusDetector
+import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
 import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpNodePackage
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.openapi.project.Project
@@ -18,12 +18,14 @@ data class OxcServerCommand(
     val vitePlus: Boolean = false,
 ) {
     fun supports(file: VirtualFile, project: Project, source: BinarySource, vpPath: String, manualBinary: Boolean): Boolean {
-        if (!file.toNioPath().startsWith(root.toNioPath())) return false
+        val filePath = file.toNioPath()
+        val rootPath = root.toNioPath()
+        if (!filePath.startsWith(rootPath)) return false
         val viteRoot = if (manualBinary) null else VitePlusPackage(project).projectRoot(file, source, vpPath)
         return if (vitePlus) {
-            viteRoot == root.toNioPath()
+            viteRoot == rootPath
         } else {
-            viteRoot == null && VitePlusDetector().workspaceRoot(file.toNioPath(), root.toNioPath()) == root.toNioPath()
+            viteRoot == null && VitePlusDetector().workspaceRoot(filePath, rootPath) == rootPath
         }
     }
 
@@ -31,7 +33,7 @@ data class OxcServerCommand(
         fun findRoot(project: Project, file: VirtualFile, nodePackage: NodePackage?): VirtualFile? {
             val contentRoot = ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file)
             val packageRoot = when (nodePackage) {
-                null -> ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file)
+                null -> contentRoot
                 is YarnPnpNodePackage -> nodePackage.getPackageJson(project)?.parent
                 else -> VirtualFileManager.getInstance().findFileByNioPath(Path.of(nodePackage.systemIndependentPath))
                     ?.parent?.parent

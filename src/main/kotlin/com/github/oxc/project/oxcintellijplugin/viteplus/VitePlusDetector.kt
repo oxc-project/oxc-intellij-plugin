@@ -65,14 +65,10 @@ class VitePlusDetector(private val windows: Boolean = System.getProperty("os.nam
         val pkg = readPackageJson(directory) ?: return null
         if (pkg.get("name")?.let { it.isJsonPrimitive && it.asString == "vite-plus" } != true) return null
         val bin = pkg.get("bin")
-        val entry = when {
-            bin?.isJsonPrimitive == true && bin.asJsonPrimitive.isString -> bin.asString
-            bin?.isJsonObject == true -> bin.asJsonObject.get("vp")
-                ?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
-            else -> null
-        } ?: "bin/vp"
+        val entry = if (bin?.isJsonObject == true) bin.asJsonObject.get("vp") else bin
+        val entryPath = entry?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString ?: "bin/vp"
         val path = try {
-            directory.resolve(entry).normalize()
+            directory.resolve(entryPath).normalize()
         } catch (_: InvalidPathException) {
             return null
         }
@@ -81,8 +77,9 @@ class VitePlusDetector(private val windows: Boolean = System.getProperty("os.nam
 
     private fun declaresVitePlus(pkg: JsonObject?): Boolean =
         listOf("dependencies", "devDependencies").any { field ->
-            pkg?.get(field)?.takeIf { it.isJsonObject }?.asJsonObject?.get("vite-plus")
-                ?.let { it.isJsonPrimitive && it.asJsonPrimitive.isString && it.asString.isNotEmpty() } == true
+            val dependencies = pkg?.get(field)?.takeIf { it.isJsonObject }?.asJsonObject ?: return@any false
+            val version = dependencies.get("vite-plus") ?: return@any false
+            version.isJsonPrimitive && version.asJsonPrimitive.isString && version.asString.isNotEmpty()
         }
 
     private fun isWorkspaceRoot(dir: Path, pkg: JsonObject?): Boolean =

@@ -13,12 +13,13 @@ class VitePlusNotifications(private val project: Project) {
     private val notifications = ConcurrentHashMap<String, Notification>()
 
     fun unavailable(root: String, configuredPath: String) {
-        show("missing:$root:$configuredPath", if (configuredPath.isBlank()) {
+        val message = if (configuredPath.isBlank()) {
             "Vite+ detected in $root. Run your package manager's install command (for example, pnpm install) " +
                 "or install Vite+ globally, then restart the Oxc servers."
         } else {
             "Vite+ executable not found: $configuredPath. Correct the Vite+ path in the tool settings, then restart the server."
-        })
+        }
+        show("missing:$root:$configuredPath", message)
     }
 
     fun launchFailed(root: String, tool: String) {

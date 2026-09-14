@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
-import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.KillableProcessHandler
+import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
@@ -109,14 +109,13 @@ internal class OxcSaveSession(
             }
             process.addProcessListener(object : ProcessListener {
                 override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                    if (outputType == ProcessOutputTypes.STDOUT) {
-                        try {
-                            output.write(event.text.toByteArray(Charsets.UTF_8))
-                            // Wake the pipe reader instead of waiting for its one-second poll.
-                            output.flush()
-                        } catch (_: IOException) {
-                            // The process can still emit output while the session closes its pipe.
-                        }
+                    if (outputType != ProcessOutputTypes.STDOUT) return
+                    try {
+                        output.write(event.text.toByteArray(Charsets.UTF_8))
+                        // Wake the pipe reader instead of waiting for its one-second poll.
+                        output.flush()
+                    } catch (_: IOException) {
+                        // The process can still emit output while the session closes its pipe.
                     }
                 }
 
@@ -124,22 +123,6 @@ internal class OxcSaveSession(
                     output.close()
                 }
             })
-            val client = object : LanguageClient {
-                override fun telemetryEvent(value: Any?) = Unit
-                override fun publishDiagnostics(params: PublishDiagnosticsParams) = Unit
-                override fun showMessage(params: MessageParams) = Unit
-                override fun logMessage(params: MessageParams) = Unit
-                override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem> =
-                    CompletableFuture.completedFuture(null)
-                override fun configuration(params: ConfigurationParams): CompletableFuture<List<Any?>> =
-                    CompletableFuture.completedFuture(params.items.map { descriptor.getWorkspaceConfiguration(it) })
-                override fun workspaceFolders(): CompletableFuture<List<WorkspaceFolder>> =
-                    CompletableFuture.completedFuture(descriptor.roots.map { WorkspaceFolder(descriptor.getFileUri(it), it.name) })
-                // Registrations last only for this save; no editor or file watchers need to be installed.
-                override fun registerCapability(params: RegistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
-                override fun unregisterCapability(params: UnregistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
-                override fun refreshDiagnostics(): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
-            }
             val launcher = object : Launcher.Builder<LanguageServer>() {
                 override fun wrapMessageConsumer(consumer: MessageConsumer): MessageConsumer {
                     val wrapped = super.wrapMessageConsumer(consumer)
@@ -161,7 +144,7 @@ internal class OxcSaveSession(
                         }
                     }
                 }
-            }.setLocalService(client)
+            }.setLocalService(createClient())
                 .setRemoteInterface(LanguageServer::class.java).setInput(input)
                 .setExecutorService(AppExecutorUtil.getAppExecutorService())
                 .setOutput(process.processInput!!).create()
@@ -205,6 +188,24 @@ internal class OxcSaveSession(
                 state = LspServerState.ShutdownNormally
             }
         }
+    }
+
+    private fun createClient(): LanguageClient = object : LanguageClient {
+        override fun telemetryEvent(value: Any?) = Unit
+        override fun publishDiagnostics(params: PublishDiagnosticsParams) = Unit
+        override fun showMessage(params: MessageParams) = Unit
+        override fun logMessage(params: MessageParams) = Unit
+        override fun showMessageRequest(params: ShowMessageRequestParams): CompletableFuture<MessageActionItem> =
+            CompletableFuture.completedFuture(null)
+        override fun configuration(params: ConfigurationParams): CompletableFuture<List<Any?>> =
+            CompletableFuture.completedFuture(params.items.map { descriptor.getWorkspaceConfiguration(it) })
+        override fun workspaceFolders(): CompletableFuture<List<WorkspaceFolder>> =
+            CompletableFuture.completedFuture(descriptor.roots.map { WorkspaceFolder(descriptor.getFileUri(it), it.name) })
+
+        // Registrations last only for this save; no editor or file watchers need to be installed.
+        override fun registerCapability(params: RegistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
+        override fun unregisterCapability(params: UnregistrationParams): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
+        override fun refreshDiagnostics(): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
     }
 
     private fun documentVersion(document: Document): Int =

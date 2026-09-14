@@ -37,9 +37,10 @@ object VitePlusNodeEntry {
         val shimPath = if (!isCmd && Files.isSymbolicLink(path)) path.toRealPath() else path
         val binDir = shimPath.toAbsolutePath().parent
         val entry = when {
-            target != null -> binDir.resolve(if (isCmd) {
-                cmdPrefix.replace(target, "").replace('\\', java.io.File.separatorChar)
-            } else target).normalize()
+            target != null -> {
+                val targetPath = if (isCmd) cmdPrefix.replace(target, "").replace('\\', java.io.File.separatorChar) else target
+                binDir.resolve(targetPath).normalize()
+            }
             binDir.fileName.toString() == ".bin" -> binDir.resolve("../vite-plus/bin/vp").normalize()
             isCmd -> binDir.resolve("node_modules/vite-plus/bin/vp")
             else -> return null

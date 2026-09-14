@@ -3,14 +3,12 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.OxcServerCommand
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
-import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusNotifications
 import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import java.nio.file.Paths
 
 class OxfmtPackage(
@@ -54,26 +52,15 @@ class OxfmtPackage(
     fun resolveCommand(file: VirtualFile): OxcServerCommand? {
         val settings = OxfmtSettings.getInstance(project)
         if (settings.configurationMode == ConfigurationMode.DISABLED) return null
-        val manual = settings.configurationMode == ConfigurationMode.MANUAL && settings.binaryPath.isNotBlank()
-        if (!manual) {
-            val viteProject = vitePlus.detect(file, settings.binarySource, settings.vitePlusPath)
-            if (viteProject != null) {
-                val notifications = VitePlusNotifications.getInstance(project)
-                val executable = viteProject.vpPath
-                if (executable == null) {
-                    notifications.unavailable(viteProject.root.toString(), settings.vitePlusPath)
-                    return null
-                }
-                notifications.resolved(viteProject.root.toString(), settings.vitePlusPath)
-                val root = VirtualFileManager.getInstance().findFileByNioPath(viteProject.root) ?: return null
-                return OxcServerCommand(executable.toString(), listOf("fmt", "--lsp"), root, vitePlus = true)
-            }
+        val manualBinary = settings.configurationMode == ConfigurationMode.MANUAL && settings.binaryPath.isNotBlank()
+        val viteProject = if (manualBinary) null else vitePlus.detect(file, settings.binarySource, settings.vitePlusPath)
+        if (viteProject != null) {
+            return vitePlus.createServerCommand(viteProject, "fmt", settings.vitePlusPath)
         }
-        val nodePackage = if (manual) null else getPackage(file)
-        val executable = if (manual) settings.binaryPath else nodePackage?.let(::findOxfmtExecutable) ?: return null
+        val nodePackage = if (manualBinary) null else getPackage(file)
+        val executable = if (manualBinary) settings.binaryPath else nodePackage?.let(::findOxfmtExecutable) ?: return null
         val root = OxcServerCommand.findRoot(project, file, nodePackage) ?: return null
-        val arguments = listOf("--lsp")
-        return OxcServerCommand(executable, arguments, root)
+        return OxcServerCommand(executable, listOf("--lsp"), root)
     }
 
     fun isEnabled(): Boolean {
@@ -82,12 +69,8 @@ class OxfmtPackage(
     }
 
     private fun findOxfmtExecutable(oxfmtPackage: NodePackage): String? {
-        val path = oxfmtPackage.getAbsolutePackagePathToRequire(project)
-        if (path != null) {
-            return Paths.get(path, "bin/oxfmt").toString()
-        }
-
-        return null
+        val path = oxfmtPackage.getAbsolutePackagePathToRequire(project) ?: return null
+        return Paths.get(path, "bin/oxfmt").toString()
     }
 
     companion object {

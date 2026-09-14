@@ -181,7 +181,9 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
         val previous = commands.remove(command.root)
         commands[command.root] = command
         val evicted = trim(tool, commands)
-        if (evicted && commands.keys != previousRoots || previous != null && previous != command) {
+        val rootsChanged = evicted && commands.keys != previousRoots
+        val commandChanged = previous != null && previous != command
+        if (rootsChanged || commandChanged) {
             if (!stopServers(tool)) return null
             for (retained in commands.values) startServer(tool, retained)
         }
@@ -199,19 +201,17 @@ class OxcLspServerPool(private val project: Project, private val scope: Coroutin
     }
 
     private suspend fun trim(tool: OxcLspTool, commands: LinkedHashMap<VirtualFile, OxcServerCommand>): Boolean {
-        val capacity = capacity()
-        if (commands.size <= capacity) return false
+        val maxServers = capacity()
+        if (commands.size <= maxServers) return false
         // Saving a background tab must not displace a selected editor's scope.
         val selectedRoots = readAction {
             FileEditorManager.getInstance(project).selectedFiles.mapNotNull { tool.resolve(project, it)?.root }.toSet()
         }
-        var removed = false
-        while (commands.size > capacity) {
+        while (commands.size > maxServers) {
             val oldest = commands.keys.firstOrNull { it !in selectedRoots } ?: commands.keys.first()
             commands.remove(oldest)
-            removed = true
         }
-        return removed
+        return true
     }
 
     private suspend fun stopServers(tool: OxcLspTool): Boolean {

@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- Detect direct Vite+ dependencies within monorepo boundaries and launch `vp lint --lsp` and `vp fmt --lsp`.
+- Select Vite+ or standalone binaries independently in the Oxlint and Oxfmt settings.
+- Show install and upgrade hints when a selected Vite+ language server is unavailable.
+
+### Fixed
+
+- Keep language servers scoped to the declaring Vite+ package and disable nested standalone config lookups.
+- Recycle package scopes within the IDE's server limit and restore them when selecting or saving files.
+- Keep nested standalone workspaces separate from parent servers when binaries are hoisted.
+- Preserve selected editor scopes when saving background files and deliver save-session replies without delay.
+
 ## [0.0.39] - 2026-07-31
 
 ### Changed

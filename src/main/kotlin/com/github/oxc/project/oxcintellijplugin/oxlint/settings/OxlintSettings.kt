@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 
+import com.github.oxc.project.oxcintellijplugin.BinarySource
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettingsState.Companion.DEFAULT_EXTENSION_LIST
@@ -19,6 +20,14 @@ import java.io.File
     category = SettingsCategory.TOOLS)
 class OxlintSettings(private val project: Project) :
     SimplePersistentStateComponent<OxlintSettingsState>(OxlintSettingsState()) {
+
+    var binarySource: BinarySource
+        get() = state.binarySource
+        set(value) { state.binarySource = value }
+
+    var vitePlusPath: String
+        get() = state.vitePlusPath ?: ""
+        set(value) { state.vitePlusPath = value }
 
     var configurationMode: ConfigurationMode
         get() = state.configurationMode

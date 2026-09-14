@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
+import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusNodeEntry
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
@@ -19,7 +20,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
 import com.intellij.util.io.BaseOutputReader
-import java.io.File
 import kotlin.io.path.Path
 
 
@@ -76,31 +76,29 @@ class OxcTargetRunBuilder(val project: Project) {
     fun getBuilder(
         configMode: ConfigurationMode,
         executable: String,
+        detectRuntime: Boolean = false,
     ): ProcessCommandBuilder {
         if (executable.isEmpty()) {
             throw ExecutionException(OxlintBundle.message("oxlint.language.server.not.found"))
         }
 
-        val wslPath = WslPath.parseWindowsUncPath(executable)
-
-        // For WSL paths, always use NodeProcessCommandBuilder as it handles WSL correctly
-        val isNodeJs = if (wslPath != null) {
-            true
+        val nodeEntry = if (detectRuntime) VitePlusNodeEntry.resolve(Path(executable)) else null
+        val launchExecutable = nodeEntry?.toString() ?: executable
+        val wslPath = WslPath.parseWindowsUncPath(launchExecutable)
+        val isNodeJs = if (detectRuntime) {
+            nodeEntry != null
         } else {
-            runCatching {
-                File(executable).useLines { it.firstOrNull() }
-                    ?.startsWith("#!/usr/bin/env node")
-            }.getOrNull() == true
+            wslPath != null || VitePlusNodeEntry.isNodeScript(Path(launchExecutable))
         }
 
-        val builder: ProcessCommandBuilder = if (configMode == ConfigurationMode.MANUAL && !isNodeJs) {
+        val builder: ProcessCommandBuilder = if ((configMode == ConfigurationMode.MANUAL || detectRuntime) && !isNodeJs) {
             GeneralProcessCommandBuilder()
         } else {
             val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter ?: throw ExecutionException(JavaScriptBundle.message("lsp.interpreter.error"));
             NodeProcessCommandBuilder(project, interpreter)
         }
 
-        return builder.setExecutable(executable).setCharset(Charsets.UTF_8)
+        return builder.setExecutable(launchExecutable).setCharset(Charsets.UTF_8)
     }
 
     companion object {

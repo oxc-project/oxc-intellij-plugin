@@ -3,7 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.oxlint.settings
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintUnusedDisableDirectivesSeverity
 import com.intellij.openapi.components.BaseState
-import com.intellij.util.xml.Attribute
+import com.intellij.util.xmlb.annotations.Attribute
 import com.intellij.util.xmlb.annotations.XMap
 
 class OxlintSettingsState : BaseState() {

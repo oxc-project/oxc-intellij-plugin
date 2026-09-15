@@ -2,7 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt.settings
 
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.intellij.openapi.components.BaseState
-import com.intellij.util.xml.Attribute
+import com.intellij.util.xmlb.annotations.Attribute
 
 class OxfmtSettingsState : BaseState() {
 

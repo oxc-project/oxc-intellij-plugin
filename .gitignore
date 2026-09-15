@@ -1,6 +1,6 @@
 .gradle
 .idea
 .intellijPlatform
-.qodana
+.kotlin
 build
 node_modules

@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
 import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintPackage
+import com.github.oxc.project.oxcintellijplugin.oxlint.services.OxlintServerService
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -12,6 +13,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
+import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
@@ -96,6 +98,9 @@ class OxlintLspServerDescriptor(
         override val codeActionsCustomizer = LspCodeActionsSupport()
         override val diagnosticsCustomizer = OxlintLspDiagnosticsSupport()
     }
+
+    override val lspServerListener: LspServerListener =
+        OxlintServerService.getInstance(project).createRestartListener()
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
         val oxlintPackage = OxlintPackage(project)

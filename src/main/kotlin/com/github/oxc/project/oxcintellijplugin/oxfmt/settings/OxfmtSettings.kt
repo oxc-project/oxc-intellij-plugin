@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt.settings
 
+import com.github.oxc.project.oxcintellijplugin.BinarySource
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage.Companion.EMPTY_NODE_PACKAGE
@@ -23,6 +24,18 @@ import java.io.File
     category = SettingsCategory.TOOLS)
 class OxfmtSettings(private val project: Project) : JSNpmLinterState<OxfmtSettings>,
     SimplePersistentStateComponent<OxfmtSettingsState>(OxfmtSettingsState()) {
+
+    var binarySource: BinarySource
+        get() = state.binarySource
+        set(value) { state.binarySource = value }
+
+    var vitePlusPath: String
+        get() = state.vitePlusPath ?: ""
+        set(value) { state.vitePlusPath = value }
+
+    var disableNestedConfig: Boolean
+        get() = state.disableNestedConfig
+        set(value) { state.disableNestedConfig = value }
 
     var configurationMode: ConfigurationMode
         get() = state.configurationMode

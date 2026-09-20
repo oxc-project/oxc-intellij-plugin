@@ -1,10 +1,20 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt.settings
 
+import com.github.oxc.project.oxcintellijplugin.BinarySource
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.intellij.openapi.components.BaseState
 import com.intellij.util.xml.Attribute
 
 class OxfmtSettingsState : BaseState() {
+
+    @get:Attribute("binarySource")
+    var binarySource by enum(BinarySource.AUTO)
+
+    @get:Attribute("vitePlusPath")
+    var vitePlusPath by string()
+
+    @get:Attribute("disableNestedConfig")
+    var disableNestedConfig by property(false)
 
     @get:Attribute("binaryPath")
     var binaryPath by string()

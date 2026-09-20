@@ -1,8 +1,9 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt.services
 
+import com.github.oxc.project.oxcintellijplugin.OxcLspServerPool
+import com.github.oxc.project.oxcintellijplugin.OxcLspTool
 import com.github.oxc.project.oxcintellijplugin.NOTIFICATION_GROUP
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtBundle
-import com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider
 import com.intellij.application.options.CodeStyle
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -13,7 +14,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.lsp.api.LspServerManager
+import com.intellij.platform.lsp.api.LspServer
 import com.intellij.psi.codeStyle.CommonCodeStyleSettings.IndentOptions
 import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.FormattingOptions
@@ -21,7 +22,6 @@ import org.eclipse.lsp4j.FormattingOptions
 @Service(Service.Level.PROJECT)
 class OxfmtServerService(private val project: Project) {
 
-    private val PROVIDER_CLASS = OxfmtLspServerSupportProvider::class.java
     private val GROUP_ID = "Oxc"
 
     companion object {
@@ -29,10 +29,6 @@ class OxfmtServerService(private val project: Project) {
         fun getInstance(project: Project): OxfmtServerService =
             project.getService(OxfmtServerService::class.java)
     }
-
-    private fun getServer(file: VirtualFile) =
-        LspServerManager.getInstance(project).getServersForProvider(PROVIDER_CLASS)
-            .firstOrNull { server -> server.descriptor.isSupportedFile(file) }
 
     suspend fun fixAll(document: Document) {
         val manager = FileDocumentManager.getInstance()
@@ -42,7 +38,12 @@ class OxfmtServerService(private val project: Project) {
     }
 
     suspend fun fixAll(file: VirtualFile, document: Document) {
-        val server = getServer(file) ?: return
+        OxcLspServerPool.getInstance(project).withServer(OxcLspTool.OXFMT, file, document) { server ->
+            fixAll(server, file, document)
+        }
+    }
+
+    private suspend fun fixAll(server: LspServer, file: VirtualFile, document: Document) {
         val indentOptions = ReadAction.compute<IndentOptions, Throwable> {
             val codeStyleSettings = CodeStyle.getSettings(project, document)
             return@compute codeStyleSettings.getIndentOptionsByDocument(project, document)
@@ -68,11 +69,11 @@ class OxfmtServerService(private val project: Project) {
     }
 
     fun restartServer() {
-        LspServerManager.getInstance(project).stopAndRestartIfNeeded(PROVIDER_CLASS)
+        OxcLspServerPool.getInstance(project).restart(OxcLspTool.OXFMT)
     }
 
     fun stopServer() {
-        LspServerManager.getInstance(project).stopServers(PROVIDER_CLASS)
+        OxcLspServerPool.getInstance(project).stop(OxcLspTool.OXFMT)
     }
 
     fun notifyRestart() {

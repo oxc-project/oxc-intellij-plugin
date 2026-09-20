@@ -9,7 +9,7 @@ class OxlintLspDiagnosticsSupport : LspDiagnosticsSupport() {
 
     override fun getMessage(diagnostic: Diagnostic): String {
         thisLogger().debug("Creating message for diagnostic: $diagnostic")
-        return "${diagnostic.source}: ${diagnostic.message} ${
+        return "${diagnostic.source}: ${super.getMessage(diagnostic)} ${
             diagnostic.code?.get() ?: OxlintBundle.message("oxlint.diagnostic.unknown.code")
         }"
     }
@@ -21,6 +21,6 @@ class OxlintLspDiagnosticsSupport : LspDiagnosticsSupport() {
             rule = "<a href=\"${diagnostic.codeDescription.href}\">${rule}</a>"
         }
 
-        return "${diagnostic.source}: ${diagnostic.message} $rule"
+        return "${diagnostic.source}: ${super.getTooltip(diagnostic)} $rule"
     }
 }

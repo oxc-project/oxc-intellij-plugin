@@ -1,9 +1,10 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.services
 
+import com.github.oxc.project.oxcintellijplugin.OxcLspServerPool
+import com.github.oxc.project.oxcintellijplugin.OxcLspTool
 import com.github.oxc.project.oxcintellijplugin.NOTIFICATION_GROUP
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
-import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -18,7 +19,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.lsp.api.LspServerManager
+import com.intellij.platform.lsp.api.LspServer
 import com.intellij.platform.lsp.api.customization.LspIntentionAction
 import com.intellij.platform.lsp.util.getLsp4jRange
 import kotlinx.coroutines.CancellationException
@@ -46,10 +47,6 @@ class OxlintServerService(private val project: Project) {
         }
     }
 
-    private fun getServer(file: VirtualFile) =
-        LspServerManager.getInstance(project).getServersForProvider(OxlintLspServerSupportProvider::class.java)
-            .firstOrNull { server -> server.descriptor.isSupportedFile(file) }
-
     suspend fun fixAll(document: Document): Boolean {
         val manager = FileDocumentManager.getInstance()
         val file = manager.getFile(document) ?: return false
@@ -57,8 +54,12 @@ class OxlintServerService(private val project: Project) {
         return fixAll(file, document)
     }
 
-    suspend fun fixAll(file: VirtualFile, document: Document): Boolean {
-        val server = getServer(file) ?: return false
+    suspend fun fixAll(file: VirtualFile, document: Document): Boolean =
+        OxcLspServerPool.getInstance(project).withServer(OxcLspTool.OXLINT, file, document) { server ->
+            fixAll(server, file, document)
+        } ?: false
+
+    private suspend fun fixAll(server: LspServer, file: VirtualFile, document: Document): Boolean {
 
         val fixKind = OxlintSettings.getInstance(project).fixKind
         if (fixKind == OxlintFixKind.NONE) {
@@ -133,11 +134,11 @@ class OxlintServerService(private val project: Project) {
     }
 
     fun restartServer() {
-        LspServerManager.getInstance(project).stopAndRestartIfNeeded(OxlintLspServerSupportProvider::class.java)
+        OxcLspServerPool.getInstance(project).restart(OxcLspTool.OXLINT)
     }
 
     fun stopServer() {
-        LspServerManager.getInstance(project).stopServers(OxlintLspServerSupportProvider::class.java)
+        OxcLspServerPool.getInstance(project).stop(OxcLspTool.OXLINT)
     }
 
     fun notifyRestart() {

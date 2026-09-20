@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
+import com.github.oxc.project.oxcintellijplugin.OxcServerCommand
 import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.viteplus.VitePlusPackage
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
@@ -52,40 +52,23 @@ class OxlintPackage(
         }
     }
 
-    fun binaryPath(
-        virtualFile: VirtualFile,
-    ): String? {
+    fun resolveCommand(file: VirtualFile): OxcServerCommand? {
         val settings = OxlintSettings.getInstance(project)
-        val configurationMode = settings.configurationMode
-
-        // We need to prefer `vite-plus` over `oxlint` because it may be also available as npm hoists it.
-        // It can't detect the `vite.config.ts` configuration if we prefer the dedicated package instead.
-        return when (configurationMode) {
-            ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> vitePlus.findOxlintExecutable(virtualFile) ?: findOxlintExecutable(virtualFile)
-            ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank {
-                vitePlus.findOxlintExecutable(virtualFile) ?: findOxlintExecutable(virtualFile)
-            }
+        if (settings.configurationMode == ConfigurationMode.DISABLED) return null
+        val manualBinary = settings.configurationMode == ConfigurationMode.MANUAL && settings.binaryPath.isNotBlank()
+        val viteProject = if (manualBinary) null else vitePlus.detect(file, settings.binarySource, settings.vitePlusPath)
+        if (viteProject != null) {
+            return vitePlus.createServerCommand(viteProject, "lint", settings.vitePlusPath)
         }
-    }
-
-    fun binaryParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
-        val settings = OxlintSettings.getInstance(project)
-        val configurationMode = settings.configurationMode
-
-        return when (configurationMode) {
-            ConfigurationMode.DISABLED -> emptyList()
-            ConfigurationMode.AUTOMATIC -> {
-                findOxlintParameters(virtualFile)
-            }
-            ConfigurationMode.MANUAL -> {
-                if (settings.binaryPath.isBlank()) {
-                    findOxlintParameters(virtualFile)
-                } else {
-                    settings.binaryParameters.map { ProcessCommandParameter.Value(it) }
-                }
-            }
+        val nodePackage = if (manualBinary) null else getPackage(file)
+        val executable = if (manualBinary) settings.binaryPath else nodePackage?.let(::findOxlintExecutable) ?: return null
+        val root = OxcServerCommand.findRoot(project, file, nodePackage) ?: return null
+        val arguments = when {
+            manualBinary -> settings.binaryParameters.toList()
+            nodePackage?.getVersion(project)?.isGreaterOrEqualThan(OXLINT_FIRST_LSP_VERSION) == true -> listOf("--lsp")
+            else -> emptyList()
         }
+        return OxcServerCommand(executable, arguments, root)
     }
 
     fun isEnabled(): Boolean {
@@ -93,40 +76,15 @@ class OxlintPackage(
         return settings.configurationMode != ConfigurationMode.DISABLED
     }
 
-    private fun findOxlintExecutable(virtualFile: VirtualFile): String? {
-        val oxlintPackage = getPackage(virtualFile) ?: return null
-        val path = oxlintPackage.getAbsolutePackagePathToRequire(project)
-        if (path != null) {
-            val version = oxlintPackage.getVersion(project)
-
-            return if (version?.isGreaterOrEqualThan(OXLINT_FIRST_LSP_VERSION) == true) {
-                Paths.get(path, "bin/oxlint").toString()
-            } else {
-                Paths.get(path, "bin/oxc_language_server").toString()
-            }
+    private fun findOxlintExecutable(oxlintPackage: NodePackage): String? {
+        val path = oxlintPackage.getAbsolutePackagePathToRequire(project) ?: return null
+        val version = oxlintPackage.getVersion(project)
+        val executable = if (version?.isGreaterOrEqualThan(OXLINT_FIRST_LSP_VERSION) == true) {
+            "bin/oxlint"
+        } else {
+            "bin/oxc_language_server"
         }
-
-        return null
-    }
-
-    private fun findOxlintParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
-        val vitePlusPackage = vitePlus.getPackage(virtualFile)
-        if (vitePlusPackage != null) {
-            return listOf(ProcessCommandParameter.Value("--lsp"))
-        }
-
-        val oxlintPackage = getPackage(virtualFile)
-        if (oxlintPackage != null) {
-            val version = oxlintPackage.getVersion(project)
-
-            return if (version?.isGreaterOrEqualThan(OXLINT_FIRST_LSP_VERSION) == true) {
-                listOf(ProcessCommandParameter.Value("--lsp"))
-            } else {
-                emptyList()
-            }
-        }
-
-        return emptyList()
+        return Paths.get(path, executable).toString()
     }
 
     companion object {

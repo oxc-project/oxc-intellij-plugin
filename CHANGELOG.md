@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Update diagnostics for Oxlint to be agnostic of the underlying Diagnostic implementation. This
+  allows the same code to work for existing IntelliJ versions and post 2026.3 versions which use
+  lsp4j 1.0.0 and newer.
+- Ensure that URIs are created consistently when they are used for comparison, so that workspace
+  configurations are correctly looked up instead of falling back to defaults.
+
 ## [0.0.39] - 2026-07-31
 
 ### Changed

@@ -53,7 +53,7 @@ class OxlintLspServerDescriptor(
     override fun createInitializationOptions(): Any {
         val initializationOptions = roots.map {
             return@map mapOf(
-                "workspaceUri" to it.toNioPath().toUri().toString().removeSuffix("/"),
+                "workspaceUri" to getFileUri(it),
                 "options" to createWorkspaceConfig(it)
             )
         }
@@ -69,7 +69,7 @@ class OxlintLspServerDescriptor(
 
     override fun getWorkspaceConfiguration(item: ConfigurationItem): Any? {
         val myRoot = roots.find {
-            return@find it.toNioPath().toUri().toString() == item.scopeUri
+            return@find getFileUri(it) == item.scopeUri
         } ?: return null
         return createWorkspaceConfig(myRoot)
     }

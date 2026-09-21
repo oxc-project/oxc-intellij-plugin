@@ -51,7 +51,7 @@ class OxfmtLspServerDescriptor(
 
     override fun createInitializationOptions(): Any {
         val initializationOptions = roots.map {
-            return@map mapOf("workspaceUri" to it.toNioPath().toUri().toString().removeSuffix("/"),
+            return@map mapOf("workspaceUri" to getFileUri(it),
                 "options" to createWorkspaceConfig(it))
         }
         thisLogger().debug("Initialization options: $initializationOptions")
@@ -66,7 +66,7 @@ class OxfmtLspServerDescriptor(
 
     override fun getWorkspaceConfiguration(item: ConfigurationItem): Any? {
         val myRoot = roots.find {
-            return@find it.toNioPath().toUri().toString() == item.scopeUri
+            return@find getFileUri(it) == item.scopeUri
         } ?: return null
         return createWorkspaceConfig(myRoot)
     }

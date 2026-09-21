@@ -3,7 +3,6 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt.lsp
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
 import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
-import com.github.oxc.project.oxcintellijplugin.extensions.workspaceUri
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
 import com.intellij.execution.configurations.GeneralCommandLine
@@ -52,7 +51,7 @@ class OxfmtLspServerDescriptor(
 
     override fun createInitializationOptions(): Any {
         val initializationOptions = roots.map {
-            return@map mapOf("workspaceUri" to workspaceUri(it),
+            return@map mapOf("workspaceUri" to getFileUri(it),
                 "options" to createWorkspaceConfig(it))
         }
         thisLogger().debug("Initialization options: $initializationOptions")
@@ -67,7 +66,7 @@ class OxfmtLspServerDescriptor(
 
     override fun getWorkspaceConfiguration(item: ConfigurationItem): Any? {
         val myRoot = roots.find {
-            return@find workspaceUri(it) == item.scopeUri
+            return@find getFileUri(it) == item.scopeUri
         } ?: return null
         return createWorkspaceConfig(myRoot)
     }

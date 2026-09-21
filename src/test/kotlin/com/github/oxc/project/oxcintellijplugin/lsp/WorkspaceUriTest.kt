@@ -31,29 +31,57 @@ class WorkspaceUriTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleF
     }
 
     fun testOxlintKeysConfigurationByTheWorkspaceFolderUri() {
-        assertConfigurationIsKeyedByWorkspaceFolderUri(
-            OxlintLspServerDescriptor(myFixture.project, root(), executable(), emptyList()))
+        val descriptor = OxlintLspServerDescriptor(myFixture.project, root(), executable(),
+            emptyList())
+        assertInitializationOptionsMatchesInitializationParams(descriptor)
+        assertInitializationOptionsWorkspaceUriDoesNotHaveATrailingSlash(descriptor)
+        assertWorkspaceConfigurationOptionsMatchesInitializationParams(descriptor)
     }
 
     fun testOxfmtKeysConfigurationByTheWorkspaceFolderUri() {
-        assertConfigurationIsKeyedByWorkspaceFolderUri(
-            OxfmtLspServerDescriptor(myFixture.project, root(), executable(), emptyList()))
+        val descriptor = OxfmtLspServerDescriptor(myFixture.project, root(), executable(),
+            emptyList())
+        assertInitializationOptionsMatchesInitializationParams(descriptor)
+        assertInitializationOptionsWorkspaceUriDoesNotHaveATrailingSlash(descriptor)
+        assertWorkspaceConfigurationOptionsMatchesInitializationParams(descriptor)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun assertConfigurationIsKeyedByWorkspaceFolderUri(descriptor: LspServerDescriptor) {
-        val entry = (descriptor.createInitializationOptions() as List<Map<String, Any?>>).single()
-        val workspaceUri = entry["workspaceUri"] as String
+    private fun assertInitializationOptionsMatchesInitializationParams(
+        descriptor: LspServerDescriptor) {
+        @Suppress(
+            "UNCHECKED_CAST") val initOptions = descriptor.createInitializationOptions() as List<Map<String, Any?>>
+        val initParams = descriptor.createInitializeParams()
 
-        assertEquals(listOf(workspaceUri),
-            descriptor.createInitializeParams().workspaceFolders.map { it.uri })
+        assertEquals(initOptions.size, initParams.workspaceFolders.size)
+        initOptions.forEachIndexed { index, options ->
+            assertEquals(options["workspaceUri"], initParams.workspaceFolders[index].uri)
+        }
+    }
 
-        // The platform never appends a trailing slash to a root URI, so the lookup must not
-        // expect one either.
-        assertFalse(workspaceUri.endsWith("/"))
+    private fun assertWorkspaceConfigurationOptionsMatchesInitializationParams(
+        descriptor: LspServerDescriptor) {
+        @Suppress(
+            "UNCHECKED_CAST") val initOptions = descriptor.createInitializationOptions() as List<Map<String, Any?>>
+        val initParams = descriptor.createInitializeParams()
 
-        val item = ConfigurationItem().apply { scopeUri = workspaceUri }
-        assertEquals(entry["options"], descriptor.getWorkspaceConfiguration(item))
+        assertEquals(initOptions.size, initParams.workspaceFolders.size)
+        initOptions.forEach { options ->
+            val configurationItem = ConfigurationItem().apply {
+                scopeUri = options["workspaceUri"] as String
+            }
+            assertEquals(options["options"],
+                descriptor.getWorkspaceConfiguration(configurationItem))
+        }
+    }
+
+    private fun assertInitializationOptionsWorkspaceUriDoesNotHaveATrailingSlash(
+        descriptor: LspServerDescriptor) {
+        @Suppress(
+            "UNCHECKED_CAST") val initOptions = descriptor.createInitializationOptions() as List<Map<String, Any?>>
+
+        initOptions.forEach {
+            assertFalse((it["workspaceUri"] as String).endsWith("/"))
+        }
     }
 
     private fun root(): VirtualFile =

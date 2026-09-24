@@ -112,14 +112,8 @@ intellijPlatform {
         // Custom IDEs to avoid disk space issues as the number of supported IDE versions grow.
         // https://github.com/JetBrains/intellij-platform-plugin-template/issues/462#issuecomment-2745197887
         ides {
-            val productReleases = ProductReleasesValueSource().get()
-            val reducedProductReleases =
-                if (productReleases.size > 2)
-                    listOf(productReleases.first(), productReleases.last())
-                else productReleases
-
-            // TODO: Replace this with a non-deprecated alternative.
-            ides(reducedProductReleases)
+            current()
+            latest()
         }
         ignoredProblemsFile.set(File("plugin-verifier-ignored-problems.txt"))
     }

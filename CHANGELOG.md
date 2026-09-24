@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Minimum IntelliJ version updated to 2025.3+.
+
 ## [0.0.40] - 2026-09-21
 
 ### Fixed

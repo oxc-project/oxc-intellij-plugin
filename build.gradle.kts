@@ -110,10 +110,18 @@ intellijPlatform {
 
     pluginVerification {
         // Custom IDEs to avoid disk space issues as the number of supported IDE versions grow.
-        // https://github.com/JetBrains/intellij-platform-plugin-template/issues/462#issuecomment-2745197887
         ides {
-            current()
-            latest()
+            // Targets the version specified by pluginSinceBuild as the earliest.
+            select {
+                sinceBuild = properties("pluginSinceBuild")
+                untilBuild = properties("pluginSinceBuild").map { value -> "$value.*" }
+            }
+
+            // Targets the version specified by pluginUntilBuild as the latest. If pluginUntilBuild is
+            // not provided, then the plugin verifier will automatically use the latest available version.
+            latest {
+                untilBuild = properties("pluginUntilBuild").orNull
+            }
         }
         ignoredProblemsFile.set(File("plugin-verifier-ignored-problems.txt"))
     }

@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Minimum IntelliJ version updated to 2025.3+.
+- Configure 2026.2 as the highest supported IntelliJ version. There are known compatibility issues with 2026.3 that need
+  to be resolved.
+- Migrate from deprecated LSP support to current alternative.
+
 ## [0.0.40] - 2026-09-21
 
 ### Fixed

@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt.lsp
 
+import com.github.oxc.project.oxcintellijplugin.LspDisabledCustomization
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
 import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
@@ -32,7 +33,7 @@ class OxfmtLspServerDescriptor(
 
     override fun isSupportedFile(file: VirtualFile): Boolean {
         thisLogger().debug("file.path ${file.path}")
-         return OxfmtSettings.getInstance(project).fileSupported(file) && roots.any { root ->
+        return OxfmtSettings.getInstance(project).fileSupported(file) && roots.any { root ->
             file.toNioPath().startsWith(root.toNioPath())
         }
     }
@@ -81,15 +82,9 @@ class OxfmtLspServerDescriptor(
             }
         }
 
-    override val lspGoToDefinitionSupport = false
-
-    override val lspCompletionSupport = null
-
-    override val lspFormattingSupport = OxfmtLspFormattingSupport(project)
-
-    override val lspHoverSupport = false
-
-    override val lspDiagnosticsSupport = null
+    override val lspCustomization = object : LspDisabledCustomization() {
+        override val formattingCustomizer = OxfmtLspFormattingSupport(project)
+    }
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
         val oxfmtPackage = OxfmtPackage(project)

@@ -10,7 +10,6 @@ plugins {
     alias(libs.plugins.kotlin) // Kotlin support
     alias(libs.plugins.intelliJPlatform) // IntelliJ Platform Gradle Plugin
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
-    alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
 }
 
@@ -111,16 +110,18 @@ intellijPlatform {
 
     pluginVerification {
         // Custom IDEs to avoid disk space issues as the number of supported IDE versions grow.
-        // https://github.com/JetBrains/intellij-platform-plugin-template/issues/462#issuecomment-2745197887
         ides {
-            val productReleases = ProductReleasesValueSource().get()
-            val reducedProductReleases =
-                if (productReleases.size > 2)
-                    listOf(productReleases.first(), productReleases.last())
-                else productReleases
+            // Targets the version specified by pluginSinceBuild as the earliest.
+            select {
+                sinceBuild = properties("pluginSinceBuild")
+                untilBuild = properties("pluginSinceBuild").map { value -> "$value.*" }
+            }
 
-            // TODO: Replace this with a non-deprecated alternative.
-            ides(reducedProductReleases)
+            // Targets the version specified by pluginUntilBuild as the latest. If pluginUntilBuild is
+            // not provided, then the plugin verifier will automatically use the latest available version.
+            latest {
+                untilBuild = properties("pluginUntilBuild").orNull
+            }
         }
         ignoredProblemsFile.set(File("plugin-verifier-ignored-problems.txt"))
     }

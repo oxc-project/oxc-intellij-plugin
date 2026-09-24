@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.lsp
 
+import com.github.oxc.project.oxcintellijplugin.LspDisabledCustomization
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
 import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
@@ -11,7 +12,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
-import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.DiagnosticWorkspaceCapabilities
@@ -91,15 +91,9 @@ class OxlintLspServerDescriptor(
             }
         }
 
-    override val lspGoToDefinitionSupport = false
-
-    override val lspCompletionSupport = null
-
-    override val lspFormattingSupport = null
-
-    override val lspHoverSupport = false
-
-    override val lspDiagnosticsSupport: LspDiagnosticsSupport = OxlintLspDiagnosticsSupport()
+    override val lspCustomization = object : LspDisabledCustomization() {
+        override val diagnosticsCustomizer = OxlintLspDiagnosticsSupport()
+    }
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
         val oxlintPackage = OxlintPackage(project)

@@ -65,6 +65,7 @@ class OxfmtJsonParser(private val project: Project) {
         }
 
         return try {
+            @Suppress("UNCHECKED_CAST")
             value as T
         } catch (_: ClassCastException) {
             null

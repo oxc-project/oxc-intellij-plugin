@@ -7,6 +7,7 @@
 ### Changed
 
 - **Breaking:** Minimum IntelliJ version updated to 2025.3+.
+- Migrate from deprecated LSP support to current alternative.
 
 ## [0.0.40] - 2026-09-21
 

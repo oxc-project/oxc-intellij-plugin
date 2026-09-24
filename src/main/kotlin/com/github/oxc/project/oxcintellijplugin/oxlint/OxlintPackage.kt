@@ -54,6 +54,7 @@ class OxlintPackage(
 
     fun binaryPath(
         virtualFile: VirtualFile,
+        vitePlusPackage: NodePackage?,
     ): String? {
         val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
@@ -62,30 +63,43 @@ class OxlintPackage(
         // It can't detect the `vite.config.ts` configuration if we prefer the dedicated package instead.
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> vitePlus.findOxlintExecutable(virtualFile) ?: findOxlintExecutable(virtualFile)
+            ConfigurationMode.AUTOMATIC -> vitePlusPackage?.let(vitePlus::findExecutable) ?: findOxlintExecutable(virtualFile)
             ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank {
-                vitePlus.findOxlintExecutable(virtualFile) ?: findOxlintExecutable(virtualFile)
+                vitePlusPackage?.let(vitePlus::findExecutable) ?: findOxlintExecutable(virtualFile)
             }
         }
     }
 
-    fun binaryParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
+    fun binaryParameters(virtualFile: VirtualFile, vitePlusPackage: NodePackage?): List<ProcessCommandParameter> {
         val settings = OxlintSettings.getInstance(project)
         val configurationMode = settings.configurationMode
 
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> emptyList()
             ConfigurationMode.AUTOMATIC -> {
-                findOxlintParameters(virtualFile)
+                findOxlintParameters(virtualFile, vitePlusPackage)
             }
             ConfigurationMode.MANUAL -> {
                 if (settings.binaryPath.isBlank()) {
-                    findOxlintParameters(virtualFile)
+                    findOxlintParameters(virtualFile, vitePlusPackage)
                 } else {
                     settings.binaryParameters.map { ProcessCommandParameter.Value(it) }
                 }
             }
         }
+    }
+
+    /**
+     * Returns `vite-plus` to launch `vp lint --lsp`, unless a binary is set manually.
+     * Resolve it once per file and pass it to [binaryPath] and [binaryParameters].
+     */
+    fun vitePlusPackage(virtualFile: VirtualFile): NodePackage? {
+        val settings = OxlintSettings.getInstance(project)
+        return when (settings.configurationMode) {
+            ConfigurationMode.DISABLED -> null
+            ConfigurationMode.AUTOMATIC -> vitePlus.getPackage(virtualFile)
+            ConfigurationMode.MANUAL -> if (settings.binaryPath.isBlank()) vitePlus.getPackage(virtualFile) else null
+        }?.takeIf { vitePlus.findExecutable(it) != null }
     }
 
     fun isEnabled(): Boolean {
@@ -109,10 +123,9 @@ class OxlintPackage(
         return null
     }
 
-    private fun findOxlintParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
-        val vitePlusPackage = vitePlus.getPackage(virtualFile)
+    private fun findOxlintParameters(virtualFile: VirtualFile, vitePlusPackage: NodePackage?): List<ProcessCommandParameter> {
         if (vitePlusPackage != null) {
-            return listOf(ProcessCommandParameter.Value("--lsp"))
+            return listOf(ProcessCommandParameter.Value("lint"), ProcessCommandParameter.Value("--lsp"))
         }
 
         val oxlintPackage = getPackage(virtualFile)

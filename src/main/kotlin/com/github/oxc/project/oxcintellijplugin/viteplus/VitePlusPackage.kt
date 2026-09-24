@@ -25,31 +25,18 @@ class VitePlusPackage(private val project: Project) {
             }
         }
 
-        val pkg = packageDescription.findUnambiguousDependencyPackage(project)
-            ?: NodePackage.findDefaultPackage(
-                project,
-                packageName,
-                NodeJsInterpreterManager.getInstance(project).interpreter
-            )
-
-        return pkg
+        // Unlike `oxlint` and `oxfmt`, do not fall back to `findDefaultPackage`, which may find a global `vite-plus`.
+        // Vite+ should run with the version installed in the project.
+        return packageDescription.findUnambiguousDependencyPackage(project)
     }
 
-    fun findOxfmtExecutable(virtualFile: VirtualFile): String? {
-        val vitePlusPackage = getPackage(virtualFile) ?: return null
+    /**
+     * Returns the `vp` entry of `vite-plus`, launched as `vp lint --lsp` or `vp fmt --lsp`.
+     */
+    fun findExecutable(vitePlusPackage: NodePackage): String? {
         val path = vitePlusPackage.getAbsolutePackagePathToRequire(project)
         if (path != null) {
-            return Paths.get(path, "bin/oxfmt").toString()
-        }
-
-        return null
-    }
-
-    fun findOxlintExecutable(virtualFile: VirtualFile): String? {
-        val vitePlusPackage = getPackage(virtualFile) ?: return null
-        val path = vitePlusPackage.getAbsolutePackagePathToRequire(project)
-        if (path != null) {
-            return Paths.get(path, "bin/oxlint").toString()
+            return Paths.get(path, "bin/vp").toString()
         }
 
         return null

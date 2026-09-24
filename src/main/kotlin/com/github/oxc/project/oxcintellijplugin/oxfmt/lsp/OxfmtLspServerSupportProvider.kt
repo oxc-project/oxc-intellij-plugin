@@ -30,8 +30,9 @@ class OxfmtLspServerSupportProvider : LspServerSupportProvider {
         if (!oxfmt.isEnabled()) {
             return
         }
-        val executable = oxfmt.binaryPath(file) ?: return
-        val nodePackage = oxfmt.getPackage(file)
+        val vitePlusPackage = oxfmt.vitePlusPackage(file)
+        val executable = oxfmt.binaryPath(file, vitePlusPackage) ?: return
+        val nodePackage = vitePlusPackage ?: oxfmt.getPackage(file)
         val root = if (nodePackage != null) {
             if (nodePackage is YarnPnpNodePackage) {
                 nodePackage.getPackageJson(project)?.parent ?: return
@@ -45,7 +46,7 @@ class OxfmtLspServerSupportProvider : LspServerSupportProvider {
         }
 
         serverStarter.ensureServerStarted(
-            OxfmtLspServerDescriptor(project, root, executable, oxfmt.binaryParameters(file)))
+            OxfmtLspServerDescriptor(project, root, executable, oxfmt.binaryParameters(file, vitePlusPackage)))
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

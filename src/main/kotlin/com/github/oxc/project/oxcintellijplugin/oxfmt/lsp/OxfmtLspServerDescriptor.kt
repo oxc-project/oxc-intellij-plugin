@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.OxcTargetRun
 import com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder
 import com.github.oxc.project.oxcintellijplugin.ProcessCommandParameter
 import com.github.oxc.project.oxcintellijplugin.oxfmt.OxfmtPackage
+import com.github.oxc.project.oxcintellijplugin.oxfmt.services.OxfmtServerService
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -11,6 +12,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
+import com.intellij.platform.lsp.api.LspServerListener
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.InitializeParams
@@ -90,6 +92,9 @@ class OxfmtLspServerDescriptor(
     override val lspHoverSupport = false
 
     override val lspDiagnosticsSupport = null
+
+    override val lspServerListener: LspServerListener =
+        OxfmtServerService.getInstance(project).createRestartListener()
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
         val oxfmtPackage = OxfmtPackage(project)

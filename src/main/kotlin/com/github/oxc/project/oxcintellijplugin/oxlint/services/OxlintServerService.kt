@@ -1,6 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint.services
 
 import com.github.oxc.project.oxcintellijplugin.NOTIFICATION_GROUP
+import com.github.oxc.project.oxcintellijplugin.lsp.LspServerRestartPolicy
+import com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerRestartListener
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintBundle
 import com.github.oxc.project.oxcintellijplugin.oxlint.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
@@ -18,6 +20,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.lsp.api.LspServerListener
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.customization.LspIntentionAction
 import com.intellij.platform.lsp.util.getLsp4jRange
@@ -31,6 +34,8 @@ import org.eclipse.lsp4j.DocumentDiagnosticParams
 @Service(Service.Level.PROJECT)
 class OxlintServerService(private val project: Project) {
     private val groupId = "Oxc"
+
+    private val restartPolicy = LspServerRestartPolicy()
 
     companion object {
         fun getInstance(project: Project): OxlintServerService = project.getService(OxlintServerService::class.java)
@@ -131,6 +136,16 @@ class OxlintServerService(private val project: Project) {
             application.invokeAndWait(invoke, ModalityState.defaultModalityState())
         }
     }
+
+    /** Supervises one server; the descriptor of every started server needs its own listener. */
+    fun createRestartListener(): LspServerListener =
+        OxcLspServerRestartListener("Oxlint", restartPolicy,
+            isToolEnabled = { OxlintSettings.getInstance(project).isEnabled() },
+            // Leaves the stop path the decision is taken in, and drops a restart that a project
+            // being closed no longer needs.
+            requestRestart = {
+                ApplicationManager.getApplication().invokeLater(::restartServer, project.disposed)
+            })
 
     fun restartServer() {
         LspServerManager.getInstance(project).stopAndRestartIfNeeded(OxlintLspServerSupportProvider::class.java)

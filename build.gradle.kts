@@ -87,8 +87,7 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = properties("pluginSinceBuild")
-//            untilBuild = properties("pluginUntilBuild")
-            untilBuild = provider { null }
+            untilBuild = properties("pluginUntilBuild").orNull
         }
     }
 

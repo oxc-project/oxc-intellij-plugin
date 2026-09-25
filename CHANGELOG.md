@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.43] - 2026-09-25
+
 ### Changed
 
 - Launch `vp lint --lsp` and `vp fmt --lsp` for Vite+ projects, since Vite+ 1.0 (RC) no longer ships the `oxlint` and
@@ -369,7 +371,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.42...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.43...HEAD
+[0.0.43]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.42...v0.0.43
 [0.0.42]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.41...v0.0.42
 [0.0.41]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.40...v0.0.41
 [0.0.40]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.39...v0.0.40

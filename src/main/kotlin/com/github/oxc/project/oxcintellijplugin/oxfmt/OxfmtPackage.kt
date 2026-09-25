@@ -51,6 +51,7 @@ class OxfmtPackage(
 
     fun binaryPath(
         virtualFile: VirtualFile,
+        vitePlusPackage: NodePackage?,
     ): String? {
         val settings = OxfmtSettings.getInstance(project)
         val configurationMode = settings.configurationMode
@@ -59,15 +60,28 @@ class OxfmtPackage(
         // It can't detect the `vite.config.ts` configuration if we prefer the dedicated package instead.
         return when (configurationMode) {
             ConfigurationMode.DISABLED -> null
-            ConfigurationMode.AUTOMATIC -> vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
+            ConfigurationMode.AUTOMATIC -> vitePlusPackage?.let(vitePlus::findExecutable) ?: findOxfmtExecutable(virtualFile)
             ConfigurationMode.MANUAL -> settings.binaryPath.ifBlank {
-                vitePlus.findOxfmtExecutable(virtualFile) ?: findOxfmtExecutable(virtualFile)
+                vitePlusPackage?.let(vitePlus::findExecutable) ?: findOxfmtExecutable(virtualFile)
             }
         }
     }
 
-    fun binaryParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
-        return findOxfmtParameters(virtualFile)
+    fun binaryParameters(virtualFile: VirtualFile, vitePlusPackage: NodePackage?): List<ProcessCommandParameter> {
+        return findOxfmtParameters(virtualFile, vitePlusPackage)
+    }
+
+    /**
+     * Returns `vite-plus` to launch `vp fmt --lsp`, unless a binary is set manually.
+     * Resolve it once per file and pass it to [binaryPath] and [binaryParameters].
+     */
+    fun vitePlusPackage(virtualFile: VirtualFile): NodePackage? {
+        val settings = OxfmtSettings.getInstance(project)
+        return when (settings.configurationMode) {
+            ConfigurationMode.DISABLED -> null
+            ConfigurationMode.AUTOMATIC -> vitePlus.getPackage(virtualFile)
+            ConfigurationMode.MANUAL -> if (settings.binaryPath.isBlank()) vitePlus.getPackage(virtualFile) else null
+        }?.takeIf { vitePlus.findExecutable(it) != null }
     }
 
     fun isEnabled(): Boolean {
@@ -85,7 +99,10 @@ class OxfmtPackage(
         return null
     }
 
-    private fun findOxfmtParameters(virtualFile: VirtualFile): List<ProcessCommandParameter> {
+    private fun findOxfmtParameters(virtualFile: VirtualFile, vitePlusPackage: NodePackage?): List<ProcessCommandParameter> {
+        if (vitePlusPackage != null) {
+            return listOf(ProcessCommandParameter.Value("fmt"), ProcessCommandParameter.Value("--lsp"))
+        }
         return listOf(ProcessCommandParameter.Value("--lsp"))
     }
 

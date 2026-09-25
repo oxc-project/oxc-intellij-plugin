@@ -29,8 +29,9 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
         if (!oxc.isEnabled()) {
             return
         }
-        val executable = oxc.binaryPath(file) ?: return
-        val nodePackage = oxc.getPackage(file)
+        val vitePlusPackage = oxc.vitePlusPackage(file)
+        val executable = oxc.binaryPath(file, vitePlusPackage) ?: return
+        val nodePackage = vitePlusPackage ?: oxc.getPackage(file)
         val root = if (nodePackage != null) {
             if (nodePackage is YarnPnpNodePackage) {
                 nodePackage.getPackageJson(project)?.parent ?: return
@@ -41,7 +42,7 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
             ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
         }
 
-        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file)))
+        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file, vitePlusPackage)))
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

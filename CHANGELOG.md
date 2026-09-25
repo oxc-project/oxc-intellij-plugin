@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix pluginUntilBuild to be correctly set on publish, so that it properly reflects in the Marketplace and for installations.
+
 ## [0.0.41] - 2026-09-25
 
 ### Changed

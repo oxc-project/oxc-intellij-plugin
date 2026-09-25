@@ -6,9 +6,8 @@
 
 ### Changed
 
-- Launch `vp lint --lsp` and `vp fmt --lsp` for Vite+ projects, since Vite+ 1.0 no longer ships the `oxlint` and
-  `oxfmt` wrapper bins.
-- Do not fall back to a globally installed `vite-plus`.
+- Launch `vp lint --lsp` and `vp fmt --lsp` for Vite+ projects, since Vite+ 1.0 (RC) no longer ships the `oxlint` and
+  `oxfmt` wrapper bins. (Do not fall back to a globally installed `vite-plus`.)
 
 ## [0.0.42] - 2026-09-25
 

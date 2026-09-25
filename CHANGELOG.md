@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.0.41] - 2026-09-25
+
 ### Changed
 
 - **Breaking:** Minimum IntelliJ version updated to 2025.3+.
@@ -356,7 +358,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.40...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.41...HEAD
+[0.0.41]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.40...v0.0.41
 [0.0.40]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.39...v0.0.40
 [0.0.39]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.38...v0.0.39
 [0.0.38]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.37...v0.0.38

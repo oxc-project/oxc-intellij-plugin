@@ -9,7 +9,6 @@ import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.util.text.SemVer
 import java.nio.file.Paths
 
 class OxlintPackage(
@@ -70,23 +69,11 @@ class OxlintPackage(
         }
     }
 
-    fun binaryParameters(virtualFile: VirtualFile, vitePlusPackage: NodePackage?): List<ProcessCommandParameter> {
-        val settings = OxlintSettings.getInstance(project)
-        val configurationMode = settings.configurationMode
-
-        return when (configurationMode) {
-            ConfigurationMode.DISABLED -> emptyList()
-            ConfigurationMode.AUTOMATIC -> {
-                findOxlintParameters(virtualFile, vitePlusPackage)
-            }
-            ConfigurationMode.MANUAL -> {
-                if (settings.binaryPath.isBlank()) {
-                    findOxlintParameters(virtualFile, vitePlusPackage)
-                } else {
-                    settings.binaryParameters.map { ProcessCommandParameter.Value(it) }
-                }
-            }
+    fun binaryParameters(vitePlusPackage: NodePackage?): List<ProcessCommandParameter> {
+        if (vitePlusPackage != null) {
+            return listOf(ProcessCommandParameter.Value("lint"), ProcessCommandParameter.Value("--lsp"))
         }
+        return listOf(ProcessCommandParameter.Value("--lsp"))
     }
 
     /**
@@ -111,41 +98,15 @@ class OxlintPackage(
         val oxlintPackage = getPackage(virtualFile) ?: return null
         val path = oxlintPackage.getAbsolutePackagePathToRequire(project)
         if (path != null) {
-            val version = oxlintPackage.getVersion(project)
-
-            return if (version?.isGreaterOrEqualThan(OXLINT_FIRST_LSP_VERSION) == true) {
-                Paths.get(path, "bin/oxlint").toString()
-            } else {
-                Paths.get(path, "bin/oxc_language_server").toString()
-            }
+            return Paths.get(path, "bin/oxlint").toString()
         }
 
         return null
     }
 
-    private fun findOxlintParameters(virtualFile: VirtualFile, vitePlusPackage: NodePackage?): List<ProcessCommandParameter> {
-        if (vitePlusPackage != null) {
-            return listOf(ProcessCommandParameter.Value("lint"), ProcessCommandParameter.Value("--lsp"))
-        }
-
-        val oxlintPackage = getPackage(virtualFile)
-        if (oxlintPackage != null) {
-            val version = oxlintPackage.getVersion(project)
-
-            return if (version?.isGreaterOrEqualThan(OXLINT_FIRST_LSP_VERSION) == true) {
-                listOf(ProcessCommandParameter.Value("--lsp"))
-            } else {
-                emptyList()
-            }
-        }
-
-        return emptyList()
-    }
-
     companion object {
         const val CONFIG_NAME = ".oxlintrc"
         const val CONFIG_TS_NAME = "oxlint.config.ts"
-        val OXLINT_FIRST_LSP_VERSION = SemVer("1.29.0", 1, 29, 0)
         val configValidJsonExtensions = listOf("json", "jsonc")
     }
 }

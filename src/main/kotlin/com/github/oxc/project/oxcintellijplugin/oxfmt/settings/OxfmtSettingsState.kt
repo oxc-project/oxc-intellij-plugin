@@ -15,6 +15,9 @@ class OxfmtSettingsState : BaseState() {
     @get:Attribute("configPath")
     var configPath by string()
 
+    @get:Attribute("disableNestedConfig")
+    var disableNestedConfig by property(false)
+
     @get:Attribute("fixAllOnSave")
     var fixAllOnSave by property(false)
 

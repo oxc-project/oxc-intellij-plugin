@@ -88,12 +88,14 @@ class OxfmtLspServerDescriptor(
 
     private fun createWorkspaceConfig(workspace: VirtualFile): Map<String, Any?> {
         val oxfmtPackage = OxfmtPackage(project)
+        val settings = OxfmtSettings.getInstance(project)
 
         return mapOf(
             "configPath" to null,
             "flags" to emptyMap<String, Any?>(),
             "fmt.experimental" to true,
             "fmt.configPath" to oxfmtPackage.configPath(),
+            "fmt.disableNestedConfig" to settings.disableNestedConfig,
             "run" to "onSave",
             "typeAware" to false,
             "unusedDisableDirectives" to false,

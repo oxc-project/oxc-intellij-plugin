@@ -55,6 +55,12 @@ class OxfmtSettings(private val project: Project) : JSNpmLinterState<OxfmtSettin
             state.configPath = value
         }
 
+    var disableNestedConfig: Boolean
+        get() = state.disableNestedConfig
+        set(value) {
+            state.disableNestedConfig = value
+        }
+
     var fixAllOnSave: Boolean
         get() = isEnabled() && state.fixAllOnSave
         set(value) {

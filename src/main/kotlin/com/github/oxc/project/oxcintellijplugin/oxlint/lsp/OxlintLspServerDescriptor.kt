@@ -12,6 +12,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerDescriptor
+import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
 import org.eclipse.lsp4j.ClientCapabilities
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.DiagnosticWorkspaceCapabilities
@@ -92,6 +93,7 @@ class OxlintLspServerDescriptor(
         }
 
     override val lspCustomization = object : LspDisabledCustomization() {
+        override val codeActionsCustomizer = LspCodeActionsSupport()
         override val diagnosticsCustomizer = OxlintLspDiagnosticsSupport()
     }
 

@@ -11,6 +11,7 @@
 ### Fixed
 
 - When using a manual configuration pointing to a non-Node.js file on Windows, execute with cmd.exe instead of directly.
+- Add back code actions support for Oxlint. Broken as part of plugin version 0.0.41.
 
 ## [0.0.43] - 2026-09-25
 

@@ -8,6 +8,12 @@
 
 - Add a setting to disable nested config lookups for Oxfmt.
 
+### Removed
+
+- **Breaking:** Remove the "Add --lsp CLI argument" setting for manual Oxlint configurations. The `--lsp` flag is now always
+  supplied.
+- **Breaking:** Oxlint versions older than 1.29.0 (`oxc_language_server`) are no longer supported.
+
 ### Fixed
 
 - When using a manual configuration pointing to a non-Node.js file on Windows, execute with cmd.exe instead of directly.

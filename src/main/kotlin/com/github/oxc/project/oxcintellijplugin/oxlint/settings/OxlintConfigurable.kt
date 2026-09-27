@@ -101,25 +101,6 @@ class OxlintConfigurable(private val project: Project) :
                             project,
                         ) { it.path }.align(AlignX.FILL).bindText(settings::configPath)
                     }.visibleIf(manualConfiguration.selected)
-
-                    row {
-                        checkBox(OxlintBundle.message("oxlint.manual.add.lsp.argument")).bindSelected(
-                            { settings.binaryParameters.contains("--lsp") },
-                            { isChecked ->
-                                if (isChecked) {
-                                    if (!settings.binaryParameters.contains("--lsp")) {
-                                        settings.binaryParameters.add("--lsp")
-                                    }
-                                } else {
-                                    settings.binaryParameters.removeIf({ it == "--lsp" })
-                                }
-                            },
-                        )
-
-                        val helpLabel = ContextHelpLabel.create(OxlintBundle.message("oxlint.manual.add.lsp.argument.help"))
-                        helpLabel.border = JBUI.Borders.emptyLeft(UIUtil.DEFAULT_HGAP)
-                        cell(helpLabel)
-                    }.visibleIf(manualConfiguration.selected)
                 }
             }
 

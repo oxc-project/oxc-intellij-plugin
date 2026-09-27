@@ -42,7 +42,7 @@ class OxlintLspServerSupportProvider : LspServerSupportProvider {
             ProjectRootManager.getInstance(project).fileIndex.getContentRootForFile(file) ?: return
         }
 
-        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(file, vitePlusPackage)))
+        serverStarter.ensureServerStarted(OxlintLspServerDescriptor(project, root, executable, oxc.binaryParameters(vitePlusPackage)))
     }
 
     override fun createLspServerWidgetItem(lspServer: LspServer,

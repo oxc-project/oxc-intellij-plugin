@@ -11,9 +11,6 @@ class OxlintSettingsState : BaseState() {
     @get:Attribute("binaryPath")
     var binaryPath by string()
 
-    @get:Attribute("binaryParameters")
-    var binaryParameters by list<String>()
-
     @get:Attribute("configurationMode")
     var configurationMode by enum(ConfigurationMode.AUTOMATIC)
 

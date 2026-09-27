@@ -145,6 +145,15 @@ class OxfmtConfigurable(private val project: Project) :
             }.enabledIf(!disabledConfiguration.selected)
 
             // *********************
+            // Disable Nested Config row
+            // *********************
+            row {
+                checkBox(OxfmtBundle.message("oxfmt.disable.nested.config.label")).bindSelected(
+                    settings::disableNestedConfig
+                )
+            }.enabledIf(!disabledConfiguration.selected)
+
+            // *********************
             // Prefer Oxfmt Code Style Settings row
             // *********************
             row {

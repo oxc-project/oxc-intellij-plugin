@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add a setting to disable nested config lookups for Oxfmt.
+
 ## [0.0.43] - 2026-09-25
 
 ### Changed

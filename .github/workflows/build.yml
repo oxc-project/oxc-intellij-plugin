@@ -157,6 +157,10 @@ jobs:
           key: |
             ${{ runner.os }}-npm-cache-dir
 
+      - name: Setup Oxfmt Formatting Nested Config Test
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
       - name: Setup Oxlint Highlighting Custom Config Test
         working-directory: src/test/testData/oxlint/highlighting/custom-config
         run: npm ci

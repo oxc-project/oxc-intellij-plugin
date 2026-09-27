@@ -8,6 +8,10 @@
 
 - Add a setting to disable nested config lookups for Oxfmt.
 
+### Fixed
+
+- When using a manual configuration pointing to a non-Node.js file on Windows, execute with cmd.exe instead of directly.
+
 ## [0.0.43] - 2026-09-25
 
 ### Changed

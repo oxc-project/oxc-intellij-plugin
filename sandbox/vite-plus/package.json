@@ -8,7 +8,7 @@
   },
   "private": true,
   "devDependencies": {
-    "vite-plus": "0.3.3"
+    "vite-plus": "1.0.0"
   },
   "packageManager": "pnpm@11.24.0"
 }

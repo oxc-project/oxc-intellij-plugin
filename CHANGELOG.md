@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Run Oxfmt on save after IntelliJ's import optimization, including on newer IDEs that run formatting as a background save action.
+
 ## [0.0.44] - 2026-09-27
 
 ### Added

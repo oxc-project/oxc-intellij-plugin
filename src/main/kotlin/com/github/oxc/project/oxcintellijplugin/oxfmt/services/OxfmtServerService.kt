@@ -6,7 +6,8 @@ import com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportP
 import com.intellij.application.options.CodeStyle
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.editor.Document
@@ -14,7 +15,8 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspServerManager
-import com.intellij.psi.codeStyle.CommonCodeStyleSettings.IndentOptions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.eclipse.lsp4j.DocumentFormattingParams
 import org.eclipse.lsp4j.FormattingOptions
 
@@ -43,9 +45,9 @@ class OxfmtServerService(private val project: Project) {
 
     suspend fun fixAll(file: VirtualFile, document: Document) {
         val server = getServer(file) ?: return
-        val indentOptions = ReadAction.compute<IndentOptions, Throwable> {
+        val indentOptions = readAction {
             val codeStyleSettings = CodeStyle.getSettings(project, document)
-            return@compute codeStyleSettings.getIndentOptionsByDocument(project, document)
+            codeStyleSettings.getIndentOptionsByDocument(project, document)
         }
 
         val documentFormattingParams = DocumentFormattingParams(server.getDocumentIdentifier(file),
@@ -55,16 +57,18 @@ class OxfmtServerService(private val project: Project) {
             it.textDocumentService.formatting(documentFormattingParams)
         }
 
-        WriteCommandAction.runWriteCommandAction(project, OxfmtBundle.message("oxfmt.run.quickfix"),
-            GROUP_ID, {
-                formattingResults?.forEach {
-                    val startLineOffset = document.getLineStartOffset(it.range.start.line)
-                    val endLineOffset = document.getLineStartOffset(it.range.end.line)
-                    document.replaceString(startLineOffset + it.range.start.character,
-                        endLineOffset + it.range.end.character,
-                        it.newText.lines().joinToString(separator = "\n"))
-                }
-            })
+        withContext(Dispatchers.EDT) {
+            WriteCommandAction.runWriteCommandAction(project, OxfmtBundle.message("oxfmt.run.quickfix"),
+                GROUP_ID, {
+                    formattingResults?.forEach {
+                        val startLineOffset = document.getLineStartOffset(it.range.start.line)
+                        val endLineOffset = document.getLineStartOffset(it.range.end.line)
+                        document.replaceString(startLineOffset + it.range.start.character,
+                            endLineOffset + it.range.end.character,
+                            it.newText.lines().joinToString(separator = "\n"))
+                    }
+                })
+        }
     }
 
     fun restartServer() {

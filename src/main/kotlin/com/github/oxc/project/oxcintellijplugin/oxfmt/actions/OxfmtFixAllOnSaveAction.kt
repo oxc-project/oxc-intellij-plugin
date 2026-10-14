@@ -10,36 +10,45 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
-import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
-class OxfmtFixAllOnSaveAction : ActionsOnSaveFileDocumentManagerListener.ActionOnSave() {
+class OxfmtFixAllOnSaveAction : ActionsOnSaveFileDocumentManagerListener.DocumentUpdatingActionOnSave() {
+
+    override val presentableName: String
+        get() = OxfmtBundle.message("oxfmt.run.fix.all")
 
     override fun isEnabledForProject(project: Project): Boolean {
         return OxfmtSettings.getInstance(project).fixAllOnSave
     }
 
-    override fun processDocuments(project: Project, documents: Array<Document>) {
-        val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP)
-
-        runWithModalProgressBlocking(project, OxfmtBundle.message("oxfmt.run.fix.all")) {
-            try {
-                withTimeout(5_000) {
-                    documents.filter {
-                        val settings = OxfmtSettings.getInstance(project)
-                        val manager = FileDocumentManager.getInstance()
-                        val virtualFile = manager.getFile(it) ?: return@filter false
-                        return@filter settings.fileSupported(virtualFile)
-                    }.forEach {
-                        OxfmtServerService.getInstance(project).fixAll(it)
-                    }
-                }
-            } catch (e: Exception) {
-                notificationGroup.createNotification(
-                    title = OxfmtBundle.message("oxfmt.fix.all.on.save.failure.label"),
-                    content = OxfmtBundle.message("oxfmt.fix.all.on.save.failure.description",
-                        e.message.toString()), type = NotificationType.ERROR).notify(project)
-            }
+    override suspend fun updateDocument(project: Project, document: Document) {
+        val settings = OxfmtSettings.getInstance(project)
+        val virtualFile = FileDocumentManager.getInstance().getFile(document) ?: return
+        if (!settings.fileSupported(virtualFile)) {
+            return
         }
+
+        try {
+            withTimeout(5_000) {
+                OxfmtServerService.getInstance(project).fixAll(virtualFile, document)
+            }
+        } catch (e: TimeoutCancellationException) {
+            notifyFailure(project, e)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            notifyFailure(project, e)
+        }
+    }
+
+    private fun notifyFailure(project: Project, exception: Exception) {
+        NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP)
+            .createNotification(
+                title = OxfmtBundle.message("oxfmt.fix.all.on.save.failure.label"),
+                content = OxfmtBundle.message("oxfmt.fix.all.on.save.failure.description",
+                    exception.message.toString()),
+                type = NotificationType.ERROR).notify(project)
     }
 }

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add Astro to the Oxfmt default file extensions.
+
 ## [0.0.44] - 2026-09-27
 
 ### Added

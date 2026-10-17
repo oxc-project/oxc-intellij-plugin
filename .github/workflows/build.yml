@@ -157,23 +157,8 @@ jobs:
           key: |
             ${{ runner.os }}-npm-cache-dir
 
-      - name: Setup Oxfmt Formatting Nested Config Test
-        working-directory: src/test/testData/oxfmt/formatting/nested-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting Custom Config Test
-        working-directory: src/test/testData/oxlint/highlighting/custom-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting Nested Config Test
-        working-directory: src/test/testData/oxlint/highlighting/nested-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting No Config Test
-        working-directory: src/test/testData/oxlint/highlighting/no-config
-        run: npm ci
-
-      # Run tests
+      # Run tests. Test fixtures install their own dependencies with npm, pnpm, Yarn and Bun
+      # (provisioned into build/oxc-test-tools), so only Node.js needs to be set up here.
       - name: Run Tests
         run: ./gradlew check
 

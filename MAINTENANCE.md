@@ -20,5 +20,10 @@ node executable).
   `NodeTooling`. Installed fixtures are cached in `build/oxc-test-fixtures`; delete it to force a reinstall.
 - `packagemanagers/*` tests run the same scenarios with npm, pnpm, Yarn (node-modules linker) and Bun, plus Yarn
   Plug'n'Play.
+- Tests for servers that crash, hang or return errors use `src/test/testData/fake-server/fake-lsp.js`, a scriptable
+  language server (see `OxcLspTestCase.setUpFakeServer`).
+- `MinimumVersionsTest` runs against the oldest supported Oxlint (1.29.0). Update its fixture when the minimum changes.
+- WSL-specific launch tests only run on Windows; CI runs on Linux, so run them on a Windows machine before a release
+  that touches process launching.
 - Tests whose KDoc starts with `QUESTIONABLE:` pin down current behavior that looks wrong. When fixing one of those
   behaviors, update the test to assert the correct behavior.

@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.PlatformTestUtil
 
 /**
@@ -147,6 +148,29 @@ class OxfmtFeaturesTest : OxcLspTestCase() {
         val before = waitForOxfmtServer()
 
         writeProjectFile(".oxfmtrc.json", """{ "semi": false }""")
+
+        PlatformTestUtil.waitWithEventsDispatching("Server was not restarted", {
+            waitForOxfmtServer() !== before
+        }, 30)
+        assertEquals("const a = { b: 1, c: \"two\" }\n", formatWithServer(file))
+    }
+
+    fun testReplacingTheJsonConfigWithOxfmtConfigTsRestartsTheServerWithItsOptions() {
+        val file = openFile("index.js")
+        val before = waitForOxfmtServer()
+
+        // Deleting `.oxfmtrc.json` makes OxfmtConfigWatcher log a known error, see
+        // OxfmtConfigWatcherTest.testDeletingTheConfigLogsAnError.
+        LoggedErrorProcessor.executeWith<Throwable>(object : LoggedErrorProcessor() {
+            override fun processError(category: String, message: String, details: Array<out String>,
+                t: Throwable?): Set<Action> = emptySet()
+        }) {
+            com.intellij.openapi.application.WriteAction.runAndWait<Throwable> {
+                projectFile(".oxfmtrc.json").delete(this)
+                val config = file.parent.createChildData(this, "oxfmt.config.ts")
+                com.intellij.openapi.vfs.VfsUtil.saveText(config, "export default { semi: false };\n")
+            }
+        }
 
         PlatformTestUtil.waitWithEventsDispatching("Server was not restarted", {
             waitForOxfmtServer() !== before

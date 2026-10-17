@@ -1,7 +1,10 @@
 package com.github.oxc.project.oxcintellijplugin.testutil
 
+import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider
+import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
+import com.github.oxc.project.oxcintellijplugin.oxlint.settings.OxlintSettings
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
@@ -23,6 +26,7 @@ import com.intellij.testFramework.builders.ModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
 import com.intellij.testFramework.fixtures.ModuleFixture
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.Callable
 import kotlinx.coroutines.runBlocking
@@ -52,9 +56,40 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
                 testRootDisposable)
     }
 
-    /** Copies [fixture] into the project and installs its dependencies with [packageManager]. */
-    protected fun setUpFixture(fixture: String) {
-        TestFixtures.setUp(fixture, packageManager, projectDir)
+    override fun tearDown() {
+        try {
+            stopServersAndWait()
+        } catch (e: Throwable) {
+            addSuppressedException(e)
+        } finally {
+            super.tearDown()
+        }
+    }
+
+    /**
+     * Stops the servers and waits for the platform's LSP threads to finish. After a server dies
+     * unexpectedly, the platform's listener thread is still cleaning up while the test ends, and
+     * the fixture would report it as a leaked thread.
+     */
+    private fun stopServersAndWait() {
+        val manager = LspServerManager.getInstance(project)
+        manager.stopServers(OxlintLspServerSupportProvider::class.java)
+        manager.stopServers(OxfmtLspServerSupportProvider::class.java)
+        val projectPath = projectDir.toString()
+        val projectName = project.name
+        PlatformTestUtil.waitWithEventsDispatching({ "LSP threads did not finish" }, {
+            Thread.getAllStackTraces().keys.none {
+                it.isAlive && (it.name.contains(projectPath) || it.name.startsWith("LSP ") && it.name.contains(projectName))
+            }
+        }, 30)
+    }
+
+    /**
+     * Copies [fixture] into the project (or into its [subdirectory]) and installs its dependencies
+     * with [packageManager].
+     */
+    protected fun setUpFixture(fixture: String, subdirectory: String = "") {
+        TestFixtures.setUp(fixture, packageManager, projectDir.resolve(subdirectory))
         refreshProjectDir()
         if (packageManager == PackageManager.YARN_PNP) {
             registerYarnPnp()
@@ -74,6 +109,42 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
         PlatformTestUtil.waitWithEventsDispatching("Yarn PnP dependencies were not loaded", {
             manager.isUnderPnp(packageJson)
         }, 60)
+    }
+
+    /**
+     * Points Oxlint and/or Oxfmt (MANUAL mode) at `testData/fake-server/fake-lsp.js`, a scriptable
+     * language server that can crash, hang or fail; see that script for the [behavior] format. The
+     * project gets an `index.js` to open.
+     */
+    protected fun setUpFakeServer(behavior: String = "{}", oxlint: Boolean = true, oxfmt: Boolean = true) {
+        TestFixtures.copySources("fake-server", projectDir.resolve("fake-server"))
+        setFakeServerBehavior(behavior)
+        Files.writeString(projectDir.resolve("index.js"), "let a = {b:1}\n")
+        refreshProjectDir()
+        val script = projectDir.resolve("fake-server/fake-lsp.js").toString()
+        if (oxlint) {
+            OxlintSettings.getInstance(project).apply {
+                configurationMode = ConfigurationMode.MANUAL
+                binaryPath = script
+            }
+        }
+        if (oxfmt) {
+            OxfmtSettings.getInstance(project).apply {
+                configurationMode = ConfigurationMode.MANUAL
+                binaryPath = script
+            }
+        }
+    }
+
+    /** Changes how the fake server behaves from its next start on. */
+    protected fun setFakeServerBehavior(behavior: String) {
+        Files.writeString(projectDir.resolve("fake-server/fake-lsp.json"), behavior)
+    }
+
+    /** The methods of all messages the fake server has received, in order. */
+    protected fun fakeServerLog(): List<String> {
+        val log = projectDir.resolve("fake-server/fake-lsp.log")
+        return if (Files.exists(log)) Files.readAllLines(log) else emptyList()
     }
 
     protected fun refreshProjectDir(): VirtualFile {
@@ -170,9 +241,16 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
         WriteAction.runAndWait<Throwable> { VfsUtil.saveText(file, text) }
     }
 
+    private fun oxfmtServerFor(file: VirtualFile): LspServer? =
+        servers(OxfmtLspServerSupportProvider::class.java)
+            .firstOrNull { it.state == LspServerState.Running && it.descriptor.isSupportedFile(file) }
+
     /** Asks the running Oxfmt server to format [file] and returns the resulting text. */
     protected fun formatWithServer(file: VirtualFile, document: Document = myFixture.editor.document): String {
-        val server = waitForOxfmtServer()
+        PlatformTestUtil.waitWithEventsDispatching("No running Oxfmt server for ${file.path}", {
+            oxfmtServerFor(file) != null
+        }, 60)
+        val server = oxfmtServerFor(file)!!
         val edits = runInBackground {
             server.sendRequestSync(30_000) {
                 it.textDocumentService.formatting(

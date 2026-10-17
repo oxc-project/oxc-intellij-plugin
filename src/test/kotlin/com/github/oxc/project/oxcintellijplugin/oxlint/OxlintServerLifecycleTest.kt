@@ -27,6 +27,27 @@ class OxlintServerLifecycleTest : OxcLspTestCase() {
         waitForOxlintRules("eslint(no-console)")
     }
 
+    fun testReplacingTheJsonConfigWithOxlintConfigTsRestartsTheServerWithItsRules() {
+        openFile("index.js")
+        val before = waitForOxlintServer()
+        waitForOxlintRules("eslint(prefer-const)")
+
+        com.intellij.openapi.application.WriteAction.runAndWait<Throwable> {
+            projectFile(".oxlintrc.json").delete(this)
+            val config = projectFile("index.js").parent.createChildData(this, "oxlint.config.ts")
+            com.intellij.openapi.vfs.VfsUtil.saveText(config,
+                "export default { rules: { \"no-console\": \"error\" } };\n")
+        }
+
+        PlatformTestUtil.waitWithEventsDispatching("Server was not restarted", {
+            waitForOxlintServer() !== before
+        }, 30)
+        waitForOxlintHighlights { highlights ->
+            highlights.any { it.description.contains("eslint(no-console)") } &&
+                highlights.none { it.description.contains("eslint(prefer-const)") }
+        }
+    }
+
     fun testAddingANestedConfigRestartsTheServer() {
         openFile("index.js")
         val before = waitForOxlintServer()

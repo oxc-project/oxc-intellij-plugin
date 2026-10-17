@@ -9,7 +9,11 @@ import com.intellij.lang.javascript.JavascriptLanguage
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings.TrailingCommaOption
 import com.intellij.lang.typescript.formatter.TypeScriptCodeStyleSettings
+import com.intellij.notification.Notification
+import com.intellij.notification.Notifications
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
@@ -171,6 +175,42 @@ class OxfmtCodeStyleTest : OxcLightTestCase() {
         myFixture.testAction(action)
 
         assertFalse(OxfmtSettings.getInstance(project).preferOxfmtCodeStyleSettings)
+    }
+
+    fun testImportCodeStyleActionAppliesTheNearestConfig() {
+        addConfig(customConfig)
+        myFixture.configureFromExistingVirtualFile(addFile("src/index.js", "").virtualFile)
+
+        myFixture.testAction(ActionManager.getInstance().getAction("OxfmtImportCodeStyleAction"))
+
+        val settings = CodeStyle.getSettings(project)
+        assertCustomSettingsApplied(settings.getCustomSettings(JSCodeStyleSettings::class.java))
+        assertCustomSettingsApplied(settings.getCustomSettings(TypeScriptCodeStyleSettings::class.java))
+    }
+
+    fun testStatusBarEditConfigurationActionOpensTheNearestConfig() {
+        val config = addConfig(customConfig)
+        val file = addFile("src/index.js", "")
+        myFixture.configureFromExistingVirtualFile(file.virtualFile)
+
+        myFixture.testAction(OxfmtCodeStyleStatusBarUiContributor().getActions(file)[0]!!)
+
+        assertContainsElements(FileEditorManager.getInstance(project).openFiles.toList(), config.virtualFile)
+    }
+
+    fun testStatusBarEditConfigurationActionWithoutAConfigNotifies() {
+        val file = addFile("src/index.js", "")
+        myFixture.configureFromExistingVirtualFile(file.virtualFile)
+        val notifications = mutableListOf<Notification>()
+        project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
+            override fun notify(notification: Notification) {
+                notifications.add(notification)
+            }
+        })
+
+        myFixture.testAction(OxfmtCodeStyleStatusBarUiContributor().getActions(file)[0]!!)
+
+        assertEquals(listOf("Oxfmt configuration file not found"), notifications.map { it.title })
     }
 
     private fun assertCustomSettingsApplied(settings: JSCodeStyleSettings) {

@@ -117,11 +117,11 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
      * project gets an `index.js` to open.
      */
     protected fun setUpFakeServer(behavior: String = "{}", oxlint: Boolean = true, oxfmt: Boolean = true) {
-        TestFixtures.copySources("fake-server", projectDir.resolve("fake-server"))
+        TestFixtures.copySources("fake-server", fakeServerDir)
         setFakeServerBehavior(behavior)
         Files.writeString(projectDir.resolve("index.js"), "let a = {b:1}\n")
         refreshProjectDir()
-        val script = projectDir.resolve("fake-server/fake-lsp.js").toString()
+        val script = fakeServerDir.resolve("fake-lsp.js").toString()
         if (oxlint) {
             OxlintSettings.getInstance(project).apply {
                 configurationMode = ConfigurationMode.MANUAL
@@ -136,16 +136,23 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
         }
     }
 
+    /** Where [setUpFakeServer] puts the fake server, its behavior and its logs. */
+    protected open val fakeServerDir: Path
+        get() = projectDir.resolve("fake-server")
+
     /** Changes how the fake server behaves from its next start on. */
     protected fun setFakeServerBehavior(behavior: String) {
-        Files.writeString(projectDir.resolve("fake-server/fake-lsp.json"), behavior)
+        Files.writeString(fakeServerDir.resolve("fake-lsp.json"), behavior)
     }
 
     /** The methods of all messages the fake server has received, in order. */
-    protected fun fakeServerLog(): List<String> {
-        val log = projectDir.resolve("fake-server/fake-lsp.log")
-        return if (Files.exists(log)) Files.readAllLines(log) else emptyList()
-    }
+    protected fun fakeServerLog(): List<String> = readLines(fakeServerDir.resolve("fake-lsp.log"))
+
+    /** The file URIs the fake server has been given, as `<where> <uri>`, in order. */
+    protected fun fakeServerUris(): List<String> = readLines(fakeServerDir.resolve("fake-lsp-uris.log"))
+
+    private fun readLines(file: Path): List<String> =
+        if (Files.exists(file)) Files.readAllLines(file) else emptyList()
 
     protected fun refreshProjectDir(): VirtualFile {
         val root = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(projectDir)!!

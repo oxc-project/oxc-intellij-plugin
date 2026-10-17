@@ -1,0 +1,3 @@
+# Test fixtures are compared byte for byte with what Oxlint and Oxfmt produce, so keep them in LF on
+# Windows checkouts too.
+src/test/testData/** text=auto eol=lf

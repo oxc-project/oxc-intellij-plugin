@@ -23,7 +23,14 @@ node executable).
 - Tests for servers that crash, hang or return errors use `src/test/testData/fake-server/fake-lsp.js`, a scriptable
   language server (see `OxcLspTestCase.setUpFakeServer`).
 - `MinimumVersionsTest` runs against the oldest supported Oxlint (1.29.0). Update its fixture when the minimum changes.
-- WSL-specific launch tests only run on Windows; CI runs on Linux, so run them on a Windows machine before a release
-  that touches process launching.
+- Tests in the `windows` package only run on Windows, and the WSL ones only when `OXC_TEST_WSL_DISTRO` names an
+  installed distribution with Node.js at `OXC_TEST_WSL_NODE` (default `/usr/bin/node`). They are skipped elsewhere.
+  To run the WSL ones locally on Windows:
+  `OXC_TEST_WSL_DISTRO=Ubuntu-24.04 ./gradlew test --tests 'com.github.oxc.project.oxcintellijplugin.windows.Wsl*'`.
+- CI runs the full suite on Linux (`Test`) and on Windows without WSL (`Test (Windows)`), and the WSL tests in a
+  separate Windows job that installs Ubuntu 24.04 in WSL (`Test (WSL)`). Test data is checked out with LF line
+  endings on every platform (see `.gitattributes`) because expected output is compared byte for byte.
+- `DisabledLspFeaturesTest` fails when the platform adds an LSP feature that the plugin does not switch off in
+  `LspDisabledCustomization`.
 - Tests whose KDoc starts with `QUESTIONABLE:` pin down current behavior that looks wrong. When fixing one of those
   behaviors, update the test to assert the correct behavior.

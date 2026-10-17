@@ -63,20 +63,6 @@ class ProcessLaunchTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<Module
             GeneralProcessCommandBuilder::class.java)
     }
 
-    /**
-     * A binary inside WSL (`\\wsl$\<distro>\...`) cannot be inspected for a shebang from Windows,
-     * so it is always run through the Node.js interpreter, which knows how to run it inside WSL.
-     * WSL paths are only recognized on Windows, so this runs there only.
-     */
-    fun testWslPathsAlwaysRunThroughNode() {
-        if (!SystemInfo.isWindows) return
-        for (path in listOf("\\\\wsl$\\Ubuntu\\home\\me\\node_modules\\.bin\\oxlint",
-            "\\\\wsl.localhost\\Ubuntu\\home\\me\\oxlint")) {
-            assertInstanceOf(OxcTargetRunBuilder(project).getBuilder(ConfigurationMode.MANUAL, path),
-                NodeProcessCommandBuilder::class.java)
-        }
-    }
-
     fun testNodeScriptReceivesParametersWorkingDirectoryAndLogLevel() {
         val run = OxcTargetRunBuilder(project).getBuilder(ConfigurationMode.AUTOMATIC, nodeScript().toString())
             .setWorkingDirectory(projectDir.toString())

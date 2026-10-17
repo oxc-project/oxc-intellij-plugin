@@ -26,9 +26,30 @@ repositories {
     }
 }
 
+// Integration tests run a real IDE with the plugin installed (Starter + Driver framework), see
+// https://plugins.jetbrains.com/docs/intellij/integration-tests-intro.html
+sourceSets {
+    create("integrationTest") {
+        compileClasspath += sourceSets.main.get().output
+        runtimeClasspath += sourceSets.main.get().output
+    }
+}
+
+val integrationTestImplementation by configurations.getting
+val integrationTestRuntimeOnly by configurations.getting
+
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     testImplementation(libs.junit)
+
+    // The plugin itself uses the IDE's Kotlin stdlib (kotlin.stdlib.default.dependency=false), but
+    // the integration tests run outside the IDE, and Starter's kotlin-reflect needs a matching one.
+    integrationTestImplementation(kotlin("stdlib"))
+    integrationTestImplementation(platform(libs.junit5.bom))
+    integrationTestImplementation(libs.junit5.jupiter)
+    integrationTestImplementation(libs.kodein)
+    integrationTestImplementation(libs.coroutines)
+    integrationTestRuntimeOnly(libs.junit5.launcher)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
@@ -43,6 +64,7 @@ dependencies {
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Starter, configurationName = integrationTestImplementation.name)
     }
 }
 
@@ -152,25 +174,30 @@ tasks {
         systemProperty("idea.log.trace.categories",
             "#com.github.oxc.project.oxcintellijplugin,#com.intellij.platform.lsp")
     }
+
+    test {
+        // On Windows the IDE reaches WSL files and processes through its IJent agent, which in
+        // tests needs a test-only service implementation that is not shipped with the IDE. When
+        // the WSL tests are enabled, fall back to plain \\wsl$ file access and wsl.exe.
+        if (providers.environmentVariable("OXC_TEST_WSL_DISTRO").isPresent) {
+            systemProperty("wsl.use.remote.agent.for.nio.filesystem", "false")
+            systemProperty("wsl.use.remote.agent.for.launch.processes", "false")
+        }
+    }
 }
 
 intellijPlatformTesting {
-    runIde {
-        register("runIdeForUiTests") {
-            task {
-                jvmArgumentProviders += CommandLineArgumentProvider {
-                    listOf(
-                        "-Drobot-server.port=8082",
-                        "-Dide.mac.message.dialogs.as.sheets=false",
-                        "-Djb.privacy.policy.text=<!--999.999-->",
-                        "-Djb.consents.confirmation.enabled=false",
-                    )
-                }
-            }
-
-            plugins {
-                robotServerPlugin()
-            }
+    // Not part of `check`: run with `./gradlew integrationTest`.
+    val integrationTest by testIdeUi.registering {
+        task {
+            val integrationTestSourceSet = sourceSets.getByName("integrationTest")
+            testClassesDirs = integrationTestSourceSet.output.classesDirs
+            classpath = integrationTestSourceSet.runtimeClasspath
+            useJUnitPlatform()
+            systemProperty("oxc.test.data", layout.projectDirectory.dir("src/test/testData").asFile.path)
+            // Without a version, Starter downloads the newest WebStorm, EAPs included, which the
+            // plugin may not support (pluginUntilBuild). Test with the IDE the plugin is built against.
+            systemProperty("oxc.test.ide.version", properties("platformVersion").get())
         }
     }
 }

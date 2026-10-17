@@ -213,7 +213,9 @@ jobs:
           path: ${{ github.workspace }}/build/reports/tests
 
   # Run the tests that launch servers inside WSL, with WSL's Node.js. Kept apart from the full
-  # Windows suite so that installing WSL neither changes nor slows down that run.
+  # Windows suite so that installing WSL neither changes nor slows down that run. The unit tests
+  # turn the IDE's IJent agent off (see build.gradle.kts); the integration tests run a real
+  # WebStorm with its defaults, IJent included, on a project stored inside WSL.
   test-wsl:
     name: Test (WSL)
     needs: [ build ]
@@ -250,11 +252,16 @@ jobs:
         uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
         with:
           distribution: ${{ env.OXC_TEST_WSL_DISTRO }}
-          additional-packages: nodejs
+          additional-packages: nodejs npm
 
       - name: Run WSL Tests
         shell: bash
         run: ./gradlew test --tests 'com.github.oxc.project.oxcintellijplugin.windows.Wsl*'
+
+      - name: Run Integration Tests
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: ./gradlew integrationTest
 
       # Collect Tests Result of failed tests
       - name: Collect Tests Result
@@ -262,7 +269,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: tests-result-wsl
-          path: ${{ github.workspace }}/build/reports/tests
+          path: |
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/out/ide-tests/tests/**/log
 
   # Run plugin structure verification along with IntelliJ Plugin Verifier
   verify:

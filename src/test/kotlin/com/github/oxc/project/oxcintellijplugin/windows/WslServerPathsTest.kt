@@ -33,7 +33,8 @@ class WslServerPathsTest : ServerPathsTest() {
         try {
             super.tearDown()
         } finally {
-            WslTesting.deleteTempDir(wslDir)
+            // setUp may have failed before creating the directory.
+            if (::wslDir.isInitialized) WslTesting.deleteTempDir(wslDir)
         }
     }
 

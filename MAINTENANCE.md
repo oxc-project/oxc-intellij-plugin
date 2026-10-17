@@ -27,9 +27,19 @@ node executable).
   installed distribution with Node.js at `OXC_TEST_WSL_NODE` (default `/usr/bin/node`). They are skipped elsewhere.
   To run the WSL ones locally on Windows:
   `OXC_TEST_WSL_DISTRO=Ubuntu-24.04 ./gradlew test --tests 'com.github.oxc.project.oxcintellijplugin.windows.Wsl*'`.
+  With `OXC_TEST_WSL_DISTRO` set, the test JVM turns off the IDE's IJent agent for WSL (see `build.gradle.kts`):
+  it needs a test-only class that the IDE does not ship. The WSL tests therefore use plain `\\wsl$` file access and
+  `wsl.exe`, not IJent, which 2025.3+ IDEs use by default.
 - CI runs the full suite on Linux (`Test`) and on Windows without WSL (`Test (Windows)`), and the WSL tests in a
   separate Windows job that installs Ubuntu 24.04 in WSL (`Test (WSL)`). Test data is checked out with LF line
   endings on every platform (see `.gitattributes`) because expected output is compared byte for byte.
+- Integration tests (`src/integrationTest`) run a real WebStorm, at `platformVersion`, with the built plugin installed,
+  using JetBrains' Starter and Driver frameworks (https://plugins.jetbrains.com/docs/intellij/integration-tests-intro.html).
+  Run them with `./gradlew integrationTest`; they are not part of `check`. Each test opens a project with Oxlint and Oxfmt
+  installed by npm and checks diagnostics, Fix All and formatting. `LocalProjectIdeTest` runs anywhere with Node.js and npm
+  on `PATH`. `WslProjectIdeTest` stores the project inside WSL and runs on Windows when `OXC_TEST_WSL_DISTRO` is set;
+  unlike the unit tests, it keeps the IDE's defaults, IJent included. Starter downloads the IDE and writes logs and
+  screenshots to `out/ide-tests`. CI runs both in the `Test (WSL)` job.
 - `DisabledLspFeaturesTest` fails when the platform adds an LSP feature that the plugin does not switch off in
   `LspDisabledCustomization`.
 - Tests whose KDoc starts with `QUESTIONABLE:` pin down current behavior that looks wrong. When fixing one of those

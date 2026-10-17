@@ -41,7 +41,8 @@ class WslProcessLaunchTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<Mod
 
     override fun tearDown() {
         try {
-            WslTesting.deleteTempDir(wslDir)
+            // setUp may have failed before creating the directory.
+            if (::wslDir.isInitialized) WslTesting.deleteTempDir(wslDir)
         } catch (e: Throwable) {
             addSuppressedException(e)
         } finally {

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.0.45] - 2026-10-15
+
+### Added
+
+- Add Astro to the Oxfmt default file extensions.
+
 ## [0.0.44] - 2026-09-27
 
 ### Added
@@ -388,7 +394,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.44...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.45...HEAD
+[0.0.45]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.44...v0.0.45
 [0.0.44]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.43...v0.0.44
 [0.0.43]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.42...v0.0.43
 [0.0.42]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.41...v0.0.42

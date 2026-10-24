@@ -183,16 +183,6 @@ tasks {
         systemProperty("idea.log.trace.categories",
             "#com.github.oxc.project.oxcintellijplugin,#com.intellij.platform.lsp")
     }
-
-    test {
-        // On Windows the IDE reaches WSL files and processes through its IJent agent, which in
-        // tests needs a test-only service implementation that is not shipped with the IDE. When
-        // the WSL tests are enabled, fall back to plain \\wsl$ file access and wsl.exe.
-        if (providers.environmentVariable("OXC_TEST_WSL_DISTRO").isPresent) {
-            systemProperty("wsl.use.remote.agent.for.nio.filesystem", "false")
-            systemProperty("wsl.use.remote.agent.for.launch.processes", "false")
-        }
-    }
 }
 
 intellijPlatformTesting {

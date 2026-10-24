@@ -166,6 +166,10 @@ jobs:
       # with the unit tests.
       - name: Run Integration Tests
         if: ${{ !cancelled() }}
+        # WebStorm stops at a license dialog without a license. Secrets are not passed to pull
+        # requests from forks; the tests are skipped there.
+        env:
+          WEBSTORM_LICENSE_KEY: ${{ secrets.WEBSTORM_LICENSE_KEY }}
         run: ./gradlew integrationTest
 
       # Collect Tests Result of failed tests
@@ -268,6 +272,10 @@ jobs:
 
       - name: Run Integration Tests
         if: ${{ !cancelled() }}
+        # WebStorm stops at a license dialog without a license. Secrets are not passed to pull
+        # requests from forks; the tests are skipped there.
+        env:
+          WEBSTORM_LICENSE_KEY: ${{ secrets.WEBSTORM_LICENSE_KEY }}
         shell: bash
         run: ./gradlew integrationTest
 

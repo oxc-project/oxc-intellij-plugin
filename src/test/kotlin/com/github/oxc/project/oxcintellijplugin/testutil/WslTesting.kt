@@ -4,9 +4,11 @@ import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.execution.wsl.WslDistributionManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.NioFiles
+import com.intellij.openapi.util.registry.Registry
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -29,6 +31,20 @@ object WslTesting {
 
     fun distribution(): WSLDistribution =
         WslDistributionManager.getInstance().getOrCreateDistributionByMsId(distributionId!!)
+
+    /**
+     * Makes the IDE reach WSL files and processes through `\\wsl$` and `wsl.exe` instead of its
+     * IJent agent, until [disposable] is disposed. In tests, IJent needs a test-only class that the
+     * IDE does not ship. A system property cannot do this: WebStorm's Windows launch arguments set
+     * `wsl.use.remote.agent.for.nio.filesystem=true`, and the IntelliJ Platform Gradle Plugin adds
+     * them after the build's own, so they win. A registry value takes precedence over both.
+     *
+     * Call before any WSL path is used: the IDE decides per distribution when it first resolves one.
+     */
+    fun disableIjent(disposable: Disposable) {
+        Registry.get("wsl.use.remote.agent.for.nio.filesystem").setValue(false, disposable)
+        Registry.get("wsl.use.remote.agent.for.launch.processes").setValue(false, disposable)
+    }
 
     /** The distribution's Node.js, as the project interpreter would be set in the IDE. */
     fun nodeInterpreterRef(): NodeJsInterpreterRef = NodeJsInterpreterRef.create(WslNodeInterpreter(distributionId!!, nodePath))

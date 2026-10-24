@@ -28,6 +28,7 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.relativeTo
 import kotlin.time.Duration.Companion.minutes
 import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import org.kodein.di.DI
@@ -40,6 +41,10 @@ import org.kodein.di.bindSingleton
  * testing: the servers are found, started and talked to exactly as for users.
  *
  * Subclasses decide where the project lives and which Node.js runs the servers.
+ *
+ * WebStorm needs a license, or it opens a license dialog that blocks the IDE. Set
+ * `WEBSTORM_LICENSE_KEY` to a license key. Without it the tests are skipped on CI (`CI` set); on a
+ * developer machine the IDE uses the JetBrains account signed in there.
  */
 abstract class OxcIdeTest {
 
@@ -54,13 +59,22 @@ abstract class OxcIdeTest {
 
     @Test
     fun lintsFixesAndFormatsAFile(testInfo: TestInfo) {
+        val licenseKey = System.getenv("WEBSTORM_LICENSE_KEY")?.takeIf { it.isNotBlank() }
+        assumeTrue(licenseKey != null || System.getenv("CI") == null) {
+            "WEBSTORM_LICENSE_KEY is not set; WebStorm would stop at its license dialog"
+        }
         val projectDir = createProjectDir()
         copyFixture("onsave", projectDir)
         installDependencies(projectDir)
 
-        Starter.newContext(testInfo.testMethod.get().name, TestCase(IdeProductProvider.WS, LocalProjectInfo(projectDir))
+        // Starter keeps each test's logs and screenshots in a folder named after the test name.
+        val testName = "${javaClass.simpleName}_${testInfo.testMethod.get().name}"
+        Starter.newContext(testName, TestCase(IdeProductProvider.WS, LocalProjectInfo(projectDir))
             .withVersion(System.getProperty("oxc.test.ide.version")))
-            .apply { PluginConfigurator(this).installPluginFromPath(Path.of(System.getProperty("path.to.build.plugin"))) }
+            .apply {
+                licenseKey?.let { setLicense(it) }
+                PluginConfigurator(this).installPluginFromPath(Path.of(System.getProperty("path.to.build.plugin")))
+            }
             .runIdeWithDriver()
             .useDriverAndCloseIde {
                 waitForIndicators(5.minutes)

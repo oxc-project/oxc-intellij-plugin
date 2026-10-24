@@ -27,9 +27,9 @@ node executable).
   installed distribution with Node.js at `OXC_TEST_WSL_NODE` (default `/usr/bin/node`). They are skipped elsewhere.
   To run the WSL ones locally on Windows:
   `OXC_TEST_WSL_DISTRO=Ubuntu-24.04 ./gradlew test --tests 'com.github.oxc.project.oxcintellijplugin.windows.Wsl*'`.
-  With `OXC_TEST_WSL_DISTRO` set, the test JVM turns off the IDE's IJent agent for WSL (see `build.gradle.kts`):
-  it needs a test-only class that the IDE does not ship. The WSL tests therefore use plain `\\wsl$` file access and
-  `wsl.exe`, not IJent, which 2025.3+ IDEs use by default.
+  The WSL unit tests turn off the IDE's IJent agent for WSL (`WslTesting.disableIjent`): in tests it needs a test-only
+  class that the IDE does not ship. They therefore use plain `\\wsl$` file access and `wsl.exe`, not IJent, which
+  2025.3+ IDEs use by default; the WSL integration test covers IJent.
 - CI runs the full suite on Linux (`Test`) and on Windows without WSL (`Test (Windows)`), and the WSL tests in a
   separate Windows job that installs Ubuntu 24.04 in WSL (`Test (WSL)`). Test data is checked out with LF line
   endings on every platform (see `.gitattributes`) because expected output is compared byte for byte.
@@ -39,7 +39,9 @@ node executable).
   installed by npm and checks diagnostics, Fix All and formatting. `LocalProjectIdeTest` runs anywhere with Node.js and npm
   on `PATH`. `WslProjectIdeTest` stores the project inside WSL and runs on Windows when `OXC_TEST_WSL_DISTRO` is set;
   unlike the unit tests, it keeps the IDE's defaults, IJent included. Starter downloads the IDE and writes logs and
-  screenshots to `out/ide-tests`. CI runs them as a separate step after the unit tests in the `Test` (Linux) and
+  screenshots to `out/ide-tests`. WebStorm needs a license: set `WEBSTORM_LICENSE_KEY` to a license key (the
+  `WEBSTORM_LICENSE_KEY` repository secret on CI). Without it the tests are skipped on CI, including pull requests from forks,
+  which do not get secrets; on a developer machine WebStorm uses the JetBrains account signed in there. CI runs them as a separate step after the unit tests in the `Test` (Linux) and
   `Test (WSL)` jobs; Gradle never runs them alongside the unit tests.
 - `DisabledLspFeaturesTest` fails when the platform adds an LSP feature that the plugin does not switch off in
   `LspDisabledCustomization`.

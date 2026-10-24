@@ -162,13 +162,21 @@ jobs:
       - name: Run Tests
         run: ./gradlew check
 
+      # A real WebStorm with the plugin installed. A separate step, so it never shares the runner
+      # with the unit tests.
+      - name: Run Integration Tests
+        if: ${{ !cancelled() }}
+        run: ./gradlew integrationTest
+
       # Collect Tests Result of failed tests
       - name: Collect Tests Result
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tests-result
-          path: ${{ github.workspace }}/build/reports/tests
+          path: |
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/out/ide-tests/tests/**/log
 
   # Run the full test suite on Windows, as most Windows users run the plugin: without WSL. The
   # WSL tests are skipped here because no distribution is configured.

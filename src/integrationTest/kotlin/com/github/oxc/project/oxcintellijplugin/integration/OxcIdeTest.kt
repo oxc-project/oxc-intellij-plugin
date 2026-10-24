@@ -69,7 +69,9 @@ abstract class OxcIdeTest {
                 service<NodeJsInterpreterManager>(project)
                     .setInterpreterRef(utility<NodeJsInterpreterRef>().create(nodeInterpreter))
 
-                openFile("index.js", project)
+                // The SDK's own wait for code analysis is fixed at one minute; the longer wait for the
+                // Oxlint highlight below covers it.
+                openFile("index.js", project, waitForCodeAnalysis = false)
                 val editor = ideFrame().codeEditor()
                 val document = editor.document
 

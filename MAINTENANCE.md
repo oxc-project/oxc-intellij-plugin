@@ -35,11 +35,12 @@ node executable).
   endings on every platform (see `.gitattributes`) because expected output is compared byte for byte.
 - Integration tests (`src/integrationTest`) run a real WebStorm, at `platformVersion`, with the built plugin installed,
   using JetBrains' Starter and Driver frameworks (https://plugins.jetbrains.com/docs/intellij/integration-tests-intro.html).
-  Run them with `./gradlew integrationTest`; they are not part of `check`. Each test opens a project with Oxlint and Oxfmt
+  Run them with `./gradlew integrationTest`; they are not part of `check` (see the Kover setup in `build.gradle.kts`). Each test opens a project with Oxlint and Oxfmt
   installed by npm and checks diagnostics, Fix All and formatting. `LocalProjectIdeTest` runs anywhere with Node.js and npm
   on `PATH`. `WslProjectIdeTest` stores the project inside WSL and runs on Windows when `OXC_TEST_WSL_DISTRO` is set;
   unlike the unit tests, it keeps the IDE's defaults, IJent included. Starter downloads the IDE and writes logs and
-  screenshots to `out/ide-tests`. CI runs both in the `Test (WSL)` job.
+  screenshots to `out/ide-tests`. CI runs them as a separate step after the unit tests in the `Test` (Linux) and
+  `Test (WSL)` jobs; Gradle never runs them alongside the unit tests.
 - `DisabledLspFeaturesTest` fails when the platform adds an LSP feature that the plugin does not switch off in
   `LspDisabledCustomization`.
 - Tests whose KDoc starts with `QUESTIONABLE:` pin down current behavior that looks wrong. When fixing one of those

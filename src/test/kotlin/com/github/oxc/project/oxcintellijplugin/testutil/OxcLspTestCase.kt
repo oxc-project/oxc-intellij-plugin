@@ -13,6 +13,7 @@ import com.intellij.notification.Notification
 import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.impl.NonBlockingReadActionImpl
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
@@ -70,8 +71,14 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
      * Stops the servers and waits for the platform's LSP threads to finish. After a server dies
      * unexpectedly, the platform's listener thread is still cleaning up while the test ends, and
      * the fixture would report it as a leaked thread.
+     *
+     * The platform sends didOpen/didChange from a background read action that finishes on the EDT.
+     * Let those finish first: one still queued when its server stops logs "Server is not in the
+     * Running state", which fails the test.
      */
     private fun stopServersAndWait() {
+        NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+        PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
         val manager = LspServerManager.getInstance(project)
         manager.stopServers(OxlintLspServerSupportProvider::class.java)
         manager.stopServers(OxfmtLspServerSupportProvider::class.java)

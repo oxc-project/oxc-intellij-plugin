@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.testutil.OxcLspTestCase
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.testFramework.PlatformTestUtil
 import java.net.URI
+import java.nio.file.Path
 
 /**
  * The server is given file URIs in its own file system, and edits it returns for those URIs are
@@ -12,8 +13,8 @@ import java.net.URI
  */
 abstract class ServerPathsTest : OxcLspTestCase() {
 
-    /** The path the server sees for the local [path]. */
-    protected abstract fun serverPath(path: String): String
+    /** Asserts that the server's [uri] names the local [path]. */
+    protected abstract fun assertUriNames(path: String, uri: String, message: String)
 
     fun testServerIsGivenTheUrisOfTheRootAndOpenedFile() {
         setUpFakeServer(oxfmt = false)
@@ -22,10 +23,10 @@ abstract class ServerPathsTest : OxcLspTestCase() {
 
         val uris = waitForUris("textDocument/didOpen")
 
-        val root = serverPath(refreshProjectDir().path)
-        assertEquals(uris.toString(), root, uris.getValue("rootUri"))
-        assertEquals(uris.toString(), root, uris.getValue("workspaceUri"))
-        assertEquals(uris.toString(), serverPath(file.path), uris.getValue("textDocument/didOpen"))
+        val root = refreshProjectDir().path
+        assertUriNames(root, uris.getValue("rootUri"), uris.toString())
+        assertUriNames(root, uris.getValue("workspaceUri"), uris.toString())
+        assertUriNames(file.path, uris.getValue("textDocument/didOpen"), uris.toString())
     }
 
     fun testFixAllEditForTheServersUriIsAppliedToTheFile() {
@@ -41,17 +42,23 @@ abstract class ServerPathsTest : OxcLspTestCase() {
             { myFixture.editor.document.text == "let a = { b: 1 };\n" }, 30)
     }
 
-    /** Waits until the server logged a URI for [where] and returns the paths of all logged URIs by where they were given. */
+    /** Waits until the server logged a URI for [where] and returns all logged URIs by where they were given. */
     private fun waitForUris(where: String): Map<String, String> {
         PlatformTestUtil.waitWithEventsDispatching({ "URIs: ${fakeServerUris()}" },
             { fakeServerUris().any { it.startsWith("$where ") } }, 30)
         return fakeServerUris().associate { line ->
             val (key, uri) = line.split(" ", limit = 2)
-            key to URI(uri).path.removeSuffix("/")
+            key to uri
         }
     }
 }
 
 class LocalServerPathsTest : ServerPathsTest() {
-    override fun serverPath(path: String) = path
+    /**
+     * Compared as paths: on Windows the URI spells `C:/dir` as `file:///c:/dir`, with a lowercase
+     * drive letter, which is the usual form in LSP.
+     */
+    override fun assertUriNames(path: String, uri: String, message: String) {
+        assertEquals(message, Path.of(path), Path.of(URI(uri)))
+    }
 }

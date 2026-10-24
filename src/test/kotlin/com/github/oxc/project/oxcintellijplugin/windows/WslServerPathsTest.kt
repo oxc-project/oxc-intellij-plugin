@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
 import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting.onPooledThread
 import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
+import java.net.URI
 import java.nio.file.Path
 
 /**
@@ -38,6 +39,10 @@ class WslServerPathsTest : ServerPathsTest() {
         }
     }
 
-    override fun serverPath(path: String): String = onPooledThread { distribution.getWslPath(Path.of(path)) }
-        ?: error("$path has no path inside ${distribution.msId}")
+    /** The server must be given the path inside WSL, such as `/mnt/c/...` for a file on `C:`. */
+    override fun assertUriNames(path: String, uri: String, message: String) {
+        val wslPath = onPooledThread { distribution.getWslPath(Path.of(path)) }
+            ?: error("$path has no path inside ${distribution.msId}")
+        assertEquals(message, wslPath, URI(uri).path.removeSuffix("/"))
+    }
 }

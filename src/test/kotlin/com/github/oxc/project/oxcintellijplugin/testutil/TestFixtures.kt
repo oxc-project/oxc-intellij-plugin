@@ -72,26 +72,34 @@ object TestFixtures {
 
     private fun copyTree(source: Path, target: Path, link: Boolean, include: (Path) -> Boolean) {
         Files.createDirectories(target)
+        val symlinks = mutableListOf<Pair<Path, Path>>()
         Files.list(source).use { children ->
             for (child in children.toList()) {
                 if (!include(child)) continue
-                copyEntry(child, target.resolve(child.name), link)
+                copyEntry(child, target.resolve(child.name), link, symlinks)
             }
+        }
+        // Symlinks are created last: on Windows a symlink to a directory that does not exist yet
+        // is created as a file symlink, which cannot be traversed. pnpm links packages to siblings
+        // in node_modules/.pnpm that are often copied later (oxfmt@x/node_modules/tinypool ->
+        // ../../tinypool@y/node_modules/tinypool).
+        for ((linkPath, linkTarget) in symlinks) {
+            Files.deleteIfExists(linkPath)
+            Files.createSymbolicLink(linkPath, linkTarget)
         }
     }
 
-    private fun copyEntry(source: Path, target: Path, link: Boolean) {
+    private fun copyEntry(source: Path, target: Path, link: Boolean, symlinks: MutableList<Pair<Path, Path>>) {
         when {
-            source.isSymbolicLink() -> {
-                Files.deleteIfExists(target)
-                Files.createSymbolicLink(target, Files.readSymbolicLink(source))
-            }
+            source.isSymbolicLink() -> symlinks += target to Files.readSymbolicLink(source)
 
+            // Windows junctions (pnpm's default for directories there) are not symbolic links to
+            // Java and are copied as directories.
             source.isDirectory(LinkOption.NOFOLLOW_LINKS) -> {
                 Files.createDirectories(target)
                 Files.list(source).use { children ->
                     for (child in children.toList()) {
-                        copyEntry(child, target.resolve(child.name), link)
+                        copyEntry(child, target.resolve(child.name), link, symlinks)
                     }
                 }
             }

@@ -234,7 +234,8 @@ jobs:
     runs-on: windows-latest
     env:
       OXC_TEST_WSL_DISTRO: Ubuntu-24.04
-      OXC_TEST_WSL_NODE: /usr/bin/node
+      # No OXC_TEST_WSL_NODE: the tests default to /usr/bin/node, and Git Bash (the bash steps)
+      # rewrites POSIX paths in environment variables to Windows paths for the programs it starts.
     steps:
 
       # Check out current repository

@@ -27,7 +27,7 @@ node executable).
   installed distribution with Node.js at `OXC_TEST_WSL_NODE` (default `/usr/bin/node`). They are skipped elsewhere.
   To run the WSL ones locally on Windows:
   `OXC_TEST_WSL_DISTRO=Ubuntu-24.04 ./gradlew test --tests 'com.github.oxc.project.oxcintellijplugin.windows.Wsl*'`.
-  The WSL unit tests turn off the IDE's IJent agent for WSL (`WslTesting.disableIjent`): in tests it needs a test-only
+  The WSL unit tests turn off the IDE's IJent agent for WSL (`WslTesting.disableIjent`, before the IDE starts): in tests it needs a test-only
   class that the IDE does not ship. They therefore use plain `\\wsl$` file access and `wsl.exe`, not IJent, which
   2025.3+ IDEs use by default; the WSL integration test covers IJent.
 - CI runs the full suite on Linux (`Test`) and on Windows without WSL (`Test (Windows)`), and the WSL tests in a

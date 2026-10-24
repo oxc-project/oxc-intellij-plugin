@@ -8,6 +8,7 @@ import com.intellij.notification.NotificationType
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.application.impl.NonBlockingReadActionImpl
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.lsp.api.LspServerState
@@ -22,7 +23,7 @@ import com.intellij.testFramework.PlatformTestUtil
  */
 class ServerFailureTest : OxcLspTestCase() {
 
-    fun testServerThatCrashesOnStartupDoesNotRun() {
+    fun testServerThatCrashesOnStartupDoesNotRun() = withServerCrash {
         setUpFakeServer("""{ "crashOn": "initialized" }""", oxfmt = false)
 
         openFile("index.js")
@@ -30,7 +31,7 @@ class ServerFailureTest : OxcLspTestCase() {
         waitForServerToStop()
     }
 
-    fun testRestartActionRecoversOnceTheServerWorksAgain() {
+    fun testRestartActionRecoversOnceTheServerWorksAgain() = withServerCrash {
         setUpFakeServer("""{ "crashOn": "initialized" }""", oxfmt = false)
         openFile("index.js")
         waitForServerToStop()
@@ -46,7 +47,7 @@ class ServerFailureTest : OxcLspTestCase() {
      * failed, so the action keeps its modal progress open until the per-file timeout (30 seconds
      * by default) and then reports a timeout instead of the crash.
      */
-    fun testServerCrashingDuringFixAllIsReportedAsATimeout() {
+    fun testServerCrashingDuringFixAllIsReportedAsATimeout() = withServerCrash {
         Registry.get("oxc.lint.fix.all.timeout.ms").setValue(2_000, testRootDisposable)
         setUpFakeServer("""{ "crashOn": "textDocument/codeAction" }""", oxfmt = false)
         val notifications = collectNotifications()
@@ -124,7 +125,7 @@ class ServerFailureTest : OxcLspTestCase() {
      * QUESTIONABLE: when no Oxlint server is running (here it crashes on startup), "Fix All" silently
      * does nothing; the user gets no hint that the server is down.
      */
-    fun testOxlintFixAllWithoutARunningServerIsSilent() {
+    fun testOxlintFixAllWithoutARunningServerIsSilent() = withServerCrash {
         setUpFakeServer("""{ "crashOn": "initialized" }""", oxfmt = false)
         val notifications = collectNotifications()
         openFile("index.js")
@@ -139,7 +140,7 @@ class ServerFailureTest : OxcLspTestCase() {
      * QUESTIONABLE: when no Oxfmt server is running (here it crashes on startup), "Fix All" reports
      * success although nothing was formatted.
      */
-    fun testOxfmtFixAllWithoutARunningServerReportsSuccess() {
+    fun testOxfmtFixAllWithoutARunningServerReportsSuccess() = withServerCrash {
         setUpFakeServer("""{ "crashOn": "initialized" }""", oxlint = false)
         val notifications = collectNotifications()
         openFile("index.js")
@@ -161,6 +162,26 @@ class ServerFailureTest : OxcLspTestCase() {
 
         PlatformTestUtil.waitWithEventsDispatching({ "Fake server log: ${fakeServerLog()}" },
             { fakeServerLog().containsAll(listOf("shutdown", "exit")) }, 30)
+    }
+
+    /**
+     * Runs [test], in which the fake server crashes on purpose. When it crashes while a file is
+     * being opened, the platform logs "Server is not in the Running state. Ignoring
+     * sendDidOpenRequest", which would fail the test; it happens on slower machines (the Windows CI
+     * runner). Only that message is tolerated. Pending notifications are sent before returning, so
+     * none is left for tearDown.
+     */
+    private fun withServerCrash(test: () -> Unit) {
+        LoggedErrorProcessor.executeWith<Throwable>(object : LoggedErrorProcessor() {
+            override fun processError(category: String, message: String, details: Array<out String>,
+                t: Throwable?): Set<Action> =
+                if ("Server is not in the Running state. Ignoring sendDidOpenRequest" in message) emptySet()
+                else super.processError(category, message, details, t)
+        }) {
+            test()
+            NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+            PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+        }
     }
 
     /** Waits until the server has been started and died, which the platform reports as a crash. */

@@ -4,11 +4,9 @@ import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.execution.wsl.WslDistributionManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.NioFiles
-import com.intellij.openapi.util.registry.Registry
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -34,16 +32,19 @@ object WslTesting {
 
     /**
      * Makes the IDE reach WSL files and processes through `\\wsl$` and `wsl.exe` instead of its
-     * IJent agent, until [disposable] is disposed. In tests, IJent needs a test-only class that the
-     * IDE does not ship. A system property cannot do this: WebStorm's Windows launch arguments set
-     * `wsl.use.remote.agent.for.nio.filesystem=true`, and the IntelliJ Platform Gradle Plugin adds
-     * them after the build's own, so they win. A registry value takes precedence over both.
+     * IJent agent: in tests, IJent needs a test-only class that the IDE does not ship.
      *
-     * Call before any WSL path is used: the IDE decides per distribution when it first resolves one.
+     * Call before `super.setUp()`, so before the IDE starts in this JVM. The build cannot pass
+     * these as system properties: WebStorm's Windows launch arguments set
+     * `wsl.use.remote.agent.for.nio.filesystem=true`, and the IntelliJ Platform Gradle Plugin adds
+     * them after the build's own, so they win. Setting them at runtime replaces that value. A
+     * registry value would also work, but changing it makes the IDE try to rewrite its vmoptions,
+     * which logs an error in tests. This applies to the whole test JVM, which only runs WSL tests
+     * when `OXC_TEST_WSL_DISTRO` is set.
      */
-    fun disableIjent(disposable: Disposable) {
-        Registry.get("wsl.use.remote.agent.for.nio.filesystem").setValue(false, disposable)
-        Registry.get("wsl.use.remote.agent.for.launch.processes").setValue(false, disposable)
+    fun disableIjent() {
+        System.setProperty("wsl.use.remote.agent.for.nio.filesystem", "false")
+        System.setProperty("wsl.use.remote.agent.for.launch.processes", "false")
     }
 
     /** The distribution's Node.js, as the project interpreter would be set in the IDE. */

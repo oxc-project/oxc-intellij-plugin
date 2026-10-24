@@ -33,8 +33,8 @@ class WslProcessLaunchTest : CodeInsightFixtureTestCase<ModuleFixtureBuilder<Mod
     override fun shouldRunTest(): Boolean = WslTesting.enabled && super.shouldRunTest()
 
     override fun setUp() {
+        WslTesting.disableIjent()
         super.setUp()
-        WslTesting.disableIjent(testRootDisposable)
         distribution = WslTesting.distribution()
         wslDir = WslTesting.createTempDir(distribution)
         NodeJsInterpreterManager.getInstance(project).setInterpreterRef(WslTesting.nodeInterpreterRef(), testRootDisposable)

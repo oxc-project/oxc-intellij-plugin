@@ -1,5 +1,10 @@
 package com.github.oxc.project.oxcintellijplugin.extensions
 
+import com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider
+import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
+import com.intellij.openapi.project.Project
+import com.intellij.platform.lsp.api.LspServerManager
+import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.testFramework.ExpectedHighlightingData
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture
@@ -22,9 +27,23 @@ fun CodeInsightTestFixture.configureByFileAndCheckLanguageServerHighlighting(fil
             (this as CodeInsightTestFixtureImpl).collectAndCheckHighlighting(expected)
             return
         } catch (e: AssertionError) {
-            if (System.currentTimeMillis() > deadline) throw e
+            if (System.currentTimeMillis() > deadline) {
+                throw AssertionError("${e.message}\n${project.lspServerStates()}", e)
+            }
             PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
             Thread.sleep(250)
         }
     }
+}
+
+/**
+ * The state of each Oxlint and Oxfmt server, for failure messages: tells whether diagnostics were
+ * missing because no server was running.
+ */
+fun Project.lspServerStates(): String {
+    val manager = LspServerManager.getInstance(this)
+    fun states(provider: Class<out LspServerSupportProvider>) =
+        manager.getServersForProvider(provider).map { it.state }
+    return "Oxlint servers: ${states(OxlintLspServerSupportProvider::class.java)}, " +
+        "Oxfmt servers: ${states(OxfmtLspServerSupportProvider::class.java)}."
 }

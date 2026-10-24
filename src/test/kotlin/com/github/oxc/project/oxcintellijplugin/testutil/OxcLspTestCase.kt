@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.testutil
 
 import com.github.oxc.project.oxcintellijplugin.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.extensions.lspServerStates
 import com.github.oxc.project.oxcintellijplugin.oxfmt.lsp.OxfmtLspServerSupportProvider
 import com.github.oxc.project.oxcintellijplugin.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerSupportProvider
@@ -124,7 +125,7 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
      * project gets an `index.js` to open.
      */
     protected fun setUpFakeServer(behavior: String = "{}", oxlint: Boolean = true, oxfmt: Boolean = true) {
-        TestFixtures.copySources("fake-server", fakeServerDir)
+        installFakeServer(fakeServerDir)
         setFakeServerBehavior(behavior)
         Files.writeString(projectDir.resolve("index.js"), "let a = {b:1}\n")
         refreshProjectDir()
@@ -141,6 +142,11 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
                 binaryPath = script
             }
         }
+    }
+
+    /** Copies the fake server (`testData/fake-server`) into [dir]. */
+    protected open fun installFakeServer(dir: Path) {
+        TestFixtures.copySources("fake-server", dir)
     }
 
     /** Where [setUpFakeServer] puts the fake server, its behavior and its logs. */
@@ -214,7 +220,8 @@ abstract class OxcLspTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<
             PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
             Thread.sleep(250)
         }
-        fail("Timed out waiting for Oxlint highlights. Last seen:\n" + last.joinToString("\n") { it.description })
+        fail("Timed out waiting for Oxlint highlights. ${project.lspServerStates()} Last seen:\n" +
+            last.joinToString("\n") { it.description })
         return last
     }
 

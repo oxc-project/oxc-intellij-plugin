@@ -22,7 +22,8 @@ class WslProjectIdeTest : OxcIdeTest() {
 
     private val distribution = System.getenv("OXC_TEST_WSL_DISTRO").orEmpty()
 
-    private val linuxProjectDir = "/tmp/oxc-ide-test-${UUID.randomUUID()}"
+    // Not /tmp: WSL stops an idle distribution and Ubuntu empties /tmp when it boots.
+    private val linuxProjectDir = "/var/tmp/oxc-ide-test-${UUID.randomUUID()}"
 
     override fun createProjectDir(): Path {
         run("wsl.exe", "-d", distribution, "--", "mkdir", "-p", linuxProjectDir)

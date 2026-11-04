@@ -50,9 +50,13 @@ object WslTesting {
     /** The distribution's Node.js, as the project interpreter would be set in the IDE. */
     fun nodeInterpreterRef(): NodeJsInterpreterRef = NodeJsInterpreterRef.create(WslNodeInterpreter(distributionId!!, nodePath))
 
-    /** Creates an empty directory inside the distribution and returns its Windows (`\\wsl...`) path. */
+    /**
+     * Creates an empty directory inside the distribution and returns its Windows (`\\wsl...`) path.
+     * It is under `/var/tmp` because WSL stops an idle distribution and Ubuntu empties `/tmp` when
+     * it boots: a file written to `/tmp` can disappear if the write is what starts the distribution.
+     */
     fun createTempDir(distribution: WSLDistribution): Path =
-        Files.createDirectories(onPooledThread { distribution.getUNCRootPath() }.resolve("tmp/oxc-test-${UUID.randomUUID()}"))
+        Files.createDirectories(onPooledThread { distribution.getUNCRootPath() }.resolve("var/tmp/oxc-test-${UUID.randomUUID()}"))
 
     fun deleteTempDir(dir: Path) {
         NioFiles.deleteRecursively(dir)

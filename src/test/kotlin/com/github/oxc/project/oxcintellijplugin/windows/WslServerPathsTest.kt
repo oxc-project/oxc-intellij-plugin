@@ -1,13 +1,11 @@
 package com.github.oxc.project.oxcintellijplugin.windows
 
 import com.github.oxc.project.oxcintellijplugin.ServerPathsTest
-import com.github.oxc.project.oxcintellijplugin.testutil.TestFixtures
 import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
 import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting.onPooledThread
 import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import java.net.URI
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
@@ -44,16 +42,11 @@ class WslServerPathsTest : ServerPathsTest() {
     }
 
     /**
-     * Writes the fake server's files into WSL as bytes. Copied with `Files.copy`, as for local tests,
-     * the file was not found by Node.js inside WSL. Fails right away if the script is not visible
-     * from inside the distribution, rather than when the server crashes.
+     * Fails right away if the script is not visible from inside the distribution, rather than when
+     * the server crashes.
      */
     override fun installFakeServer(dir: Path) {
-        val source = TestFixtures.testDataRoot.resolve("fake-server")
-        Files.createDirectories(dir)
-        Files.list(source).use { files ->
-            files.filter { Files.isRegularFile(it) }.forEach { Files.write(dir.resolve(it.fileName.toString()), Files.readAllBytes(it)) }
-        }
+        super.installFakeServer(dir)
         val script = onPooledThread { distribution.getWslPath(dir.resolve("fake-lsp.js")) }
             ?: error("$dir has no path inside ${distribution.msId}")
         val check = ProcessBuilder("wsl.exe", "-d", distribution.msId, "--", "test", "-f", script)

@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {},
+  "rules": {
+    "no-debugger": "warn",
+    "prefer-const": "error"
+  }
+}

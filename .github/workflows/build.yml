@@ -157,25 +157,20 @@ jobs:
           key: |
             ${{ runner.os }}-npm-cache-dir
 
-      - name: Setup Oxfmt Formatting Nested Config Test
-        working-directory: src/test/testData/oxfmt/formatting/nested-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting Custom Config Test
-        working-directory: src/test/testData/oxlint/highlighting/custom-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting Nested Config Test
-        working-directory: src/test/testData/oxlint/highlighting/nested-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting No Config Test
-        working-directory: src/test/testData/oxlint/highlighting/no-config
-        run: npm ci
-
-      # Run tests
+      # Run tests. Test fixtures install their own dependencies with npm, pnpm, Yarn and Bun
+      # (provisioned into build/oxc-test-tools), so only Node.js needs to be set up here.
       - name: Run Tests
         run: ./gradlew check
+
+      # A real WebStorm with the plugin installed. A separate step, so it never shares the runner
+      # with the unit tests.
+      - name: Run Integration Tests
+        if: ${{ !cancelled() }}
+        # WebStorm stops at a license dialog without a license. Secrets are not passed to pull
+        # requests from forks; the tests are skipped there.
+        env:
+          WEBSTORM_LICENSE_KEY: ${{ secrets.WEBSTORM_LICENSE_KEY }}
+        run: ./gradlew integrationTest
 
       # Collect Tests Result of failed tests
       - name: Collect Tests Result
@@ -183,7 +178,117 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tests-result
+          path: |
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/out/ide-tests/tests/**/log
+
+  # Run the full test suite on Windows, as most Windows users run the plugin: without WSL. The
+  # WSL tests are skipped here because no distribution is configured.
+  test-windows:
+    name: Test (Windows)
+    needs: [ build ]
+    runs-on: windows-latest
+    steps:
+
+      # Check out current repository
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      # Set up Java environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: zulu
+          java-version: 21
+
+      # Setup Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-read-only: 'true'
+
+      # Node.js on Windows
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Run Tests
+        shell: bash
+        run: ./gradlew test
+
+      # Collect Tests Result of failed tests
+      - name: Collect Tests Result
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tests-result-windows
           path: ${{ github.workspace }}/build/reports/tests
+
+  # Run the tests that launch servers inside WSL, with WSL's Node.js. Kept apart from the full
+  # Windows suite so that installing WSL neither changes nor slows down that run. The unit tests
+  # turn the IDE's IJent agent off (see build.gradle.kts); the integration tests run a real
+  # WebStorm with its defaults, IJent included, on a project stored inside WSL.
+  test-wsl:
+    name: Test (WSL)
+    needs: [ build ]
+    runs-on: windows-latest
+    env:
+      OXC_TEST_WSL_DISTRO: Ubuntu-24.04
+      # No OXC_TEST_WSL_NODE: the tests default to /usr/bin/node, and Git Bash (the bash steps)
+      # rewrites POSIX paths in environment variables to Windows paths for the programs it starts.
+    steps:
+
+      # Check out current repository
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      # Set up Java environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: zulu
+          java-version: 21
+
+      # Setup Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-read-only: 'true'
+
+      # Node.js on Windows
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      # A WSL distribution with Node.js, for the tests that run servers inside WSL
+      - name: Setup WSL
+        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+        with:
+          distribution: ${{ env.OXC_TEST_WSL_DISTRO }}
+          additional-packages: nodejs npm
+
+      - name: Run WSL Tests
+        shell: bash
+        run: ./gradlew test --tests 'com.github.oxc.project.oxcintellijplugin.windows.Wsl*'
+
+      - name: Run Integration Tests
+        if: ${{ !cancelled() }}
+        # WebStorm stops at a license dialog without a license. Secrets are not passed to pull
+        # requests from forks; the tests are skipped there.
+        env:
+          WEBSTORM_LICENSE_KEY: ${{ secrets.WEBSTORM_LICENSE_KEY }}
+        shell: bash
+        run: ./gradlew integrationTest
+
+      # Collect Tests Result of failed tests
+      - name: Collect Tests Result
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tests-result-wsl
+          path: |
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/out/ide-tests/tests/**/log
 
   # Run plugin structure verification along with IntelliJ Plugin Verifier
   verify:
@@ -232,7 +337,7 @@ jobs:
   releaseDraft:
     name: Release draft
     if: github.event_name != 'pull_request'
-    needs: [ build, test, verify ]
+    needs: [ build, test, test-windows, test-wsl, verify ]
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -1,0 +1,9 @@
+{
+  "name": "vite-plus-package-manager-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "vite-plus": "1.0.0"
+  }
+}

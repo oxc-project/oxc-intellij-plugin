@@ -1,0 +1,9 @@
+{
+  "plugins": [],
+  "categories": {},
+  "rules": {
+    "curly": "error",
+    "eqeqeq": "error",
+    "no-debugger": "error"
+  }
+}

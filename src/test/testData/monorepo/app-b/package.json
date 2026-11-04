@@ -1,0 +1,9 @@
+{
+  "name": "oxc-monorepo-app-b",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0"
+  }
+}

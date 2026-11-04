@@ -3,3 +3,5 @@
 .intellijPlatform
 build
 node_modules
+out/ide-tests
+allure-results

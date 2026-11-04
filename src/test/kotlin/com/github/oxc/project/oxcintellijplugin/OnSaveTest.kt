@@ -37,8 +37,10 @@ class OnSaveTest : OxcLspTestCase() {
         PlatformTestUtil.waitWithEventsDispatching(
             { "Unexpected text after save: ${myFixture.editor.document.text}" },
             { myFixture.editor.document.text == fixedAndFormatted }, 30)
-        assertFalse(FileDocumentManager.getInstance().isFileModified(file))
-        assertEquals(fixedAndFormatted, Files.readString(file.toNioPath()))
+        // The platform writes the file shortly after the last on-save action changes the document.
+        PlatformTestUtil.waitWithEventsDispatching({ "File was not saved: ${Files.readString(file.toNioPath())}" }, {
+            !FileDocumentManager.getInstance().isFileModified(file) && Files.readString(file.toNioPath()) == fixedAndFormatted
+        }, 30)
     }
 
     fun testSavingAfterHighlightingFixesAndFormats() {

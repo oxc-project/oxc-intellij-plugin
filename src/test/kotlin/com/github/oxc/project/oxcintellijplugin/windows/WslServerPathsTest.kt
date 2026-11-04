@@ -9,6 +9,7 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 
 /**
  * The fake server runs inside WSL with the distribution's Node.js, for a project on the Windows
@@ -55,8 +56,10 @@ class WslServerPathsTest : ServerPathsTest() {
         }
         val script = onPooledThread { distribution.getWslPath(dir.resolve("fake-lsp.js")) }
             ?: error("$dir has no path inside ${distribution.msId}")
-        val check = onPooledThread { distribution.executeOnWsl(30_000, "test", "-f", script) }
-        assertEquals("$script is not visible inside ${distribution.msId}: ${check.stderr}", 0, check.exitCode)
+        val check = ProcessBuilder("wsl.exe", "-d", distribution.msId, "--", "test", "-f", script)
+            .redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start()
+        assertTrue("wsl.exe did not finish", check.waitFor(30, TimeUnit.SECONDS))
+        assertEquals("$script is not visible inside ${distribution.msId}", 0, check.exitValue())
     }
 
     /** The server must be given the path inside WSL, such as `/mnt/c/...` for a file on `C:`. */

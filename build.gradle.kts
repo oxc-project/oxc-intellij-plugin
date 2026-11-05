@@ -143,4 +143,11 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
+
+    test {
+        systemProperty(
+            "idea.log.trace.categories",
+            "#com.github.oxc.project.oxcintellijplugin,#com.intellij.platform.lsp",
+        )
+    }
 }

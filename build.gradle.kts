@@ -126,6 +126,14 @@ intellijPlatform {
     }
 }
 
+intellijPlatformTesting {
+    runIde {
+        register("runIdeMonolith") {
+            splitMode = false
+        }
+    }
+}
+
 changelog {
     groups.empty()
     repositoryUrl = properties("pluginRepositoryUrl")

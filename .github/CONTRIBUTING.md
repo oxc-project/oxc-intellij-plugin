@@ -9,3 +9,9 @@ Start an IDE with the plugin installed, running the backend and frontend as sepa
 ```
 
 In IntelliJ IDEA, the **Run IDE with Plugin (Split Mode)** run configuration runs the same Gradle task.
+
+Start an IDE with the plugin installed, running as a single process without split mode:
+
+```bash
+./gradlew :runIdeMonolith
+```

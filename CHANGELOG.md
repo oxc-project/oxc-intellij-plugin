@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for IntelliJ split mode (Remote Development).
+
+### Changed
+
+- **Breaking:** Rewrite the plugin to run in split mode.
+- **Breaking:** Minimum IntelliJ version updated to 2026.3+.
+- Remove the upper limit on supported IntelliJ versions.
+
 ### Removed
 
 - **Breaking:** Remove Oxlint support, including diagnostics, code actions, fix all on save, and settings.

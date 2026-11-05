@@ -3,3 +3,4 @@
 .intellijPlatform
 build
 node_modules
+.kotlin

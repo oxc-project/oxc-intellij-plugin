@@ -1,0 +1,20 @@
+<idea-plugin>
+    <dependencies>
+        <module name="intellij.platform.frontend"/>
+        <module name="Oxc.Shared"/>
+    </dependencies>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="Oxc"
+                           displayType="BALLOON"
+                           bundle="messages.OxcFrontendBundle"
+                           key="notification.group.oxc"/>
+    </extensions>
+
+    <actions>
+        <action id="OxcPingBackendAction"
+                class="com.github.oxc.project.oxcintellijplugin.frontend.ping.OxcPingBackendAction"
+                text="Oxc: Ping Backend"
+                description="Calls the Oxc backend over RPC to confirm the split mode wiring"/>
+    </actions>
+</idea-plugin>

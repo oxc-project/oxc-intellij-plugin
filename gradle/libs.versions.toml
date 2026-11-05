@@ -1,0 +1,16 @@
+[versions]
+# The rpc plugin is a Kotlin compiler plugin, so its version must match the Kotlin version.
+# See https://plugins.jetbrains.com/docs/intellij/configuring-split-mode.html
+kotlin = "2.4.0"
+rpc = "2.4.0-RC-0.1"
+changelog = "2.5.0"
+junit = "4.13.2"
+
+[libraries]
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+[plugins]
+changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+rpc = { id = "rpc", version.ref = "rpc" }

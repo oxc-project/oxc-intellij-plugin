@@ -1,0 +1,138 @@
+import org.jetbrains.changelog.Changelog
+import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask
+import org.jetbrains.intellij.platform.gradle.tasks.aware.SplitModeAware
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+
+fun properties(key: String) = providers.gradleProperty(key)
+fun environment(key: String) = providers.environmentVariable(key)
+
+plugins {
+    alias(libs.plugins.kotlin)
+    alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.rpc) apply false
+    alias(libs.plugins.changelog)
+    id("org.jetbrains.intellij.platform")
+}
+
+group = properties("pluginGroup").get()
+version = properties("pluginVersion").get()
+
+subprojects {
+    apply(plugin = "org.jetbrains.intellij.platform.module")
+    apply(plugin = "rpc")
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+    apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
+
+    // The platform finds a content module's descriptor at lib/modules/<module name>.jar, so each jar
+    // must be named after the module in plugin.xml, such as Oxc.Shared.jar for the shared project.
+    tasks.withType<ComposedJarTask>().configureEach {
+        archiveFileName = "Oxc.${project.name.replaceFirstChar(Char::uppercase)}.jar"
+    }
+}
+
+allprojects {
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        extensions.configure<KotlinJvmProjectExtension> {
+            @Suppress("UnstableApiUsage")
+            jvmToolchain {
+                languageVersion = JavaLanguageVersion.of(25)
+                vendor = JvmVendorSpec.JETBRAINS
+            }
+        }
+    }
+}
+
+dependencies {
+    testImplementation(libs.junit)
+
+    intellijPlatform {
+        // Unreleased/EAP versions do not have an installer.
+        // TODO: Update this to use an installer when configured for a release version
+        //  and to not use the installer when configured for an EAP version.
+        intellijIdea(properties("platformVersion")) {
+            useInstaller = false
+        }
+
+        pluginModule(implementation(project(":shared")))
+        pluginModule(implementation(project(":frontend")))
+        pluginModule(implementation(project(":backend")))
+
+        pluginVerifier()
+        zipSigner()
+        testFramework(TestFrameworkType.Platform)
+    }
+}
+
+intellijPlatform {
+    splitMode = true
+    pluginInstallationTarget = SplitModeAware.PluginInstallationTarget.BOTH
+
+    pluginConfiguration {
+        version = properties("pluginVersion")
+
+        // Extract the <!-- Plugin description --> section from README.md for the plugin's manifest.
+        description = providers.fileContents(layout.projectDirectory.file("README.md")).asText.map {
+            val start = "<!-- Plugin description -->"
+            val end = "<!-- Plugin description end -->"
+
+            with(it.lines()) {
+                if (!containsAll(listOf(start, end))) {
+                    throw GradleException(
+                        "Plugin description section not found in README.md:\n$start ... $end")
+                }
+                subList(indexOf(start) + 1, indexOf(end)).joinToString("\n").let(::markdownToHTML)
+            }
+        }
+
+        val changelog = project.changelog // local variable for configuration cache compatibility
+        changeNotes = properties("pluginVersion").map { pluginVersion ->
+            with(changelog) {
+                renderItem(
+                    (getOrNull(pluginVersion) ?: getUnreleased()).withHeader(false)
+                        .withEmptySections(false),
+                    Changelog.OutputType.HTML,
+                )
+            }
+        }
+
+        ideaVersion {
+            sinceBuild = properties("pluginSinceBuild")
+            untilBuild = provider { null }
+        }
+    }
+
+    signing {
+        certificateChain = environment("CERTIFICATE_CHAIN")
+        privateKey = environment("PRIVATE_KEY")
+        password = environment("PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = environment("PUBLISH_TOKEN")
+        // A pre-release label such as 2.1.7-alpha.3 selects a Marketplace release channel.
+        channels = properties("pluginVersion").map {
+            listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" })
+        }
+    }
+
+    pluginVerification {
+        ides {
+            create(IntelliJPlatformType.IntellijIdeaUltimate, properties("platformVersion"))
+        }
+        ignoredProblemsFile = layout.projectDirectory.file("plugin-verifier-ignored-problems.txt")
+    }
+}
+
+changelog {
+    groups.empty()
+    repositoryUrl = properties("pluginRepositoryUrl")
+}
+
+tasks {
+    publishPlugin {
+        dependsOn(patchChangelog)
+    }
+}

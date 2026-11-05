@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Removed
+
+- **Breaking:** Remove Oxlint support, including diagnostics, code actions, fix all on save, and settings.
+- **Breaking:** Remove Oxfmt support, including formatting, format on save, and settings.
+- **Breaking:** Remove Vite+ support.
+
 ## [0.0.45] - 2026-10-15
 
 ### Added

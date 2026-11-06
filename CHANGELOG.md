@@ -13,6 +13,7 @@
 - **Breaking:** Rewrite the plugin to run in split mode.
 - **Breaking:** Minimum IntelliJ version updated to 2026.3+.
 - Remove the upper limit on supported IntelliJ versions.
+- Oxlint now reloads changed config files itself, instead of the plugin restarting its language server.
 
 ### Removed
 

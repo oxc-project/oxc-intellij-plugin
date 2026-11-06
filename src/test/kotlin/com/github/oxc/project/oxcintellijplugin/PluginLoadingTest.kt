@@ -1,9 +1,12 @@
 package com.github.oxc.project.oxcintellijplugin
 
-import com.github.oxc.project.oxcintellijplugin.shared.ping.OxcPingApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.platform.project.projectId
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlinx.coroutines.runBlocking
 
@@ -19,12 +22,15 @@ class PluginLoadingTest : BasePlatformTestCase() {
     }
 
     fun testFrontendModuleIsLoaded() {
-        assertNotNull(ActionManager.getInstance().getAction("OxcPingBackendAction"))
+        assertNotNull(ActionManager.getInstance().getAction("OxlintRestartServerAction"))
     }
 
     fun testBackendAnswersOverRpc() {
-        val result = runBlocking { OxcPingApi.getInstance().ping() }
+        val projectId = project.projectId()
+        val call = ApplicationManager.getApplication().executeOnPooledThread {
+            runBlocking { OxlintServerApi.getInstance().restart(projectId) }
+        }
 
-        assertEquals(ProcessHandle.current().pid(), result.backendProcessId)
+        PlatformTestUtil.waitForFuture(call, 30_000)
     }
 }

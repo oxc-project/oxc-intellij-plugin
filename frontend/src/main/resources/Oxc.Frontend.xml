@@ -11,10 +11,8 @@
                            key="notification.group.oxc"/>
     </extensions>
 
-    <actions>
-        <action id="OxcPingBackendAction"
-                class="com.github.oxc.project.oxcintellijplugin.frontend.ping.OxcPingBackendAction"
-                text="Oxc: Ping Backend"
-                description="Calls the Oxc backend over RPC to confirm the split mode wiring"/>
+    <actions resource-bundle="messages.OxcFrontendBundle">
+        <action id="OxlintRestartServerAction"
+                class="com.github.oxc.project.oxcintellijplugin.frontend.oxlint.OxlintRestartServerAction"/>
     </actions>
 </idea-plugin>

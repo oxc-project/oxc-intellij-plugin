@@ -12,8 +12,13 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <platform.rpc.backend.remoteApiProvider
-                implementation="com.github.oxc.project.oxcintellijplugin.backend.ping.OxcBackendRpcApiProvider"/>
+                implementation="com.github.oxc.project.oxcintellijplugin.backend.rpc.OxcBackendRpcApiProvider"/>
         <platform.lsp.integrationProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider"/>
     </extensions>
+
+    <projectListeners>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintEditorWatcher"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
 </idea-plugin>

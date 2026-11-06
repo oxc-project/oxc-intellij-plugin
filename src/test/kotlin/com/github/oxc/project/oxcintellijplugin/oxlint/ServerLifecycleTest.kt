@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintEditorWatcher
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
@@ -9,12 +10,18 @@ import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerState
 import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 
 /** Starts a real Oxlint server. Needs Node on PATH and `npm ci` run in the fixture folder. */
@@ -56,6 +63,22 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
 
     FileEditorManager.getInstance(project).closeFile(closedFile)
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+
+    assertSame(server, runningServer())
+  }
+
+  fun testClosingAClientsLastFileKeepsTheServerWhileAnotherClientHasOneOpen() {
+    val file = myFixture.configureFromTempProjectFile("index.js").virtualFile
+    val server = runningServer()
+
+    val scope = CoroutineScope(Job())
+    try {
+      OxlintEditorWatcher().fileClosed(OtherClientHasFilesOpen(project, scope, listOf(file)), file)
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    }
+    finally {
+      scope.cancel()
+    }
 
     assertSame(server, runningServer())
   }
@@ -179,4 +202,21 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
   private fun runningServers(): List<LspClient> =
     LspClientManager.getInstance(project).getClients(OxlintLspIntegrationProvider::class.java)
       .filter { it.state == LspServerState.Running }
+}
+
+/**
+ * What the manager reports while a client closes its last file and another client still has files
+ * open. A light test project has only one client, so this can't come from a real second client.
+ */
+private class OtherClientHasFilesOpen(
+  project: Project,
+  scope: CoroutineScope,
+  private val otherClientFiles: List<VirtualFile>,
+) : FileEditorManagerImpl(project, scope) {
+
+  override val openFiles: Array<VirtualFile>
+    get() = VirtualFile.EMPTY_ARRAY
+
+  override val openFilesWithRemotes: List<VirtualFile>
+    get() = otherClientFiles
 }

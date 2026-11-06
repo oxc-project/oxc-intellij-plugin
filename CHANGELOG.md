@@ -17,6 +17,10 @@
 - **Breaking:** The Oxlint fix kind and nested config settings move out of `flags` in `.idea/OxcSettings.xml`. Existing values are read, but older plugin versions can't read the new fields.
 - Oxlint's manual config path is watched when it's outside the workspace, and changing it restarts the language server.
 
+### Fixed
+
+- With more than one client connected, Oxlint's language server now keeps running while any client has a supported file open.
+
 ### Removed
 
 - **Breaking:** Remove native binaries in Oxlint's manual configuration, and the fix all and fix all on save actions.

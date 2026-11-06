@@ -63,6 +63,7 @@ dependencies {
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
+        testBundledPlugin("JavaScript")
     }
 }
 
@@ -149,5 +150,15 @@ tasks {
             "idea.log.trace.categories",
             "#com.github.oxc.project.oxcintellijplugin,#com.intellij.platform.lsp",
         )
+
+        // The test framework creates its projects here, so this can put them inside WSL.
+        environment("OXC_TEST_TMPDIR").orNull?.takeIf { it.isNotBlank() }?.let {
+            systemProperty("java.io.tmpdir", it)
+            // IJent loads Netty while connecting to WSL, so Netty's temp folder can't be inside WSL.
+            systemProperty(
+                "io.grpc.netty.shaded.io.netty.tmpdir",
+                layout.buildDirectory.dir("tmp/netty").get().asFile.absolutePath,
+            )
+        }
     }
 }

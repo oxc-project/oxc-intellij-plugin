@@ -11,11 +11,19 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  # Only main in the main repository, and anything from the listed fork, can write to the cache.
+  # TODO: Remove the check for nrayburn-tech.
+  CACHE_READ_ONLY: >-
+    ${{ !((github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main')
+    || (github.event.pull_request.head.repo.full_name || github.repository) == 'nrayburn-tech/oxc-intellij-plugin') }}
+
 jobs:
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
@@ -32,8 +40,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
-          # Read only cache when not executing on the main branch.
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
 
       - name: Build Plugin
         run: ./gradlew buildPlugin
@@ -48,6 +55,7 @@ jobs:
     name: Test
     needs: [ build ]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
@@ -61,22 +69,158 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
-          cache-read-only: 'true'
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      # The highlighting tests start the real language server from the fixture's node_modules.
+      - name: Setup Oxlint Highlighting No Config Test
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
 
       - name: Run Tests
         run: ./gradlew check
 
       - name: Collect Tests Result
-        if: ${{ failure() }}
+        if: ${{ failure() || cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tests-result
-          path: ${{ github.workspace }}/build/reports/tests
+          # The sandbox folder starts with a dot, which the upload skips by default.
+          include-hidden-files: true
+          path: |
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+
+  # Runs the test suite as most Windows users run the plugin: without WSL. Tests use Windows' Node.js,
+  # and the WSL-only test is skipped, because no distribution is configured.
+  test-windows:
+    name: Test (Windows)
+    needs: [ build ]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Oxlint Highlighting No Config Test
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Run Tests
+        shell: bash
+        run: ./gradlew test
+
+      - name: Collect Tests Result
+        if: ${{ failure() || cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tests-result-windows
+          include-hidden-files: true
+          path: |
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+
+  # Runs the test suite with Node.js in WSL, for a project on the Windows side and for one stored inside
+  # WSL. Kept apart from the Windows job so that installing WSL neither changes nor slows down that run.
+  test-wsl:
+    name: Test (WSL, ${{ matrix.project }} project)
+    needs: [ build ]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: Windows
+            tmpdir: ''
+          - project: WSL
+            tmpdir: '\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests'
+    env:
+      OXC_TEST_WSL_DISTRO: Ubuntu-24.04
+      OXC_TEST_WSL_NODE: /usr/local/bin/node
+      OXC_TEST_TMPDIR: ${{ matrix.tmpdir }}
+    steps:
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+
+      - name: Setup WSL
+        uses: Vampire/setup-wsl@4c48163d9f981914dd8caa0fc335fe19cca5bff4 # v7.2.0
+        with:
+          distribution: ${{ env.OXC_TEST_WSL_DISTRO }}
+          # The Node.js binary from nodejs.org needs libatomic1, which the distribution doesn't include.
+          additional-packages: curl libatomic1 xz-utils
+          use-cache: ${{ env.CACHE_READ_ONLY != 'true' }}
+
+      # The distribution's own package is too old for Oxlint.
+      - name: Setup Node in WSL
+        shell: wsl-bash {0}
+        run: |
+          version="$(tr -d '\r' < .node-version)"
+          curl -fsSL "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.xz" \
+            | tar -xJ -C /usr/local --strip-components=1
+
+      # Run inside WSL so that the Linux Oxlint binary is installed.
+      - name: Setup Oxlint Highlighting No Config Test
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Create Project Folder in WSL
+        if: ${{ matrix.tmpdir != '' }}
+        shell: wsl-bash {0}
+        run: mkdir -p /tmp/oxc-tests
+
+      # Using Git Bash rewrites OXC_TEST_WSL_NODE into a Windows path which we want to avoid.
+      - name: Run Tests
+        shell: pwsh
+        run: .\gradlew.bat test
+
+      - name: Collect Tests Result
+        if: ${{ failure() || cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tests-result-wsl-${{ matrix.project }}-project
+          include-hidden-files: true
+          path: |
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
 
   verify:
     name: Verify plugin
     needs: [ build ]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       # The verifier downloads full IDEs, which needs more disk space than the runner has free.
       - name: Maximize Build Space
@@ -96,7 +240,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
-          cache-read-only: 'true'
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
 
       - name: Run Plugin Verification
         run: ./gradlew verifyPlugin

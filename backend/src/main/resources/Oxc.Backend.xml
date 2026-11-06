@@ -4,6 +4,7 @@
         <module name="intellij.platform.kernel.backend"/>
         <module name="intellij.platform.rpc.backend"/>
         <module name="Oxc.Shared"/>
+        <module name="intellij.javascript.backend"/>
         <plugin id="com.intellij.modules.lsp"/>
         <plugin id="com.intellij.modules.json"/>
         <plugin id="JavaScript"/>
@@ -12,5 +13,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <platform.rpc.backend.remoteApiProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.ping.OxcBackendRpcApiProvider"/>
+        <platform.lsp.integrationProvider
+                implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider"/>
     </extensions>
 </idea-plugin>

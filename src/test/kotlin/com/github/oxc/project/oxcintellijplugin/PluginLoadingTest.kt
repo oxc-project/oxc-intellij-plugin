@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.ActionManager
@@ -23,6 +24,15 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
     fun testFrontendModuleIsLoaded() {
         assertNotNull(ActionManager.getInstance().getAction("OxlintRestartServerAction"))
+    }
+
+    fun testBackendListsFoldersOverRpc() {
+        val projectId = project.projectId()
+        val call = ApplicationManager.getApplication().executeOnPooledThread<String> {
+            runBlocking { BackendFilesApi.getInstance().listFolder(projectId, "/").path }
+        }
+
+        assertNotNull(PlatformTestUtil.waitForFuture(call, 30_000))
     }
 
     fun testBackendAnswersOverRpc() {

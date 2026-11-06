@@ -2,7 +2,10 @@
 
 package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
+import com.github.oxc.project.oxcintellijplugin.backend.files.BackendFolderLister
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
+import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
+import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFolder
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
 import com.intellij.openapi.application.EDT
 import com.intellij.platform.lsp.api.LspClientManager
@@ -18,6 +21,9 @@ internal class OxcBackendRpcApiProvider : RemoteApiProvider {
     remoteApi(remoteApiDescriptor<OxlintServerApi>()) {
       OxlintServerApiImpl()
     }
+    remoteApi(remoteApiDescriptor<BackendFilesApi>()) {
+      BackendFilesApiImpl()
+    }
   }
 }
 
@@ -30,4 +36,12 @@ private class OxlintServerApiImpl : OxlintServerApi {
         .stopAndRestartClientsIfNeeded(OxlintLspIntegrationProvider::class.java)
     }
   }
+}
+
+private class BackendFilesApiImpl : BackendFilesApi {
+
+  override suspend fun listFolder(projectId: ProjectId?, path: String?): BackendFolder =
+    withContext(Dispatchers.IO) {
+      BackendFolderLister(projectId?.findProjectOrNull()?.basePath).list(path)
+    }
 }

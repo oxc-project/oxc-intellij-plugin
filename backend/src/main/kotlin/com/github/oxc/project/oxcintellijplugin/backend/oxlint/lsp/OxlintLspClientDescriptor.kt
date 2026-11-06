@@ -7,6 +7,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
@@ -32,7 +33,11 @@ class OxlintLspClientDescriptor(
   override fun createCommandLine(): GeneralCommandLine = throw UnsupportedOperationException(
     "Not expected to be called because startServerProcess() is overridden")
 
-  override fun startServerProcess(): OSProcessHandler = serverRun.startProcess()
+  override fun startServerProcess(): OSProcessHandler {
+    val process = serverRun.startProcess()
+    project.service<OxlintOutsideConfigWatcher>().watch(configPath()?.fileOutsideWorkspace)
+    return process
+  }
 
   /**
    * Returns paths that work on the target machine based on the configured interpreter. The default

@@ -140,6 +140,23 @@ class ConfigFileChangeTest : OxcFixtureTestCase() {
     assertSame("The server should not have been restarted", client, client())
   }
 
+  fun testConfigPathOutsideTheWorkspaceRestartsWhenEditedOutsideTheIde() {
+    myFixture.copyDirectoryToProject("no-config", "")
+    val file = myFixture.findFileInTempDir("index.js")
+    val outside = createOutsideFile("custom.json", RULES_OFF)
+    useConfigPath(outside)
+
+    myFixture.configureFromExistingVirtualFile(file)
+    waitForDebuggerSeverity(null)
+    val client = client()
+
+    Files.writeString(Path.of(outside), RULES_ERROR)
+    LocalFileSystem.getInstance().refreshNioFiles(listOf(Path.of(outside)))
+
+    waitForDebuggerSeverity(HighlightSeverity.ERROR)
+    assertNotSame(client, client())
+  }
+
   fun testDefaultConfigIsIgnoredWhileAConfigPathIsSet() {
     myFixture.copyDirectoryToProject("no-config", "")
     val file = myFixture.findFileInTempDir("index.js")

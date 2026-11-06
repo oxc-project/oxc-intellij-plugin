@@ -22,5 +22,7 @@
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintSettingsWatcher"
                   topic="com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintOutsideConfigWatcher$Listener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
 </idea-plugin>

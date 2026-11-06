@@ -15,6 +15,7 @@
 - Remove the upper limit on supported IntelliJ versions.
 - Oxlint now reloads changed config files itself, instead of the plugin restarting its language server.
 - **Breaking:** The Oxlint fix kind and nested config settings move out of `flags` in `.idea/OxcSettings.xml`. Existing values are read, but older plugin versions can't read the new fields.
+- Oxlint's manual config path is watched when it's outside the workspace, and changing it restarts the language server.
 
 ### Removed
 

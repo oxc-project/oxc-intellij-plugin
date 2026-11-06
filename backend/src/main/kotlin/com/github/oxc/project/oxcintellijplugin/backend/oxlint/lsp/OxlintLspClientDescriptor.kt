@@ -2,8 +2,9 @@ package com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp
 
 import com.github.oxc.project.oxcintellijplugin.backend.lsp.LspDisabledCustomization
 import com.github.oxc.project.oxcintellijplugin.backend.lsp.pathToFileUri
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.isOxlintSupportedFile
 import com.github.oxc.project.oxcintellijplugin.backend.process.NodeServerRun
+import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.project.Project
@@ -26,7 +27,7 @@ class OxlintLspClientDescriptor(
   private val serverRun = NodeServerRun(project, executable, listOf("--lsp"), root.path)
 
   override fun isSupportedFile(file: VirtualFile): Boolean =
-    isOxlintSupportedFile(file) && roots.any { VfsUtilCore.isAncestor(it, file, false) }
+    OxlintSettings.getInstance(project).isSupported(file) && roots.any { VfsUtilCore.isAncestor(it, file, false) }
 
   override fun createCommandLine(): GeneralCommandLine = throw UnsupportedOperationException(
     "Not expected to be called because startServerProcess() is overridden")
@@ -51,25 +52,31 @@ class OxlintLspClientDescriptor(
   }
 
   override fun createInitializationOptions(): Any =
-    roots.map { mapOf("workspaceUri" to getFileUri(it), "options" to WORKSPACE_CONFIG) }
+    roots.map { mapOf("workspaceUri" to getFileUri(it), "options" to workspaceConfig()) }
 
   override fun getWorkspaceConfiguration(item: ConfigurationItem): Any? =
-    WORKSPACE_CONFIG.takeIf { roots.any { root -> getFileUri(root) == item.scopeUri } }
+    workspaceConfig().takeIf { roots.any { root -> getFileUri(root) == item.scopeUri } }
+
+  private fun workspaceConfig(): Map<String, Any?> {
+    val state = OxlintSettings.getInstance(project).state
+    return mapOf(
+      "configPath" to configPath()?.serverValue,
+      "disableNestedConfig" to state.disableNestedConfig,
+      "fixKind" to state.fixKind.serverValue,
+      "typeAware" to state.typeAware,
+      "unusedDisableDirectives" to state.unusedDisableDirectives.serverValue,
+    )
+  }
+
+  private fun configPath(): OxlintConfigPath? {
+    val state = OxlintSettings.getInstance(project).state
+    if (state.configurationMode != ConfigurationMode.MANUAL) return null
+
+    return OxlintConfigPath.of(state.configPath, roots.single().path, serverRun::toServerPath, serverRun::toLocalPath)
+  }
 
   override val lspCustomization: LspCustomization = object : LspDisabledCustomization() {
     override val codeActionsCustomizer: LspCodeActionsCustomizer = LspCodeActionsSupport()
     override val diagnosticsCustomizer: LspDiagnosticsCustomizer = OxlintLspDiagnosticsSupport()
-  }
-
-  private companion object {
-
-    // TODO: Read these from the project's settings once the plugin has them.
-    val WORKSPACE_CONFIG = mapOf(
-      "configPath" to null,
-      "disableNestedConfig" to false,
-      "fixKind" to "safe_fix",
-      "typeAware" to false,
-      "unusedDisableDirectives" to "allow",
-    )
   }
 }

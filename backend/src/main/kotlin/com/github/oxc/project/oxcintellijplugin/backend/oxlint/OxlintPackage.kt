@@ -11,12 +11,6 @@ import java.nio.file.Paths
 
 private const val PACKAGE_NAME = "oxlint"
 
-// TODO: Replace with user config values.
-private val SUPPORTED_EXTENSIONS =
-  setOf("astro", "js", "jsx", "cjs", "mjs", "svelte", "ts", "tsx", "cts", "mts", "vue")
-
-fun isOxlintSupportedFile(file: VirtualFile): Boolean = file.extension in SUPPORTED_EXTENSIONS
-
 /** Finds the `oxlint` package to run for a file, and where its server should run from. */
 class OxlintPackage(private val project: Project) {
 

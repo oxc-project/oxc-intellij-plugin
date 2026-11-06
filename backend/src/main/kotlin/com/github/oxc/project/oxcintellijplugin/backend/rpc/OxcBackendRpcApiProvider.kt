@@ -4,10 +4,16 @@ package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
 import com.github.oxc.project.oxcintellijplugin.backend.files.BackendFolderLister
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFolder
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
+import com.intellij.ide.SaveAndSyncHandler
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProjectOrNull
@@ -23,6 +29,9 @@ internal class OxcBackendRpcApiProvider : RemoteApiProvider {
     }
     remoteApi(remoteApiDescriptor<BackendFilesApi>()) {
       BackendFilesApiImpl()
+    }
+    remoteApi(remoteApiDescriptor<OxlintSettingsApi>()) {
+      OxlintSettingsApiImpl()
     }
   }
 }
@@ -44,4 +53,19 @@ private class BackendFilesApiImpl : BackendFilesApi {
     withContext(Dispatchers.IO) {
       BackendFolderLister(projectId?.findProjectOrNull()?.basePath).list(path)
     }
+}
+
+private class OxlintSettingsApiImpl : OxlintSettingsApi {
+
+  override suspend fun load(projectId: ProjectId?): OxlintSettingsData =
+    settingsProject(projectId)?.let { OxlintSettings.getInstance(it).toData() } ?: OxlintSettingsData()
+
+  override suspend fun apply(projectId: ProjectId?, settings: OxlintSettingsData) {
+    val project = settingsProject(projectId) ?: return
+    OxlintSettings.getInstance(project).update(settings)
+    if (!project.isDefault) SaveAndSyncHandler.getInstance().scheduleProjectSave(project)
+  }
+
+  private fun settingsProject(projectId: ProjectId?): Project? =
+    if (projectId == null) ProjectManager.getInstance().defaultProject else projectId.findProjectOrNull()
 }

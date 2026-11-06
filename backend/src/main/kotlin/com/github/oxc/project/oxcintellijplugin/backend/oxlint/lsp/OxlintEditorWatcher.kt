@@ -1,6 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp
 
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.isOxlintSupportedFile
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.vfs.VirtualFile
@@ -16,7 +16,8 @@ import com.intellij.platform.lsp.api.LspClientManager
 class OxlintEditorWatcher : FileEditorManagerListener {
 
   override fun fileClosed(source: FileEditorManager, file: VirtualFile) {
-    if (source.openFiles.none(::isOxlintSupportedFile)) {
+    val settings = OxlintSettings.getInstance(source.project)
+    if (source.openFiles.none(settings::isSupported)) {
       LspClientManager.getInstance(source.project)
         .stopClients(OxlintLspIntegrationProvider::class.java)
     }

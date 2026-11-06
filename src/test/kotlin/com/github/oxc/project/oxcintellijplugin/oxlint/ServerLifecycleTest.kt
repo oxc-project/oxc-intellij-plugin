@@ -1,7 +1,10 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.ApplicationManager
@@ -72,6 +75,92 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
 
     assertEmpty(runningServers())
   }
+
+  fun testApplyingSettingsRestartsTheServer() {
+    myFixture.configureFromTempProjectFile("index.js")
+    val firstServer = runningServer()
+
+    val projectId = project.projectId()
+    val apply = ApplicationManager.getApplication().executeOnPooledThread {
+      runBlocking {
+        val api = OxlintSettingsApi.getInstance()
+        api.apply(projectId, api.load(projectId).copy(typeAware = true))
+      }
+    }
+    PlatformTestUtil.waitForFuture(apply, 30_000)
+
+    assertTrue(settings.state.typeAware)
+    waitUntil("a new server is running") { runningServers().singleOrNull().let { it != null && it !== firstServer } }
+  }
+
+  fun testDisabledModeStartsNoServer() {
+    settings.state.configurationMode = ConfigurationMode.DISABLED
+
+    myFixture.configureFromTempProjectFile("index.js")
+    waitAWhile()
+
+    assertEmpty(allServers())
+  }
+
+  fun testDisablingStopsRunningServersAndEnablingStartsThem() {
+    myFixture.configureFromTempProjectFile("index.js")
+    runningServer()
+
+    settings.update(settings.toData().copy(configurationMode = ConfigurationMode.DISABLED))
+    waitUntil("the server has stopped") { allServers().isEmpty() }
+
+    settings.update(settings.toData().copy(configurationMode = ConfigurationMode.AUTOMATIC))
+    runningServer()
+  }
+
+  fun testCustomExtensionsDecideWhichFilesStartAServer() {
+    settings.state.supportedExtensions = mutableListOf(".json")
+
+    myFixture.configureFromTempProjectFile("index.js")
+    waitAWhile()
+    assertEmpty(allServers())
+
+    myFixture.configureFromTempProjectFile("package.json")
+    runningServer()
+  }
+
+  fun testCustomExtensionsDecideWhichFilesKeepTheServer() {
+    settings.state.supportedExtensions = mutableListOf(".json")
+    val openFile = myFixture.configureFromTempProjectFile("package.json").virtualFile
+    val unsupportedFile = myFixture.configureFromTempProjectFile("index.js").virtualFile
+    val server = runningServer()
+
+    FileEditorManager.getInstance(project).closeFile(unsupportedFile)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertSame(server, runningServer())
+
+    FileEditorManager.getInstance(project).closeFile(openFile)
+    waitUntil("the server has stopped") { runningServers().isEmpty() }
+  }
+
+  fun testManualModeRunsTheConfiguredScript() {
+    val packageFolder = myFixture.findFileInTempDir("node_modules/oxlint/bin/oxlint")
+    settings.state.configurationMode = ConfigurationMode.MANUAL
+    settings.state.binaryPath = packageFolder.path
+
+    myFixture.configureFromTempProjectFile("index.js")
+
+    runningServer()
+  }
+
+  private val settings: OxlintSettings
+    get() = OxlintSettings.getInstance(project)
+
+  /** Gives a server that shouldn't start the time to appear, so that its absence means something. */
+  private fun waitAWhile() {
+    repeat(10) {
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      Thread.sleep(100)
+    }
+  }
+
+  private fun allServers(): Collection<LspClient> =
+    LspClientManager.getInstance(project).getClients(OxlintLspIntegrationProvider::class.java)
 
   /** The backend restarts on the UI thread, so this has to wait without blocking it. */
   private fun restartOverRpc() {

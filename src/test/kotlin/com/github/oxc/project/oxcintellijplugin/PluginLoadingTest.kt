@@ -6,6 +6,7 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.options.Configurable
 import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -24,6 +25,10 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
     fun testFrontendModuleIsLoaded() {
         assertNotNull(ActionManager.getInstance().getAction("OxlintRestartServerAction"))
+    }
+
+    fun testSettingsPageIsRegistered() {
+        assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxlintConfigurable" })
     }
 
     fun testBackendListsFoldersOverRpc() {

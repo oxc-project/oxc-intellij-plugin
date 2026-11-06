@@ -18,7 +18,7 @@
 
 ### Removed
 
-- **Breaking:** Remove Oxlint settings, including manual configuration, and the fix all and fix all on save actions.
+- **Breaking:** Remove native binaries in Oxlint's manual configuration, and the fix all and fix all on save actions.
 - **Breaking:** Remove Oxfmt support, including formatting, format on save, and settings.
 - **Breaking:** Remove Vite+ support.
 

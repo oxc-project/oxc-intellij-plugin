@@ -9,6 +9,12 @@
                            displayType="BALLOON"
                            bundle="messages.OxcFrontendBundle"
                            key="notification.group.oxc"/>
+        <projectConfigurable parentId="tools"
+                             instance="com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable"
+                             id="OxlintConfigurable"
+                             bundle="messages.OxcFrontendBundle"
+                             key="oxlint.settings.name"
+                             nonDefaultProject="false"/>
     </extensions>
 
     <actions resource-bundle="messages.OxcFrontendBundle">

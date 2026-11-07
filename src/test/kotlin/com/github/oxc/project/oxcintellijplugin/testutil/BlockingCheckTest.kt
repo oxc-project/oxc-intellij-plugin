@@ -19,9 +19,8 @@ class BlockingCheckTest : TestCase() {
   }
 
   fun testWaitingForAFutureIsFound() {
-    val future = CompletableFuture<Unit>().completeOnTimeout(Unit, 100, TimeUnit.MILLISECONDS)
-
-    assertFound("jdk.ThreadPark") { future.get() }
+    // The timer starts inside the check. Otherwise it can finish while a slow machine starts the recording.
+    assertFound("jdk.ThreadPark") { CompletableFuture<Unit>().completeOnTimeout(Unit, 100, TimeUnit.MILLISECONDS).get() }
   }
 
   fun testSleepingIsFound() {

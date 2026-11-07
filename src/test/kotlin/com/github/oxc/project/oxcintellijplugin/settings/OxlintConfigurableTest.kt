@@ -69,6 +69,12 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
     }
   }
 
+  fun testPageFitsWithoutScrollingSideways() {
+    openPage { _, panel ->
+      assertTrue("Width ${panel.preferredSize.width}", panel.preferredSize.width < 640)
+    }
+  }
+
   fun testResetShowsWhatChangedOnTheBackend() {
     openPage { configurable, panel ->
       settings.state.typeAware = true

@@ -34,6 +34,7 @@ import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
+import com.intellij.ui.dsl.builder.COLUMNS_MEDIUM
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.MutableProperty
 import com.intellij.ui.dsl.builder.Panel
@@ -41,6 +42,7 @@ import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
+import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.builder.selected
 import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
@@ -258,7 +260,9 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
 
   private fun Panel.extensionsRow(enabled: ComponentPredicate) {
     row(OxcFrontendBundle.message("oxlint.settings.extensions")) {
+      // Without a set width, the page grows as wide as the text and scrolls sideways.
       val cell = expandableTextField(::parseExtensions) { it.joinToString(",") }
+        .columns(COLUMNS_MEDIUM)
         .align(AlignX.FILL)
         .bindText(
           { model.supportedExtensions.ifEmpty { DEFAULT_OXLINT_EXTENSIONS }.joinToString(",") },
@@ -275,7 +279,9 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
         }
       cell.comment(
         OxcFrontendBundle.message("oxlint.settings.extensions.comment") + " <a href=\"reset\">" +
-        OxcFrontendBundle.message("oxlint.settings.extensions.reset") + "</a>"
+        OxcFrontendBundle.message("oxlint.settings.extensions.reset") + "</a>",
+        // Shorter than the default, which is what would make the page wider than the dialog.
+        55,
       )
       cell.comment!!.addHyperlinkListener { event ->
         if (event.eventType == HyperlinkEvent.EventType.ACTIVATED && event.description == "reset") {

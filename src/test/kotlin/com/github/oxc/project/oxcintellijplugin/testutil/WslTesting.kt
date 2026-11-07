@@ -17,9 +17,9 @@ import java.util.concurrent.TimeUnit
  */
 object WslTesting {
 
-  private val distributionId: String? = System.getenv("OXC_TEST_WSL_DISTRO")?.takeIf { it.isNotBlank() }
+  val distributionId: String? = System.getenv("OXC_TEST_WSL_DISTRO")?.takeIf { it.isNotBlank() }
 
-  private val nodePath: String =
+  val nodePath: String =
     System.getenv("OXC_TEST_WSL_NODE")?.takeIf { it.isNotBlank() } ?: "/usr/local/bin/node"
 
   val enabled: Boolean

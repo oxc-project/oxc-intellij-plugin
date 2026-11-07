@@ -20,10 +20,11 @@
 ### Fixed
 
 - With more than one client connected, Oxlint's language server now keeps running while any client has a supported file open.
+- A manual Oxlint binary at a path into WSL now runs inside WSL, instead of through Node.
 
 ### Removed
 
-- **Breaking:** Remove native binaries in Oxlint's manual configuration, and the fix all and fix all on save actions.
+- **Breaking:** Remove the fix all and fix all on save actions.
 - **Breaking:** Remove Oxfmt support, including formatting, format on save, and settings.
 - **Breaking:** Remove Vite+ support.
 

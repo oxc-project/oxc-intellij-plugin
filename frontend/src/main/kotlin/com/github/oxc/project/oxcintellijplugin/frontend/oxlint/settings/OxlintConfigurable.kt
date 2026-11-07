@@ -204,12 +204,10 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
     indent {
       pathRow(
         OxcFrontendBundle.message("oxlint.settings.binary.path"),
-        OxcFrontendBundle.message("oxlint.settings.binary.path.comment"),
         MutableProperty({ model.binaryPath }, { model = model.copy(binaryPath = it) }),
       ).visibleIf(manual.selected)
       pathRow(
         OxcFrontendBundle.message("oxlint.settings.config.path"),
-        null,
         MutableProperty({ model.configPath }, { model = model.copy(configPath = it) }),
       ).visibleIf(manual.selected)
     }
@@ -247,7 +245,7 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
     { selected -> if (selected) model = model.copy(configurationMode = mode) },
   )
 
-  private fun Panel.pathRow(label: String, comment: String?, property: MutableProperty<String>): Row =
+  private fun Panel.pathRow(label: String, property: MutableProperty<String>): Row =
     row(label) {
       val field = TextFieldWithBrowseButton()
       field.addActionListener {
@@ -256,7 +254,6 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
       cell(field)
         .align(AlignX.FILL)
         .bind({ it.text }, { component, value -> component.text = value }, property)
-        .also { if (comment != null) it.comment(comment) }
     }
 
   private fun Panel.extensionsRow(enabled: ComponentPredicate) {

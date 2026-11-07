@@ -1,9 +1,11 @@
 package com.github.oxc.project.oxcintellijplugin.testutil
 
+import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.SystemInfo
+import java.nio.file.Path
 import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
 
@@ -26,6 +28,10 @@ object WslTesting {
   /** The distribution's Node.js, as the project interpreter would be set in the IDE. */
   fun nodeInterpreterRef(): NodeJsInterpreterRef =
     NodeJsInterpreterRef.create(WslNodeInterpreter(distributionId!!, nodePath))
+
+  /** A local path as the distribution sees it. */
+  fun toWslPath(localPath: String): String =
+    onPooledThread { checkNotNull(WSLDistribution(distributionId!!).getWslPath(Path.of(localPath))) }
 
   /**
    * Runs [block] off the EDT. Starting a server may run `wsl.exe`, which the IDE forbids on the EDT

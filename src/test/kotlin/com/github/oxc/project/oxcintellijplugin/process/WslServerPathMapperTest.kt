@@ -57,6 +57,11 @@ class WslServerPathMapperTest : TestCase() {
     assertNull(mapper.toLocalPath("a.js"))
   }
 
+  fun testUncPathFromTheServerHasNoLocalPath() {
+    assertNull(mapper.toLocalPath("//wsl.localhost/Ubuntu/home/x/a.js"))
+    assertNull(mapper.toLocalPath("//server/share/a.js"))
+  }
+
   fun testConversionsDoNotBlock() {
     assertDoesNotBlock {
       mapper.toServerPath("C:/Users/me/a.js")

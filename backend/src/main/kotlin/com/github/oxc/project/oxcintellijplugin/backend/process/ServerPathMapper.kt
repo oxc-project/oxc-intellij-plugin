@@ -46,7 +46,8 @@ class WslServerPathMapper(
     }
 
   override fun toLocalPath(serverPath: String): String? {
-    if (!serverPath.startsWith("/")) return null
+    // A path that starts with two slashes is a UNC path on the IDE's side, not one from the server.
+    if (!serverPath.startsWith("/") || serverPath.startsWith("//")) return null
 
     val localPath = distribution.getWindowsPath(serverPath) { mountRoot }
     val wslPath = WslPath.parseWindowsUncPath(localPath) ?: return localPath

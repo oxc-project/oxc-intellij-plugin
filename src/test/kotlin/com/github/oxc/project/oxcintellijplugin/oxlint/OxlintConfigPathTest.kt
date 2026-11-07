@@ -1,6 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintConfigPath
+import com.github.oxc.project.oxcintellijplugin.backend.process.WslServerPathMapper
+import com.intellij.execution.wsl.WSLDistribution
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -19,6 +21,7 @@ class OxlintConfigPathTest {
       { path ->
         when {
           path.startsWith("/mnt/c/") -> "C:/" + path.removePrefix("/mnt/c/")
+          path.startsWith("//") -> null
           path.startsWith("/") -> "//wsl.localhost/Ubuntu$path"
           else -> null
         }
@@ -78,6 +81,31 @@ class OxlintConfigPathTest {
     assertEquals(
       OxlintConfigPath("a.json", null),
       wsl("/home/me/work/a.json", workspace = "//wsl.localhost/Ubuntu/home/me/work"),
+    )
+  }
+
+  @Test
+  fun uncPathInAWslProjectIsRelativeWithTheRealMapper() {
+    val workspace = "//wsl.localhost/Ubuntu/home/me/work"
+    val mapper = WslServerPathMapper(WSLDistribution("Ubuntu"), "/mnt/", workspace)
+
+    for (configured in listOf("$workspace/configs/a.json", "\\\\wsl.localhost\\Ubuntu\\home\\me\\work\\configs\\a.json")) {
+      assertEquals(
+        OxlintConfigPath("configs/a.json", null),
+        OxlintConfigPath.of(configured, workspace, mapper::toServerPath, mapper::toLocalPath),
+      )
+    }
+  }
+
+  @Test
+  fun uncPathOutsideAWslProjectIsWatchedAsWritten() {
+    val workspace = "//wsl.localhost/Ubuntu/home/me/work"
+    val outside = "//wsl.localhost/Ubuntu/home/me/other/a.json"
+    val mapper = WslServerPathMapper(WSLDistribution("Ubuntu"), "/mnt/", workspace)
+
+    assertEquals(
+      outside,
+      OxlintConfigPath.of(outside, workspace, mapper::toServerPath, mapper::toLocalPath)?.fileOutsideWorkspace,
     )
   }
 }

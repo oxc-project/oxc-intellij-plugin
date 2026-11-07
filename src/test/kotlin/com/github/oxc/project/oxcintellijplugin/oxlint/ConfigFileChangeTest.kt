@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspInte
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.WriteAction
@@ -96,7 +97,7 @@ class ConfigFileChangeTest : OxcFixtureTestCase() {
     myFixture.copyDirectoryToProject("no-config", "")
     val file = myFixture.findFileInTempDir("index.js")
     val outside = createOutsideFile("base.json", RULES_OFF)
-    createConfig(file.parent, """{ "extends": ["${FileUtil.toSystemIndependentName(outside)}"] }""")
+    createConfig(file.parent, """{ "extends": ["${serverPath(outside)}"] }""")
     myFixture.configureFromExistingVirtualFile(file)
     waitForDebuggerSeverity(null)
     val client = client()
@@ -197,6 +198,10 @@ class ConfigFileChangeTest : OxcFixtureTestCase() {
     settings.state.configPath = path
   }
 
+  /** The server reads `extends` itself, so it has to be a path that the server can reach. */
+  private fun serverPath(localPath: String): String =
+    if (WslTesting.enabled) WslTesting.toWslPath(localPath) else FileUtil.toSystemIndependentName(localPath)
+
   /** Written with plain file calls, so that the IDE hasn't loaded the file. */
   private fun createOutsideFile(name: String, content: String): String {
     val folder = FileUtil.createTempDirectory("oxc-outside", null, true).toPath()
@@ -218,8 +223,15 @@ class ConfigFileChangeTest : OxcFixtureTestCase() {
   private fun debuggerSeverity(): HighlightSeverity? =
     myFixture.doHighlighting().firstOrNull { "`debugger` statement" in it.description.orEmpty() }?.severity
 
+  /**
+   * No debugger diagnostic also looks like the server not having answered yet, so this waits for the
+   * diagnostic of another rule that the configs in these tests leave on.
+   */
   private fun waitForDebuggerSeverity(expected: HighlightSeverity?, holdFor: Duration = Duration.ZERO) {
-    waitUntil("the debugger diagnostic has severity $expected") { debuggerSeverity() == expected }
+    waitUntil("the debugger diagnostic has severity $expected") {
+      val diagnostics = myFixture.doHighlighting().map { it.description.orEmpty() }
+      diagnostics.any { "`new Array(singleArgument)`" in it } && debuggerSeverity() == expected
+    }
     val deadline = TimeSource.Monotonic.markNow() + holdFor
     while (deadline.hasNotPassedNow()) {
       assertEquals(expected, debuggerSeverity())

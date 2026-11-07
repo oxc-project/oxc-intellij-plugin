@@ -8,6 +8,7 @@ import com.intellij.platform.rpc.RemoteApiProviderService
 import fleet.rpc.RemoteApi
 import fleet.rpc.Rpc
 import fleet.rpc.remoteApiDescriptor
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 val DEFAULT_OXLINT_EXTENSIONS: List<String> = listOf(
@@ -32,6 +33,9 @@ interface OxlintSettingsApi : RemoteApi<Unit> {
   /** Stores the settings, and restarts the servers if anything changed. */
   suspend fun apply(projectId: ProjectId?, settings: OxlintSettingsData)
 
+  /** The current settings, then each change, for frontend code that can't wait for a [load]. */
+  suspend fun updates(projectId: ProjectId): Flow<OxlintSettingsData>
+
   companion object {
     suspend fun getInstance(): OxlintSettingsApi =
       RemoteApiProviderService.resolve(remoteApiDescriptor<OxlintSettingsApi>())
@@ -50,3 +54,7 @@ data class OxlintSettingsData(
   val disableNestedConfig: Boolean = false,
   val fixKind: OxlintFixKind = OxlintFixKind.SAFE_FIX,
 )
+
+/** An empty list of [configured] extensions means [DEFAULT_OXLINT_EXTENSIONS]. */
+fun isOxlintSupportedExtension(configured: List<String>, extension: String?): Boolean =
+  extension != null && ".$extension" in configured.ifEmpty { DEFAULT_OXLINT_EXTENSIONS }

@@ -16,8 +16,13 @@ class OxlintLspIntegrationProvider : LspIntegrationProvider {
     file: VirtualFile,
     clientStarter: LspIntegrationProvider.LspClientStarter,
   ) {
+    createDescriptor(project, file)?.let(clientStarter::ensureClientStarted)
+  }
+
+  /** Returns null if Oxlint shouldn't run for the file, or there's nothing to run. */
+  fun createDescriptor(project: Project, file: VirtualFile): OxlintLspClientDescriptor? {
     val settings = OxlintSettings.getInstance(project)
-    if (!settings.isEnabled || !settings.isSupported(file)) return
+    if (!settings.isEnabled || !settings.isSupported(file)) return null
 
     val oxlint = OxlintPackage(project)
     val nodePackage = oxlint.find(file)
@@ -30,9 +35,9 @@ class OxlintLspIntegrationProvider : LspIntegrationProvider {
     if (executable == null || root == null) {
       thisLogger().debug(
         "Not starting Oxlint for ${file.path}: package=$nodePackage, executable=$executable, root=$root")
-      return
+      return null
     }
 
-    clientStarter.ensureClientStarted(OxlintLspClientDescriptor(project, root, executable))
+    return OxlintLspClientDescriptor(project, root, executable)
   }
 }

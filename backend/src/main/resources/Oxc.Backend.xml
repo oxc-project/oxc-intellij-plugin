@@ -13,6 +13,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <platform.rpc.backend.remoteApiProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.rpc.OxcBackendRpcApiProvider"/>
+        <registryKey key="oxc.lint.fix.all.timeout.ms"
+                     defaultValue="30000"
+                     description="Per-file timeout in milliseconds for computing oxlint fixes (diagnostic warm-up plus code action request). Used by 'Fix All' on save and the 'Apply Oxlint Quick Fixes' action. Values less than or equal to 0 fall back to the default."/>
         <platform.lsp.integrationProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider"/>
     </extensions>

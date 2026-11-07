@@ -3,15 +3,22 @@ package com.github.oxc.project.oxcintellijplugin
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.ide.vfs.rpcId
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.util.Locale
 import java.util.ResourceBundle
@@ -35,6 +42,15 @@ class PluginLoadingTest : BasePlatformTestCase() {
         assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxlintConfigurable" })
     }
 
+    fun testFixAllIsInTheMenus() {
+        val action = ActionManager.getInstance().getAction("OxlintApplyFixAllAction")
+        assertNotNull(action)
+        for (group in listOf("EditorPopupMenu", "ProjectViewPopupMenu")) {
+            val children = (ActionManager.getInstance().getAction(group) as DefaultActionGroup).getChildren(ActionManager.getInstance())
+            assertTrue(group, action in children)
+        }
+    }
+
     fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {
         for (name in listOf("messages.OxcFrontendBundle", "messages.OxcBackendBundle")) {
             val bundle = ResourceBundle.getBundle(name, Locale.ROOT, bundleLoader(name))
@@ -47,6 +63,29 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
     private fun bundleLoader(name: String): ClassLoader =
         (if ("Frontend" in name) OxlintConfigurable::class.java else OxlintSettings::class.java).classLoader
+
+    fun testRegistryKeyIsDefined() {
+        assertEquals(30000, Registry.intValue("oxc.lint.fix.all.timeout.ms"))
+    }
+
+    fun testFixAllAnswersOverRpc() {
+        val projectId = project.projectId()
+        val file = myFixture.addFileToProject("notes.txt", "").virtualFile.rpcId()
+        val call = ApplicationManager.getApplication().executeOnPooledThread<OxlintFixAllResult> {
+            runBlocking { OxlintServerApi.getInstance().fixAll(projectId, file) }
+        }
+
+        assertEquals(OxlintFixAllResult.UnsupportedFile, PlatformTestUtil.waitForFuture(call, 30_000))
+    }
+
+    fun testSettingsUpdatesAnswerOverRpc() {
+        val projectId = project.projectId()
+        val call = ApplicationManager.getApplication().executeOnPooledThread<OxlintSettingsData> {
+            runBlocking { OxlintSettingsApi.getInstance().updates(projectId).first() }
+        }
+
+        assertEquals(OxlintSettings.getInstance(project).toData(), PlatformTestUtil.waitForFuture(call, 30_000))
+    }
 
     fun testBackendListsFoldersOverRpc() {
         val projectId = project.projectId()

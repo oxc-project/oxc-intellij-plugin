@@ -1,8 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings
 
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.DEFAULT_OXLINT_EXTENSIONS
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.isOxlintSupportedExtension
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SettingsCategory
 import com.intellij.openapi.components.SimplePersistentStateComponent
@@ -27,10 +27,8 @@ class OxlintSettings(private val project: Project) :
   val isEnabled: Boolean
     get() = state.configurationMode != ConfigurationMode.DISABLED
 
-  fun isSupported(file: VirtualFile): Boolean {
-    val extensions = state.supportedExtensions.ifEmpty { DEFAULT_OXLINT_EXTENSIONS }
-    return file.extension?.let { ".$it" in extensions } == true
-  }
+  fun isSupported(file: VirtualFile): Boolean =
+    isOxlintSupportedExtension(state.supportedExtensions, file.extension)
 
   /** Called when the file is read, including when something outside the IDE changes it. */
   override fun loadState(state: OxlintSettingsState) {

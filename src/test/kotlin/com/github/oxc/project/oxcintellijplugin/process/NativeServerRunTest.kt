@@ -50,6 +50,11 @@ class NativeServerRunTest : TestCase() {
     assertTrue(isNodeScript("oxlint", folder.toString()))
   }
 
+  // In WSL, the working directory's file system would read a Windows path as a relative name.
+  fun testAbsolutePathIsReadWithoutTheWorkingDirectory() {
+    assertTrue(isNodeScript(write("oxlint", "#!/usr/bin/env node\n"), "\u0000 can't be a path"))
+  }
+
   fun testCommandOnThePathIsNotANodeScript() {
     assertFalse(isNodeScript("oxlint", folder.toString()))
   }

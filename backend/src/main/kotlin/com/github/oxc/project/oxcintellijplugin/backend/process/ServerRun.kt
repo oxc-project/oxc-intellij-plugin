@@ -34,7 +34,9 @@ interface ServerRun : ServerPathMapper {
  */
 fun isNodeScript(executable: String, workingDirectory: String): Boolean =
   try {
-    Files.newInputStream(Path.of(workingDirectory).resolve(executable)).use {
+    // Not resolved if absolute, because a working directory in WSL would read a Windows path as a relative name.
+    val path = Path.of(executable).takeIf(Path::isAbsolute) ?: Path.of(workingDirectory).resolve(executable)
+    Files.newInputStream(path).use {
       String(it.readNBytes(NODE_SHEBANG.length), Charsets.US_ASCII) == NODE_SHEBANG
     }
   }

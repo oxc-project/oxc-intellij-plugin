@@ -6,6 +6,7 @@ import com.intellij.ide.actionsOnSave.ActionOnSaveComment
 import com.intellij.ide.actionsOnSave.ActionOnSaveContext
 import com.intellij.ide.actionsOnSave.ActionOnSaveInfo
 import com.intellij.ide.actionsOnSave.ActionOnSaveInfoProvider
+import com.intellij.openapi.util.Key
 import com.intellij.ui.components.ActionLink
 
 private const val OXLINT_CONFIGURABLE_ID = "OxlintConfigurable"
@@ -20,29 +21,37 @@ class OxcOnSaveInfoProvider : ActionOnSaveInfoProvider() {
     listOf(OxcBackendBundle.message("oxlint.fix.all.on.save.checkbox.on.actions.on.save.page"))
 }
 
-/** Edits the setting directly. The Oxlint page is frontend code, so it can't mirror that page's checkbox. */
+private val PENDING_FIX_ALL_ON_SAVE = Key.create<Boolean>("oxc.oxlint.pending.fix.all.on.save")
+
+/**
+ * The only place to edit fix on save. An unapplied edit is kept in the context, because the platform
+ * makes new rows each time the page is shown.
+ */
 class OxlintFixAllOnSaveInfo(context: ActionOnSaveContext) : ActionOnSaveInfo(context) {
 
   private val settings: OxlintSettings
     get() = OxlintSettings.getInstance(project)
 
-  private var enabled = settings.isFixAllOnSaveEnabled
+  private var pending: Boolean?
+    get() = context.getUserData(PENDING_FIX_ALL_ON_SAVE)
+    set(value) = context.putUserData(PENDING_FIX_ALL_ON_SAVE, value)
 
   override fun getActionOnSaveName(): String =
     OxcBackendBundle.message("oxlint.run.fix.all.on.save.checkbox.on.actions.on.save.page")
 
   override fun isSaveActionApplicable(): Boolean = settings.isEnabled
 
-  override fun isActionOnSaveEnabled(): Boolean = enabled
+  override fun isActionOnSaveEnabled(): Boolean = pending ?: settings.isFixAllOnSaveEnabled
 
   override fun setActionOnSaveEnabled(enabled: Boolean) {
-    this.enabled = enabled
+    pending = enabled
   }
 
-  public override fun isModified(): Boolean = enabled != settings.isFixAllOnSaveEnabled
+  public override fun isModified(): Boolean = pending.let { it != null && it != settings.isFixAllOnSaveEnabled }
 
   public override fun apply() {
-    settings.update(settings.toData().copy(fixAllOnSave = enabled))
+    pending?.let(settings::updateFixAllOnSave)
+    pending = null
   }
 
   override fun getComment(): ActionOnSaveComment = ActionOnSaveComment.info(
@@ -51,6 +60,6 @@ class OxlintFixAllOnSaveInfo(context: ActionOnSaveContext) : ActionOnSaveInfo(co
 
   /** The page isn't in a thin client's backend settings, so a link there would go nowhere. */
   override fun getActionLinks(): List<ActionLink> =
-    if (getSettings()?.find(OXLINT_CONFIGURABLE_ID) == null) emptyList()
+    if (getSettings().find(OXLINT_CONFIGURABLE_ID) == null) emptyList()
     else listOf(createGoToPageInSettingsLink(OXLINT_CONFIGURABLE_ID))
 }

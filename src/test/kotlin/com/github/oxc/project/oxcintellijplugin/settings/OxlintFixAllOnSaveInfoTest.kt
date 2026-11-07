@@ -19,10 +19,13 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
   private val settings: OxlintSettings
     get() = OxlintSettings.getInstance(project)
 
+  private lateinit var context: ActionOnSaveContext
+
   // Light test projects are shared between tests, and so are their settings.
   override fun setUp() {
     super.setUp()
     settings.loadState(OxlintSettingsState())
+    context = newContext()
   }
 
   fun testApplyStoresTheValue() {
@@ -37,6 +40,57 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
 
     assertTrue(settings.state.fixAllOnSave)
     assertFalse(row.isModified())
+  }
+
+  // The platform makes new rows each time the Actions on Save page is shown.
+  fun testAnUnappliedChangeSurvivesLeavingThePageAndComingBack() {
+    row().isActionOnSaveEnabled = true
+
+    val rowAfterComingBack = row()
+
+    assertTrue(rowAfterComingBack.isActionOnSaveEnabled)
+    assertTrue(rowAfterComingBack.isModified())
+
+    rowAfterComingBack.apply()
+
+    assertTrue(settings.state.fixAllOnSave)
+  }
+
+  fun testUndoingAnUnappliedChangeLeavesNothingToApply() {
+    row().isActionOnSaveEnabled = true
+    row().isActionOnSaveEnabled = false
+
+    assertFalse(row().isActionOnSaveEnabled)
+    assertFalse(row().isModified())
+  }
+
+  fun testANewDialogDoesNotSeeAnotherDialogsUnappliedChange() {
+    row().isActionOnSaveEnabled = true
+
+    val rowInANewDialog = OxlintFixAllOnSaveInfo(newContext())
+
+    assertFalse(rowInANewDialog.isActionOnSaveEnabled)
+    assertFalse(rowInANewDialog.isModified())
+  }
+
+  fun testAppliedRowFollowsLaterChangesToTheSetting() {
+    val row = row()
+    row.isActionOnSaveEnabled = true
+    row.apply()
+
+    settings.updateFixAllOnSave(false)
+
+    assertFalse(row().isActionOnSaveEnabled)
+    assertFalse(row().isModified())
+  }
+
+  fun testApplyingAnUntouchedRowKeepsTheValueStoredWhileDisabled() {
+    settings.state.fixAllOnSave = true
+    settings.state.configurationMode = ConfigurationMode.DISABLED
+
+    row().apply()
+
+    assertTrue(settings.state.fixAllOnSave)
   }
 
   fun testUnavailableWhileDisabled() {
@@ -64,18 +118,20 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
     project.messageBus.connect(testRootDisposable)
       .subscribe(OxlintSettingsListener.TOPIC, OxlintSettingsListener { changes += it })
 
-    settings.update(settings.toData().copy(fixAllOnSave = true))
+    settings.updateFixAllOnSave(true)
     settings.update(settings.toData().copy(typeAware = true))
 
     assertEquals(listOf(false, true), changes)
   }
 
-  /** The platform only creates these for the settings dialog. */
-  private fun row(): OxlintFixAllOnSaveInfo {
+  private fun row(): OxlintFixAllOnSaveInfo = OxlintFixAllOnSaveInfo(context)
+
+  /** The platform only creates these for the settings dialog, and keeps one while the dialog is open. */
+  private fun newContext(): ActionOnSaveContext {
     val constructor = ActionOnSaveContext::class.java.getDeclaredConstructor(
       Project::class.java, Settings::class.java, Disposable::class.java)
     constructor.isAccessible = true
-    return OxlintFixAllOnSaveInfo(constructor.newInstance(project, NoPages(), testRootDisposable))
+    return constructor.newInstance(project, NoPages(), testRootDisposable)
   }
 
   private class NoPages : Settings(emptyList()) {

@@ -83,7 +83,8 @@ class FixAllActionTest : BasePlatformTestCase() {
 
   fun testSavingWithNothingToFixStaysQuiet() {
     val notifications = collectNotifications()
-    settings.update(settings.toData().copy(fixKind = OxlintFixKind.NONE, fixAllOnSave = true))
+    settings.update(settings.toData().copy(fixKind = OxlintFixKind.NONE))
+    settings.updateFixAllOnSave(true)
     val document = FileDocumentManager.getInstance().getDocument(file("a.js"))!!
     val call = ApplicationManager.getApplication().executeOnPooledThread {
       runBlocking { OxlintFixAllOnSaveAction().updateDocument(project, document) }

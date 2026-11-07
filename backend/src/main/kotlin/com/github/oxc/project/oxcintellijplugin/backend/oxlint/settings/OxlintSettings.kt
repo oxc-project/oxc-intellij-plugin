@@ -54,7 +54,6 @@ class OxlintSettings(private val project: Project) :
     unusedDisableDirectives = state.unusedDisableDirectives,
     supportedExtensions = state.supportedExtensions.toList(),
     typeAware = state.typeAware,
-    fixAllOnSave = state.fixAllOnSave,
     disableNestedConfig = state.disableNestedConfig,
     fixKind = state.fixKind,
   )
@@ -70,16 +69,21 @@ class OxlintSettings(private val project: Project) :
     state.unusedDisableDirectives = data.unusedDisableDirectives
     state.supportedExtensions = data.supportedExtensions.toMutableList()
     state.typeAware = data.typeAware
-    state.fixAllOnSave = data.fixAllOnSave
     state.disableNestedConfig = data.disableNestedConfig
     state.fixKind = data.fixKind
     notifyChanged(previous)
   }
 
   /** Fix on save happens in the plugin, so the servers don't need to know that it changed. */
+  fun updateFixAllOnSave(enabled: Boolean) {
+    if (state.fixAllOnSave == enabled) return
+
+    state.fixAllOnSave = enabled
+    project.messageBus.syncPublisher(OxlintSettingsListener.TOPIC).settingsChanged(false)
+  }
+
   private fun notifyChanged(previous: OxlintSettingsData) {
-    val affectsServers = toData().copy(fixAllOnSave = false) != previous.copy(fixAllOnSave = false)
-    project.messageBus.syncPublisher(OxlintSettingsListener.TOPIC).settingsChanged(affectsServers)
+    project.messageBus.syncPublisher(OxlintSettingsListener.TOPIC).settingsChanged(toData() != previous)
   }
 
   companion object {

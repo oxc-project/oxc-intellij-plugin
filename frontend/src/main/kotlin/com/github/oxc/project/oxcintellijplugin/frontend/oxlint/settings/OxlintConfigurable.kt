@@ -50,6 +50,9 @@ import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.ui.layout.ComponentPredicate
 import com.intellij.ui.layout.not
 import fleet.rpc.client.durable
+import java.awt.BorderLayout
+import javax.swing.JComponent
+import javax.swing.event.HyperlinkEvent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -59,9 +62,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.awt.BorderLayout
-import javax.swing.JComponent
-import javax.swing.event.HyperlinkEvent
 
 private val EXTENSION_PATTERN = Regex("^\\.[a-zA-Z0-9]+$")
 
@@ -149,8 +149,11 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
   override fun apply() {
     if (!isLoaded) return
 
-    panel?.apply()
+    val dialogPanel = panel ?: return
+    dialogPanel.apply()
     client.apply(model)
+    // What's stored can be written differently from what was typed, such as spaces in the extensions.
+    dialogPanel.reset()
   }
 
   override fun reset() {
@@ -232,12 +235,6 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
     }.enabledIf(enabled)
 
     row {
-      checkBox(OxcFrontendBundle.message("oxlint.settings.run.fix.all.on.save"))
-        .bindSelected(
-          { model.configurationMode != ConfigurationMode.DISABLED && model.fixAllOnSave },
-          // The stored value is kept while Oxlint is disabled, when the box is always unchecked.
-          { if (model.configurationMode != ConfigurationMode.DISABLED) model = model.copy(fixAllOnSave = it) },
-        )
       cell(ActionsOnSaveConfigurable.createGoToActionsOnSavePageLink())
     }.enabledIf(enabled)
 
@@ -292,7 +289,7 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
         OxcFrontendBundle.message("oxlint.settings.extensions.comment") + " <a href=\"reset\">" +
         OxcFrontendBundle.message("oxlint.settings.extensions.reset") + "</a>",
         // Shorter than the default, which is what would make the page wider than the dialog.
-        55,
+        45,
       )
       cell.comment!!.addHyperlinkListener { event ->
         if (event.eventType == HyperlinkEvent.EventType.ACTIVATED && event.description == "reset") {

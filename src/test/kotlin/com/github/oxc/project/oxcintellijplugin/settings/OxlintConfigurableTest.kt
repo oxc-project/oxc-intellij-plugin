@@ -11,6 +11,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.DEFAULT_O
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.util.ui.UIUtil
@@ -69,28 +70,23 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
     }
   }
 
-  fun testFixOnSaveCheckboxStoresItsValue() {
-    openPage { configurable, panel ->
-      val checkBox = checkBox(panel, "Fix All")
-      assertFalse(checkBox.isSelected)
-
-      checkBox.doClick()
-      configurable.apply()
-
-      waitUntil("the backend has the setting") { settings.state.fixAllOnSave }
+  fun testFixOnSaveIsOnlyEditedOnTheActionsOnSavePage() {
+    openPage { _, panel ->
+      assertEmpty(UIUtil.findComponentsOfType(panel, JBCheckBox::class.java).filter { "Fix All" in it.text })
+      assertSize(1, UIUtil.findComponentsOfType(panel, ActionLink::class.java).filter { "actions on save" in it.text.lowercase() })
     }
   }
 
-  fun testFixOnSaveIsUncheckedWhileDisabled() {
-    settings.state.fixAllOnSave = true
-    settings.state.configurationMode = ConfigurationMode.DISABLED
-
+  fun testAPageOpenedBeforeFixOnSaveChangedDoesNotUndoIt() {
     openPage { configurable, panel ->
-      assertFalse(checkBox(panel, "Fix All").isSelected)
-      assertFalse(checkBox(panel, "Fix All").isEnabled)
-      assertFalse(configurable.isModified)
+      settings.updateFixAllOnSave(true)
+
+      combo(panel, OxlintFixKind.SAFE_FIX).selectedItem = OxlintFixKind.ALL
+      configurable.apply()
+
+      waitUntil("the backend has the settings") { settings.state.fixKind == OxlintFixKind.ALL }
+      assertTrue(settings.state.fixAllOnSave)
     }
-    assertFalse(settings.isFixAllOnSaveEnabled)
   }
 
   fun testDisablingKeepsTheStoredFixOnSaveValue() {
@@ -102,12 +98,33 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
 
       waitUntil("the backend has the settings") { settings.state.configurationMode == ConfigurationMode.DISABLED }
       assertTrue(settings.state.fixAllOnSave)
+      assertFalse("Nothing is left to apply", configurable.isModified)
+    }
+  }
+
+  fun testEnablingKeepsTheStoredFixOnSaveValue() {
+    settings.state.fixAllOnSave = true
+    settings.state.configurationMode = ConfigurationMode.DISABLED
+
+    openPage { configurable, panel ->
+      radio(panel, "Automatic").doClick()
+      configurable.apply()
+
+      waitUntil("the backend has the settings") { settings.state.configurationMode == ConfigurationMode.AUTOMATIC }
+      assertTrue(settings.state.fixAllOnSave)
+      assertFalse("Nothing is left to apply", configurable.isModified)
     }
   }
 
   fun testPageFitsWithoutScrollingSideways() {
     openPage { _, panel ->
-      assertTrue("Width ${panel.preferredSize.width}", panel.preferredSize.width < 640)
+      assertTrue("Width ${panel.preferredSize.width}", panel.preferredSize.width < 620)
+
+      // Shows the path rows, whose longer labels make the page wider.
+      radio(panel, "Manual").doClick()
+      panel.doLayout()
+
+      assertTrue("Width in Manual mode ${panel.preferredSize.width}", panel.preferredSize.width < 620)
     }
   }
 
@@ -129,6 +146,7 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
       extensions.text = ".js, .ts"
       configurable.apply()
       waitUntil("the backend has the extensions") { settings.state.supportedExtensions == listOf(".js", ".ts") }
+      assertFalse("Nothing is left to apply", configurable.isModified)
 
       extensions.text = DEFAULT_OXLINT_EXTENSIONS.joinToString(", ")
       configurable.apply()

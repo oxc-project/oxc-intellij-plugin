@@ -1,5 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
 import com.intellij.ide.plugins.PluginManagerCore
@@ -11,6 +13,8 @@ import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlinx.coroutines.runBlocking
+import java.util.Locale
+import java.util.ResourceBundle
 
 /**
  * A test IDE is a monolith, so every content module should load and the RPC call stays in process.
@@ -30,6 +34,19 @@ class PluginLoadingTest : BasePlatformTestCase() {
     fun testSettingsPageIsRegistered() {
         assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxlintConfigurable" })
     }
+
+    fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {
+        for (name in listOf("messages.OxcFrontendBundle", "messages.OxcBackendBundle")) {
+            val bundle = ResourceBundle.getBundle(name, Locale.ROOT, bundleLoader(name))
+            for (key in bundle.keySet()) {
+                val value = bundle.getString(key)
+                if ("{" !in value) assertFalse("$key: $value", "''" in value)
+            }
+        }
+    }
+
+    private fun bundleLoader(name: String): ClassLoader =
+        (if ("Frontend" in name) OxlintConfigurable::class.java else OxlintSettings::class.java).classLoader
 
     fun testBackendListsFoldersOverRpc() {
         val projectId = project.projectId()

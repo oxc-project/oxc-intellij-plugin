@@ -9,6 +9,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFix
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClientManager
@@ -163,9 +164,26 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
 
   fun testServerThatCannotStartFails() {
     script("{}")
+    shortenTheServerConnectTimeout()
     OxlintSettings.getInstance(project).state.binaryPath = "${myFixture.tempDirPath}/missing"
 
     assertInstanceOf(runFixAll(), OxlintFixAllResult.Failed::class.java)
+    waitForThePlatformToFinishStopping()
+  }
+
+  // Windows can't run this script. There, testServerThatCannotStartFails covers this with a WSL project.
+  fun testNativeServerThatExitsBeforeAnsweringFails() {
+    if (SystemInfo.isWindows) return
+
+    script("{}")
+    shortenTheServerConnectTimeout()
+    val server = Files.createTempFile(serverRoot(), "exiting-server", null)
+    Files.writeString(server, "#!/bin/sh\nread line\nexit 1\n")
+    server.toFile().setExecutable(true)
+    OxlintSettings.getInstance(project).state.binaryPath = server.toString()
+
+    assertInstanceOf(runFixAll(), OxlintFixAllResult.Failed::class.java)
+    waitForThePlatformToFinishStopping()
   }
 
   fun testClosedFileIsSavedAndTheServerStopsAfterwards() {
@@ -187,6 +205,23 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     assertEquals("fixed\noriginal\n", myFixture.editor.document.text)
     assertEquals("original\n", String(file.contentsToByteArray()))
     assertEquals(1, runningServers().size)
+  }
+
+  /** Only for servers that won't answer, because a real one can take longer than this to start. */
+  private fun shortenTheServerConnectTimeout() {
+    Registry.get("lsp.server.connect.timeout").setValue(1, testRootDisposable)
+  }
+
+  /**
+   * The platform waits for the answer to `initialize` while holding the lock that stopping the server
+   * needs, even once the server has exited. A thread still doing that fails the test's thread leak check.
+   */
+  private fun waitForThePlatformToFinishStopping() {
+    waitUntil("the platform has finished stopping the server") {
+      Thread.getAllStackTraces().values.none { stack ->
+        stack.any { it.methodName == "initializeLsp4jServer" || it.methodName.startsWith("shutdownAndExit") }
+      }
+    }
   }
 
   private fun requestedKind(kind: OxlintFixKind): String {

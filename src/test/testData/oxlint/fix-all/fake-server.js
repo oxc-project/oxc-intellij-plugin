@@ -5,7 +5,8 @@
 //
 // Script fields, which are all optional:
 //   cached: code actions to answer with straight away
-//   afterDiagnostic: code actions to answer with once diagnostics have been pulled
+//   afterDiagnostic: code actions to answer with once diagnostics have been pulled after a code action
+//     request, because the platform can also pull them by itself before that
 //   hang: true to never answer a code action request
 //
 // A code action is { "title", "isPreferred", "insert" }, where insert is text to add at the file's start.
@@ -14,6 +15,7 @@
 const fs = require("fs");
 
 const script = () => JSON.parse(fs.readFileSync("fake-server.json", "utf8"));
+let codeActionRequested = false;
 let diagnosticsPulled = false;
 
 function send(message) {
@@ -49,7 +51,7 @@ function handle(message) {
       });
       break;
     case "textDocument/diagnostic":
-      diagnosticsPulled = true;
+      diagnosticsPulled = codeActionRequested;
       send({ id: message.id, result: { kind: "full", items: [] } });
       break;
     case "textDocument/codeAction": {
@@ -57,6 +59,7 @@ function handle(message) {
       if (hang) break;
       const actions = cached ?? (diagnosticsPulled ? afterDiagnostic : []) ?? [];
       send({ id: message.id, result: actions.map((it) => toCodeAction(it, message.params.textDocument.uri)) });
+      codeActionRequested = true;
       break;
     }
     default:

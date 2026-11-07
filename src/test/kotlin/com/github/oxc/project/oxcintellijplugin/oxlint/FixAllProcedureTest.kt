@@ -39,7 +39,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     assertEquals(OxlintFixAllResult.Applied, runFixAll())
 
     assertEquals("fixed\noriginal\n", text())
-    assertFalse("textDocument/diagnostic" in requestedMethods())
+    assertSize(1, fixAllRequests())
   }
 
   fun testEmptyCacheIsRefilledByPullingDiagnostics() {
@@ -48,10 +48,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     assertEquals(OxlintFixAllResult.Applied, runFixAll())
 
     assertEquals("fixed\noriginal\n", text())
-    assertEquals(
-      listOf("textDocument/codeAction", "textDocument/diagnostic", "textDocument/codeAction"),
-      requestedMethods().filter { it == "textDocument/codeAction" || it == "textDocument/diagnostic" },
-    )
+    assertSize(2, fixAllRequests())
   }
 
   fun testOnlyPreferredActionsAreApplied() {
@@ -122,14 +119,12 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
     myFixture.configureFromExistingVirtualFile(file)
     waitUntil("the server is running") { runningServers().size == 1 }
-    val requestsBefore = requestedMethods().filter { it == "textDocument/codeAction" || it == "textDocument/diagnostic" }.size
     OxlintSettings.getInstance(project).state.fixKind = OxlintFixKind.NONE
 
     assertEquals(OxlintFixAllResult.FixesTurnedOff, runFixAll())
 
     assertEquals("original\n", text())
-    val requestsAfter = requestedMethods().filter { it == "textDocument/codeAction" || it == "textDocument/diagnostic" }.size
-    assertEquals(requestsBefore, requestsAfter)
+    assertEmpty(fixAllRequests())
   }
 
   fun testOpenFileWhoseServerIsStillStartingWaitsForIt() {
@@ -241,6 +236,15 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   }
 
   private fun requestLog(): Path = serverRoot().resolve("requests.log")
+
+  /**
+   * What Fix All asks for. Fix All only pulls diagnostics between two of these, so their number shows if
+   * it pulled. Counting the pulls wouldn't work, because the platform also pulls them on its own.
+   */
+  private fun fixAllRequests(): List<String> {
+    if (!Files.exists(requestLog())) return emptyList()
+    return Files.readAllLines(requestLog()).filter { "textDocument/codeAction" in it && "source.fixAll" in it }
+  }
 
   private fun requestedMethods(): List<String> {
     if (!Files.exists(requestLog())) return emptyList()

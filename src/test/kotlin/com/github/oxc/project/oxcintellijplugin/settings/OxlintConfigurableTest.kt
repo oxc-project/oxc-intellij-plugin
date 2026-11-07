@@ -20,6 +20,9 @@ import javax.swing.JComponent
 import javax.swing.JTextField
 
 /** The page talks to the backend over RPC, which stays in process in a test IDE. */
+/** Fonts differ between machines, so this is a little above the 621 seen on Linux with the 45 column comment. */
+private const val MAX_PAGE_WIDTH = 640
+
 class OxlintConfigurableTest : BasePlatformTestCase() {
 
   private val settings: OxlintSettings
@@ -118,13 +121,13 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
 
   fun testPageFitsWithoutScrollingSideways() {
     openPage { _, panel ->
-      assertTrue("Width ${panel.preferredSize.width}", panel.preferredSize.width < 620)
+      assertTrue("Width ${panel.preferredSize.width}", panel.preferredSize.width < MAX_PAGE_WIDTH)
 
       // Shows the path rows, whose longer labels make the page wider.
       radio(panel, "Manual").doClick()
       panel.doLayout()
 
-      assertTrue("Width in Manual mode ${panel.preferredSize.width}", panel.preferredSize.width < 620)
+      assertTrue("Width in Manual mode ${panel.preferredSize.width}", panel.preferredSize.width < MAX_PAGE_WIDTH)
     }
   }
 

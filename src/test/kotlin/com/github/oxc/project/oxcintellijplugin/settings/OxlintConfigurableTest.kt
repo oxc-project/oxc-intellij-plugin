@@ -69,6 +69,42 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
     }
   }
 
+  fun testFixOnSaveCheckboxStoresItsValue() {
+    openPage { configurable, panel ->
+      val checkBox = checkBox(panel, "Fix All")
+      assertFalse(checkBox.isSelected)
+
+      checkBox.doClick()
+      configurable.apply()
+
+      waitUntil("the backend has the setting") { settings.state.fixAllOnSave }
+    }
+  }
+
+  fun testFixOnSaveIsUncheckedWhileDisabled() {
+    settings.state.fixAllOnSave = true
+    settings.state.configurationMode = ConfigurationMode.DISABLED
+
+    openPage { configurable, panel ->
+      assertFalse(checkBox(panel, "Fix All").isSelected)
+      assertFalse(checkBox(panel, "Fix All").isEnabled)
+      assertFalse(configurable.isModified)
+    }
+    assertFalse(settings.isFixAllOnSaveEnabled)
+  }
+
+  fun testDisablingKeepsTheStoredFixOnSaveValue() {
+    settings.state.fixAllOnSave = true
+
+    openPage { configurable, panel ->
+      radio(panel, "Disable").doClick()
+      configurable.apply()
+
+      waitUntil("the backend has the settings") { settings.state.configurationMode == ConfigurationMode.DISABLED }
+      assertTrue(settings.state.fixAllOnSave)
+    }
+  }
+
   fun testPageFitsWithoutScrollingSideways() {
     openPage { _, panel ->
       assertTrue("Width ${panel.preferredSize.width}", panel.preferredSize.width < 640)

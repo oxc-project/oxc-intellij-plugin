@@ -24,7 +24,6 @@
 
 ### Removed
 
-- **Breaking:** Remove the fix all and fix all on save actions.
 - **Breaking:** Remove Oxfmt support, including formatting, format on save, and settings.
 - **Breaking:** Remove Vite+ support.
 

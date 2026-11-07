@@ -8,8 +8,8 @@ import com.intellij.platform.lsp.api.LspClientManager
 /** Settings are sent to the servers when they start, so a change only applies through a restart. */
 class OxlintSettingsWatcher(private val project: Project) : OxlintSettingsListener {
 
-  override fun settingsChanged() {
-    if (project.isDefault) return
+  override fun settingsChanged(affectsServers: Boolean) {
+    if (!affectsServers || project.isDefault) return
 
     ApplicationManager.getApplication().invokeLater({
       LspClientManager.getInstance(project)

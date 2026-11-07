@@ -10,6 +10,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFix
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintUnusedDisableDirectives
+import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
@@ -228,6 +229,16 @@ class OxlintConfigurable(private val project: Project) : SearchableConfigurable 
     row {
       checkBox(OxcFrontendBundle.message("oxlint.settings.type.aware"))
         .bindSelected({ model.typeAware }, { model = model.copy(typeAware = it) })
+    }.enabledIf(enabled)
+
+    row {
+      checkBox(OxcFrontendBundle.message("oxlint.settings.run.fix.all.on.save"))
+        .bindSelected(
+          { model.configurationMode != ConfigurationMode.DISABLED && model.fixAllOnSave },
+          // The stored value is kept while Oxlint is disabled, when the box is always unchecked.
+          { if (model.configurationMode != ConfigurationMode.DISABLED) model = model.copy(fixAllOnSave = it) },
+        )
+      cell(ActionsOnSaveConfigurable.createGoToActionsOnSavePageLink())
     }.enabledIf(enabled)
 
     row {

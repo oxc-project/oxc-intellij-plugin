@@ -4,7 +4,7 @@ import com.intellij.util.messages.Topic
 
 fun interface OxlintSettingsListener {
 
-  fun settingsChanged()
+  fun settingsChanged(affectsServers: Boolean)
 
   companion object {
     @Topic.ProjectLevel

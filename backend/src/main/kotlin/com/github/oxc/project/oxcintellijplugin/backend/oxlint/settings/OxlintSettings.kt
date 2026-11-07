@@ -27,16 +27,20 @@ class OxlintSettings(private val project: Project) :
   val isEnabled: Boolean
     get() = state.configurationMode != ConfigurationMode.DISABLED
 
+  val isFixAllOnSaveEnabled: Boolean
+    get() = isEnabled && state.fixAllOnSave
+
   fun isSupported(file: VirtualFile): Boolean =
     isOxlintSupportedExtension(state.supportedExtensions, file.extension)
 
   /** Called when the file is read, including when something outside the IDE changes it. */
   override fun loadState(state: OxlintSettingsState) {
     state.migrateLegacyFlags()
+    val previous = toData()
     val changed = loaded && state != this.state
     super.loadState(state)
     loaded = true
-    if (changed) notifyChanged()
+    if (changed) notifyChanged(previous)
   }
 
   override fun noStateLoaded() {
@@ -50,13 +54,15 @@ class OxlintSettings(private val project: Project) :
     unusedDisableDirectives = state.unusedDisableDirectives,
     supportedExtensions = state.supportedExtensions.toList(),
     typeAware = state.typeAware,
+    fixAllOnSave = state.fixAllOnSave,
     disableNestedConfig = state.disableNestedConfig,
     fixKind = state.fixKind,
   )
 
   /** Changes the state in place, because that's how the store notices that it needs to be saved. */
   fun update(data: OxlintSettingsData) {
-    if (data == toData()) return
+    val previous = toData()
+    if (data == previous) return
 
     state.configurationMode = data.configurationMode
     state.binaryPath = data.binaryPath.ifBlank { null }
@@ -64,13 +70,16 @@ class OxlintSettings(private val project: Project) :
     state.unusedDisableDirectives = data.unusedDisableDirectives
     state.supportedExtensions = data.supportedExtensions.toMutableList()
     state.typeAware = data.typeAware
+    state.fixAllOnSave = data.fixAllOnSave
     state.disableNestedConfig = data.disableNestedConfig
     state.fixKind = data.fixKind
-    notifyChanged()
+    notifyChanged(previous)
   }
 
-  private fun notifyChanged() {
-    project.messageBus.syncPublisher(OxlintSettingsListener.TOPIC).settingsChanged()
+  /** Fix on save happens in the plugin, so the servers don't need to know that it changed. */
+  private fun notifyChanged(previous: OxlintSettingsData) {
+    val affectsServers = toData().copy(fixAllOnSave = false) != previous.copy(fixAllOnSave = false)
+    project.messageBus.syncPublisher(OxlintSettingsListener.TOPIC).settingsChanged(affectsServers)
   }
 
   companion object {

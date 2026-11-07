@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAllOnSaveAction
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintSettingsCache
@@ -16,9 +17,13 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.CopyOnWriteArrayList
 
 class FixAllActionTest : BasePlatformTestCase() {
@@ -74,6 +79,20 @@ class FixAllActionTest : BasePlatformTestCase() {
     )
     assertEquals(NotificationType.WARNING, notification.type)
     assertEquals(listOf("Open Oxlint settings"), notification.actions.map { it.templateText })
+  }
+
+  fun testSavingWithNothingToFixStaysQuiet() {
+    val notifications = collectNotifications()
+    settings.update(settings.toData().copy(fixKind = OxlintFixKind.NONE, fixAllOnSave = true))
+    val document = FileDocumentManager.getInstance().getDocument(file("a.js"))!!
+    val call = ApplicationManager.getApplication().executeOnPooledThread {
+      runBlocking { OxlintFixAllOnSaveAction().updateDocument(project, document) }
+    }
+
+    PlatformTestUtil.waitForFuture(call, 30_000)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+
+    assertEmpty(notifications)
   }
 
   fun testVisibleAndEnabledForASupportedFile() {

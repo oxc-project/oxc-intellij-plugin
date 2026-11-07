@@ -7,6 +7,9 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFix
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
@@ -52,6 +55,36 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
     assertEquals(OxlintFixAllResult.Applied, runFixAll())
 
     assertTrue(myFixture.editor.document.text, "const fixed" in myFixture.editor.document.text)
+  }
+
+  fun testSavingRunsTheFixesWhenEnabled() {
+    OxlintSettings.getInstance(project).state.fixAllOnSave = true
+    openAndWaitForDiagnostics()
+    typeSomething()
+
+    FileDocumentManager.getInstance().saveAllDocuments()
+
+    waitUntil("the fixes have been saved") { "const fixed" in String(file.contentsToByteArray()) }
+  }
+
+  fun testSavingLeavesTheFileAloneWhenDisabled() {
+    openAndWaitForDiagnostics()
+    typeSomething()
+
+    FileDocumentManager.getInstance().saveAllDocuments()
+    repeat(20) {
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      Thread.sleep(100)
+    }
+
+    assertTrue("var fixed" in String(file.contentsToByteArray()))
+  }
+
+  private fun typeSomething() {
+    val document = myFixture.editor.document
+    WriteAction.runAndWait<Exception> {
+      CommandProcessor.getInstance().runUndoTransparentAction { document.insertString(0, "// edited\n") }
+    }
   }
 
   private fun openAndWaitForDiagnostics() {

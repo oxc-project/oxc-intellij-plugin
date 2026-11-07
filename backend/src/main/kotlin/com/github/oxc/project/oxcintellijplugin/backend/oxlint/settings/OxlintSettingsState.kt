@@ -20,7 +20,6 @@ class OxlintSettingsState : BaseState() {
   var supportedExtensions by list<String>()
   var typeAware by property(false)
 
-  /** No page row sets this yet, but it's kept so that existing projects don't lose it. */
   var fixAllOnSave by property(false)
   var disableNestedConfig by property(false)
   var fixKind by enum(OxlintFixKind.SAFE_FIX)

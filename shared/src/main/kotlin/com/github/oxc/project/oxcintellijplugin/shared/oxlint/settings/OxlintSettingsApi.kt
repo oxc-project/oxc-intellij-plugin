@@ -51,6 +51,7 @@ data class OxlintSettingsData(
   /** Empty means [DEFAULT_OXLINT_EXTENSIONS]. Any other list replaces them. */
   val supportedExtensions: List<String> = emptyList(),
   val typeAware: Boolean = false,
+  val fixAllOnSave: Boolean = false,
   val disableNestedConfig: Boolean = false,
   val fixKind: OxlintFixKind = OxlintFixKind.SAFE_FIX,
 )

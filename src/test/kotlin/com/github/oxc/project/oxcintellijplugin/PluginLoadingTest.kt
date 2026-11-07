@@ -12,6 +12,7 @@ import com.intellij.ide.vfs.rpcId
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.util.registry.Registry
@@ -49,6 +50,19 @@ class PluginLoadingTest : BasePlatformTestCase() {
             val children = (ActionManager.getInstance().getAction(group) as DefaultActionGroup).getChildren(ActionManager.getInstance())
             assertTrue(group, action in children)
         }
+    }
+
+    fun testFixOnSaveRunsBeforeFormatOnSave() {
+        val names = ExtensionPointName<Any>("com.intellij.actionOnSave").extensionList.map { it.javaClass.simpleName }
+        val fix = names.indexOf("OxlintFixAllOnSaveAction")
+        assertTrue(names.toString(), fix >= 0)
+        val format = names.indexOf("FormatOnSaveAction")
+        if (format >= 0) assertTrue(names.toString(), fix < format)
+    }
+
+    fun testOnSaveRowIsRegistered() {
+        val names = ExtensionPointName<Any>("com.intellij.actionOnSaveInfoProvider").extensionList.map { it.javaClass.simpleName }
+        assertContainsElements(names, "OxcOnSaveInfoProvider")
     }
 
     fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {

@@ -178,6 +178,13 @@ class OxfmtRealServerTest : OxcFixtureTestCase() {
     LspClientManager.getInstance(project).getClients(OxlintLspIntegrationProvider::class.java)
       .filter { it.state == LspServerState.Running }
 
+  fun testServersCanBeToldApartInTheLog() {
+    open("index.js")
+    waitUntil("the server is running") { runningServers().isNotEmpty() }
+
+    assertEquals("Oxfmt@${project.name}", runningServers().single().descriptor.toString())
+  }
+
   private fun open(path: String): VirtualFile = myFixture.configureFromTempProjectFile(path).virtualFile
 
   private fun typeSomething() {

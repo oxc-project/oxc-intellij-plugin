@@ -91,4 +91,7 @@ class ToolLspClientDescriptor(
   private fun toLocalPath(serverPath: String): String? = serverRun?.toLocalPath(serverPath)
 
   override val lspCustomization: LspCustomization = definition.lspCustomization(project)
+
+  /** The platform starts its log lines with this, which is how to tell the two servers apart. */
+  override fun toString(): String = "${definition.displayName}@${project.name}"
 }

@@ -13,6 +13,9 @@ concurrency:
 
 env:
   # Only main in the main repository, and anything from the listed fork, can write to the cache.
+  # Of those runs, only the Test and Test (Windows) jobs write, one for each OS, because each job that
+  # writes keeps its own copy of the 1.9 GB of dependencies. A job that has no entry of its own restores
+  # the latest one saved on the same OS.
   # TODO: Remove the check for nrayburn-tech.
   CACHE_READ_ONLY: >-
     ${{ !((github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main')
@@ -20,50 +23,20 @@ env:
 
 jobs:
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Fetch Sources
-        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
-
-      - name: Gradle Wrapper Validation
-        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-
-      - name: Setup Java
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-        with:
-          distribution: temurin
-          java-version: 25
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-        with:
-          cache-read-only: ${{ env.CACHE_READ_ONLY }}
-
-      - name: Build Plugin
-        run: ./gradlew buildPlugin
-
-      - name: Upload Plugin Artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: plugin
-          path: ./build/distributions/*.zip
-
   test:
     name: Test
-    needs: [ build ]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
+      # Gradle runs on this JetBrains Runtime, and Gradle's own JVM counts as a toolchain, so it meets
+      # the build's toolchain (Java 25 from JetBrains) without a download. Every job sets it up this way.
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: temurin
+          distribution: jetbrains
           java-version: 25
 
       - name: Setup Gradle
@@ -117,7 +90,6 @@ jobs:
   # and the WSL-only test is skipped, because no distribution is configured.
   test-windows:
     name: Test (Windows)
-    needs: [ build ]
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -127,7 +99,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: temurin
+          distribution: jetbrains
           java-version: 25
 
       - name: Setup Gradle
@@ -170,7 +142,6 @@ jobs:
   # WSL. Kept apart from the Windows job so that installing WSL neither changes nor slows down that run.
   test-wsl:
     name: Test (WSL, ${{ matrix.project }} project)
-    needs: [ build ]
     runs-on: windows-latest
     timeout-minutes: 20
     strategy:
@@ -195,13 +166,14 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: temurin
+          distribution: jetbrains
           java-version: 25
 
+      # Restores the entry that Test (Windows) saves, which has the same dependencies.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
-          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+          cache-read-only: true
 
       - name: Setup WSL
         uses: Vampire/setup-wsl@4c48163d9f981914dd8caa0fc335fe19cca5bff4 # v7.2.0
@@ -269,31 +241,41 @@ jobs:
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
 
-  verify:
-    name: Verify plugin
-    needs: [ build ]
+  # Builds the plugin and runs the verifier in one job, because the verifier needs the built plugin anyway.
+  # The runner has about 86 GB free, which is plenty for the one IDE the verifier reads, so it doesn't
+  # free disk space first.
+  build:
+    name: Build and verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      # The verifier downloads full IDEs, which needs more disk space than the runner has free.
-      - name: Maximize Build Space
-        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
-        with:
-          tool-cache: false
-
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Gradle Wrapper Validation
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: temurin
+          distribution: jetbrains
           java-version: 25
 
+      # Restores the entry that Test saves. The verifier reads the same IDE that the build compiles
+      # against, so only the verifier itself is downloaded again.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
-          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+          cache-read-only: true
+
+      - name: Build Plugin
+        run: ./gradlew buildPlugin
+
+      - name: Upload Plugin Artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: plugin
+          path: ./build/distributions/*.zip
 
       - name: Run Plugin Verification
         run: ./gradlew verifyPlugin

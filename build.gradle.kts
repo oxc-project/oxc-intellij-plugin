@@ -188,5 +188,11 @@ tasks {
                 layout.buildDirectory.dir("tmp/netty").get().asFile.absolutePath,
             )
         }
+
+        // The tests read these themselves, so they must be inputs. Otherwise, a WSL job in CI can take
+        // the cached result of the Windows job, which restores the same cache, and skip its tests.
+        listOf("OXC_TEST_WSL_DISTRO", "OXC_TEST_WSL_NODE", "OXC_TEST_VITEPLUS_FIXTURE").forEach {
+            inputs.property(it, environment(it).orElse(""))
+        }
     }
 }

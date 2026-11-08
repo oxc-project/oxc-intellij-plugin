@@ -18,7 +18,8 @@ class ServerPathsTest : OxcFixtureTestCase() {
 
   /**
    * Creating the run needs an interpreter, so this also fails if it's created by asking for a URI,
-   * because that can block.
+   * because that can block. Until the server starts there's nothing to map with, so the URI is the
+   * platform's, which is the Linux path for a project in WSL.
    */
   fun testFileUriBeforeTheServerStartsNeedsNothingFromTheInterpreter() {
     NodeJsInterpreterManager.getInstance(project)
@@ -29,7 +30,7 @@ class ServerPathsTest : OxcFixtureTestCase() {
 
     val uri = assertDoesNotBlock { descriptor.getFileUri(root) }
 
-    assertEquals(pathToFileUri(root.path), uri)
+    assertEquals(platformDescriptor(root).getFileUri(root), uri)
   }
 
   fun testFileUriAfterTheServerStartsDoesNotBlock() {
@@ -59,11 +60,12 @@ class ServerPathsTest : OxcFixtureTestCase() {
     val file = LocalFileSystem.getInstance().refreshAndFindFileByPath(
       "${myFixture.tempDirPath}/${folder.name}")!!
 
-    val platformDescriptor = object : LspClientDescriptor(project, "Platform", file) {
-      override fun isSupportedFile(file: VirtualFile): Boolean = true
-    }
+    assertEquals(platformDescriptor(file).getFileUri(file), pathToFileUri(file.path))
+  }
 
-    assertEquals(platformDescriptor.getFileUri(file), pathToFileUri(file.path))
+  /** The platform's own URIs, which convert a path in WSL or a container through Eel. */
+  private fun platformDescriptor(root: VirtualFile) = object : LspClientDescriptor(project, "Platform", root) {
+    override fun isSupportedFile(file: VirtualFile): Boolean = true
   }
 
   private fun root(): VirtualFile =

@@ -14,6 +14,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.rpc) apply false
     alias(libs.plugins.changelog)
+    alias(libs.plugins.kover)
     id("org.jetbrains.intellij.platform")
 }
 
@@ -25,6 +26,7 @@ subprojects {
     apply(plugin = "rpc")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
+    apply(plugin = "org.jetbrains.kotlinx.kover")
 
     // The platform finds a content module's descriptor at lib/modules/<module name>.jar, so each jar
     // must be named after the module in plugin.xml, such as Oxc.Shared.jar for the shared project.
@@ -47,6 +49,12 @@ allprojects {
 
 dependencies {
     testImplementation(libs.junit)
+
+    // The tests live in this project but run the code of every module, so the coverage report
+    // merges in each module's classes.
+    kover(project(":shared"))
+    kover(project(":frontend"))
+    kover(project(":backend"))
 
     intellijPlatform {
         // Unreleased/EAP versions do not have an installer.
@@ -131,6 +139,26 @@ intellijPlatformTesting {
     runIde {
         register("runIdeMonolith") {
             splitMode = false
+        }
+    }
+}
+
+kover {
+    currentProject {
+        instrumentation {
+            // The platform's UI test task builds the plugin zip first, and there are no UI tests.
+            disabledForTestTasks.add("testUi")
+        }
+    }
+
+    reports {
+        total {
+            xml {
+                onCheck = true
+            }
+            html {
+                onCheck = true
+            }
         }
     }
 }

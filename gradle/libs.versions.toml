@@ -5,6 +5,7 @@ kotlin = "2.4.0"
 rpc = "2.4.0-RC-0.1"
 changelog = "2.5.0"
 junit = "4.13.2"
+kover = "0.9.11"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -12,5 +13,6 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 [plugins]
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 rpc = { id = "rpc", version.ref = "rpc" }

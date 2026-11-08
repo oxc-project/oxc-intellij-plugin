@@ -85,8 +85,18 @@ jobs:
         working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
+      # check also writes Kover's coverage report, which merges the shared, frontend and backend modules.
       - name: Run Tests
         run: ./gradlew check
+
+      - name: Summarize Coverage
+        run: python3 .github/scripts/coverage-summary.py build/reports/kover/report.xml >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: ${{ github.workspace }}/build/reports/kover
 
       - name: Collect Tests Result
         if: ${{ failure() || cancelled() }}

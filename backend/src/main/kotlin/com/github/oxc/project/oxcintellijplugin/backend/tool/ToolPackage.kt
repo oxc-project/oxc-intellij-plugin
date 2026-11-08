@@ -16,16 +16,22 @@ import java.nio.file.Paths
 /** What to run for a file, and where its server should run from. */
 data class ServerLaunch(val executable: String, val parameters: List<String>, val root: VirtualFile)
 
-/** Finds the tool's package for a file, or uses the manual path. */
+/**
+ * Finds what to run for a file: the project's Vite+, else the tool's package, or the manual path.
+ *
+ * Vite+ comes first even when the tool's own package is installed too, because npm hoists the tool out of
+ * `vite-plus`, and only `vp` reads `vite.config.*`. A manual binary never uses Vite+.
+ */
 class ToolPackage(private val project: Project, private val definition: ToolDefinition) {
 
-  /** Returns null if there's nothing to run. Vite+ will be another package to look for here. */
+  /** Returns null if there's nothing to run. */
   fun resolve(file: VirtualFile): ServerLaunch? {
-    val settings = definition.settings(project)
+    val manualBinary = manualBinary()
+    if (manualBinary == null) {
+      findVitePlus(file)?.let { return it.launch }
+    }
+
     val nodePackage = find(file)
-    val manualBinary = settings.binaryPath?.trim()?.takeIf {
-      settings.configurationMode == ConfigurationMode.MANUAL && it.isNotEmpty()
-    }?.let { resolveSettingPath(project, it) }
     val executable = manualBinary ?: nodePackage?.let(::executablePath)
     val root = nodePackage?.let(::serverRoot)
                ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file).takeIf { manualBinary != null }
@@ -35,6 +41,31 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
       return null
     }
     return ServerLaunch(executable, SERVER_PARAMETERS, root)
+  }
+
+  private fun manualBinary(): String? {
+    val settings = definition.settings(project)
+    return settings.binaryPath?.trim()
+      ?.takeIf { settings.configurationMode == ConfigurationMode.MANUAL && it.isNotEmpty() }
+      ?.let { resolveSettingPath(project, it) }
+  }
+
+  private class VitePlus(val nodePackage: NodePackage, val launch: ServerLaunch)
+
+  /**
+   * The project's own `vite-plus`, with no global fallback, so the version the project chose always runs.
+   * Whether `bin/vp` exists isn't checked, the same as v0.0.45.
+   */
+  private fun findVitePlus(file: VirtualFile): VitePlus? {
+    val descriptor = NodePackageDescriptor(VITE_PLUS_PACKAGE)
+    val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
+    val nodePackage = descriptor.listAvailable(project, interpreter, file, false, true).firstOrNull()
+                      ?: descriptor.findUnambiguousDependencyPackage(project)
+                      ?: return null
+    val executable = nodePackage.getAbsolutePackagePathToRequire(project)
+                       ?.let { Paths.get(it, "bin", "vp").toString() } ?: return null
+    val root = serverRoot(nodePackage) ?: return null
+    return VitePlus(nodePackage, ServerLaunch(executable, listOf(definition.vitePlusCommand, "--lsp"), root))
   }
 
   /** Prefers the nearest `node_modules` above the file, then falls back to a default package. */
@@ -59,11 +90,18 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     if (nodePackage is YarnPnpNodePackage) {
       nodePackage.getPackageJson(project)?.parent
     } else {
-      LocalFileSystem.getInstance()
-        .findFileByPath(nodePackage.systemIndependentPath)?.parent?.parent
+      packageFolder(nodePackage)?.parent?.parent
+    }
+
+  private fun packageFolder(nodePackage: NodePackage): VirtualFile? =
+    if (nodePackage is YarnPnpNodePackage) {
+      nodePackage.getPackageJson(project)?.parent
+    } else {
+      LocalFileSystem.getInstance().findFileByPath(nodePackage.systemIndependentPath)
     }
 
   private companion object {
     val SERVER_PARAMETERS = listOf("--lsp")
+    const val VITE_PLUS_PACKAGE = "vite-plus"
   }
 }

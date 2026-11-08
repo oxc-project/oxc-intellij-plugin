@@ -23,6 +23,7 @@ object OxlintDefinition : ToolDefinition(
   messagePrefix = "oxlint",
   configurableId = "OxlintConfigurable",
   fixAllTimeoutRegistryKey = "oxc.lint.fix.all.timeout.ms",
+  vitePlusCommand = "lint",
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>
     get() = OxlintLspIntegrationProvider::class.java

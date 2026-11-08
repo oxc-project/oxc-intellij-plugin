@@ -29,6 +29,7 @@
 - File extensions in both tools' settings can now contain `-` and `_`.
 - In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
 - Only `fmt.configPath` and `fmt.disableNestedConfig` are sent to Oxfmt's language server, which are the settings it reads.
+- In a Vite+ project, `vp` reloads a changed `vite.config.*` itself, instead of the plugin restarting the language servers.
 
 ### Fixed
 
@@ -37,10 +38,6 @@
 - Oxfmt no longer corrupts a file when the language server returns more than one edit.
 - An unknown `trailingComma` value in an Oxfmt config no longer causes an error.
 - A config change only affects the project that it's in.
-
-### Removed
-
-- **Breaking:** Remove Vite+ support.
 
 ## [0.0.45] - 2026-10-15
 

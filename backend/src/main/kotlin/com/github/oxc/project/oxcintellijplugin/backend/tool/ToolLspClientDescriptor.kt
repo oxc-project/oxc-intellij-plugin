@@ -25,7 +25,7 @@ import org.eclipse.lsp4j.InitializeParams
 class ToolLspClientDescriptor(
   project: Project,
   private val definition: ToolDefinition,
-  private val launch: ServerLaunch,
+  val launch: ServerLaunch,
 ) : LspClientDescriptor(project, definition.displayName, launch.root) {
 
   private val settings: ToolSettings

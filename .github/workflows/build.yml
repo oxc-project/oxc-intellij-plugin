@@ -85,6 +85,10 @@ jobs:
         working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
+      - name: Setup Vite+ Test
+        working-directory: src/test/testData/viteplus/project
+        run: npm ci
+
       # check also writes Kover's coverage report, which merges the shared, frontend and backend modules.
       - name: Run Tests
         run: ./gradlew check
@@ -142,6 +146,10 @@ jobs:
 
       - name: Setup Oxfmt Formatting Test
         working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
+      - name: Setup Vite+ Test
+        working-directory: src/test/testData/viteplus/project
         run: npm ci
 
       - name: Run Tests
@@ -217,6 +225,11 @@ jobs:
       - name: Setup Oxfmt Formatting Test
         shell: wsl-bash {0}
         working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
+      - name: Setup Vite+ Test
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/viteplus/project
         run: npm ci
 
       - name: Create Project Folder in WSL

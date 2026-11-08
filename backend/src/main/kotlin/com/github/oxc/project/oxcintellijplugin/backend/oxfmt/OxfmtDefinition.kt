@@ -21,6 +21,7 @@ object OxfmtDefinition : ToolDefinition(
   messagePrefix = "oxfmt",
   configurableId = "OxfmtConfigurable",
   fixAllTimeoutRegistryKey = "oxc.fmt.fix.all.timeout.ms",
+  vitePlusCommand = "fmt",
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>
     get() = OxfmtLspIntegrationProvider::class.java

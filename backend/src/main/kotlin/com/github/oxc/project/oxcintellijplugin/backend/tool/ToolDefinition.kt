@@ -17,6 +17,8 @@ abstract class ToolDefinition(
   val messagePrefix: String,
   val configurableId: String,
   val fixAllTimeoutRegistryKey: String,
+  /** The subcommand of `vp` that runs this tool, as in `vp lint --lsp`. */
+  val vitePlusCommand: String,
 ) {
   /** The platform tells servers apart by their provider's class, so each tool needs its own. */
   abstract val providerClass: Class<out ToolLspIntegrationProvider>

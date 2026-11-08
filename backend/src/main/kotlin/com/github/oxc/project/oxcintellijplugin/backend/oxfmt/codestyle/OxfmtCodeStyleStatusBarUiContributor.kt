@@ -13,7 +13,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.modifier.CodeStyleStatusBarUIContributor
 
 /** The backend's own notification group, because the `Oxc` group is on the frontend. */
-private const val NOTIFICATION_GROUP = "Oxc Code Style"
+internal const val CODE_STYLE_NOTIFICATION_GROUP = "Oxc Code Style"
 
 class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
 
@@ -36,7 +36,7 @@ class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
       OpenFileDescriptor(project, config).navigate(true)
     }
     else {
-      NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP).createNotification(
+      NotificationGroupManager.getInstance().getNotificationGroup(CODE_STYLE_NOTIFICATION_GROUP).createNotification(
         OxcBackendBundle.message("oxfmt.configuration.file.not.found.title"),
         OxcBackendBundle.message("oxfmt.configuration.file.not.found.description", path.path),
         NotificationType.INFORMATION,
@@ -49,7 +49,7 @@ class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
   override fun createDisableAction(project: Project): AnAction =
     DumbAwareAction.create(OxcBackendBundle.message("oxfmt.action.disable.for.project.label")) {
       disableOxfmtCodeStyle(project)
-      NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP).createNotification(
+      NotificationGroupManager.getInstance().getNotificationGroup(CODE_STYLE_NOTIFICATION_GROUP).createNotification(
         OxcBackendBundle.message("oxfmt.code.style.preference.disabled.title"),
         OxcBackendBundle.message("oxfmt.code.style.preference.disabled.description"),
         NotificationType.INFORMATION,

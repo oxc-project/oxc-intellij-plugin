@@ -150,15 +150,13 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     assertEquals(root, nearestConfig(myFixture.addFileToProject("a/index.js", "").virtualFile))
   }
 
+  /** `OxfmtJsConfigTest` covers reading it. */
   fun testNearerTypeScriptConfigHidesTheRootConfig() {
-    settings.state.preferOxfmtCodeStyleSettings = true
     myFixture.addFileToProject(".oxfmtrc.json", CONFIG)
     val typeScript = myFixture.addFileToProject("a/oxfmt.config.ts", "export default {}").virtualFile
     val file = myFixture.addFileToProject("a/index.js", "")
 
     assertEquals(typeScript, nearestConfig(file.virtualFile))
-    assertNull("The plugin can't read it, so it doesn't guess", runModifier(file))
-    assertEquals(OxfmtImportResult.CONFIG_NOT_READABLE, runImport(file.virtualFile))
   }
 
   fun testFolderWithTwoConfigsFallsBackToTheRootConfig() {

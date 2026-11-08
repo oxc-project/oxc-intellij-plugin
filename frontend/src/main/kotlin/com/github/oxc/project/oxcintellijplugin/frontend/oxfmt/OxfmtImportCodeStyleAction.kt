@@ -73,7 +73,8 @@ internal class OxfmtCodeStyleImporter(private val project: Project, private val 
           OxcFrontendBundle.message("oxfmt.import.code.style.not.readable.title"),
           OxcFrontendBundle.message("oxfmt.import.code.style.not.readable.description"),
           NotificationType.INFORMATION)
-      }.notify(project)
+        OxfmtImportResult.CONFIG_NOT_LOADED -> null
+      }?.notify(project)
     }
   }
 }

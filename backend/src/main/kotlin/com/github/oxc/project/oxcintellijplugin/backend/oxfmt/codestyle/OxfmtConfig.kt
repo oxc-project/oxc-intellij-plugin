@@ -13,7 +13,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 
-/** The config names that the plugin can read. The server also reads [OXFMT_JS_CONFIG_NAMES]. */
+/** The config names that the plugin reads as JSON. [OXFMT_JS_CONFIG_NAMES] are read through Node. */
 val OXFMT_JSON_CONFIG_NAMES: List<String> = listOf(".oxfmtrc.json", ".oxfmtrc.jsonc")
 
 val OXFMT_JS_CONFIG_NAMES: List<String> = listOf("oxfmt.config.ts", "oxfmt.config.mts")
@@ -26,7 +26,7 @@ val VITE_CONFIG_NAMES: List<String> =
 
 private val JS_CONFIG_EXTENSIONS = setOf("js", "mjs", "cjs", "ts", "mts", "cts")
 
-/** The server reads any file that isn't JavaScript or TypeScript as JSON, which is all the plugin can read. */
+/** The server reads any file that isn't JavaScript or TypeScript as JSON, so the plugin can read it too. */
 fun isReadableOxfmtConfig(file: VirtualFile): Boolean = file.extension?.lowercase() !in JS_CONFIG_EXTENSIONS
 
 enum class OxfmtTrailingComma { NONE, ALL, ES5 }
@@ -51,8 +51,12 @@ data class OxfmtConfig(
       if (!isReadableOxfmtConfig(file)) return null
       val text = FileDocumentManager.getInstance().getCachedDocument(file)?.text ?: VfsUtilCore.loadText(file)
       // As JSON whatever the name, because a manual config can be called anything. JSON's parser accepts comments.
-      return parse(PsiFileFactory.getInstance(project).createFileFromText(file.name, JsonFileType.INSTANCE, text))
+      return parse(project, file.name, text)
     }
+
+    /** Reads JSON text, such as the options that Node gave for a JavaScript config. */
+    fun parse(project: Project, name: String, text: String): OxfmtConfig =
+      parse(PsiFileFactory.getInstance(project).createFileFromText(name, JsonFileType.INSTANCE, text))
 
     /** A value of the wrong type, or an unknown name, is treated as if it wasn't there. */
     fun parse(file: PsiFile): OxfmtConfig {

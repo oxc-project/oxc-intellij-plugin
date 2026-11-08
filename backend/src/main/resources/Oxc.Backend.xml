@@ -20,6 +20,9 @@
         <registryKey key="oxc.fmt.fix.all.timeout.ms"
                      defaultValue="30000"
                      description="Per-file timeout in milliseconds for formatting with Oxfmt. Used by 'Fix All' on save and the 'Apply Oxfmt Quick Fixes' action. Values less than or equal to 0 fall back to the default."/>
+        <registryKey key="oxc.fmt.config.load.timeout.ms"
+                     defaultValue="30000"
+                     description="Timeout in milliseconds for reading an Oxfmt JavaScript, TypeScript or vite.config.* config through Node.js for the code style. Values less than or equal to 0 fall back to the default."/>
         <!-- Runs before the reformat, because a reformat's didChange clears the server's cached fixes. -->
         <actionOnSave id="OxlintFixAllOnSaveAction"
                       implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAllOnSaveAction"

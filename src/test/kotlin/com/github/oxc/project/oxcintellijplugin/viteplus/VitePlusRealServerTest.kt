@@ -1,21 +1,28 @@
 package com.github.oxc.project.oxcintellijplugin.viteplus
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.OxfmtDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.lsp.OxfmtLspIntegrationProvider
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspClientDescriptor
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.intellij.application.options.CodeStyle
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.LspClientManager
+import com.intellij.psi.PsiManager
+import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
@@ -101,6 +108,20 @@ class VitePlusRealServerTest : OxcFixtureTestCase() {
 
     formatUntil("const a = \"b\";")
     assertSame("The server should not have been restarted", client, client(OxfmtLspIntegrationProvider::class.java))
+  }
+
+  /** Node runs the real `vite-plus`'s `resolveConfig` on `vite.config.ts`, which is what `vp fmt` reads. */
+  fun testOverlayReadsFmtFromViteConfig() {
+    OxfmtSettings.getInstance(project).state.preferOxfmtCodeStyleSettings = true
+    val psiFile = PsiManager.getInstance(project).findFile(file)!!
+
+    waitUntil("the overlay uses single quotes", timeout = 60.seconds) {
+      val overlay = ReadAction.compute<TransientCodeStyleSettings?, Exception> {
+        val copy = TransientCodeStyleSettings(file, project, CodeStyle.getSettings(project))
+        copy.takeIf { OxfmtCodeStyleSettingsModifier().modifySettings(it, psiFile) }
+      }
+      overlay?.getCustomSettings(JSCodeStyleSettings::class.java)?.USE_DOUBLE_QUOTES == false
+    }
   }
 
   /** Written as an editor would, so the platform sends the server the change it asked to watch. */

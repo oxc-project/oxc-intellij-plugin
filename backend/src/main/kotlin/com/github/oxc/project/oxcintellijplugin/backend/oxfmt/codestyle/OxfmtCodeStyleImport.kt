@@ -11,11 +11,22 @@ import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Writes the nearest config into the project's own code style, which is stored in `.idea/codeStyles`. */
+/**
+ * Writes the nearest config into the project's own code style, which is stored in `.idea/codeStyles`. A
+ * JavaScript or TypeScript config is read through Node, in a trusted project only.
+ */
 suspend fun importOxfmtCodeStyle(project: Project, file: VirtualFile): OxfmtImportResult {
   val location = readAction { locateOxfmtConfig(project, file) } ?: return OxfmtImportResult.CONFIG_NOT_FOUND
-  val config = location.takeIf { it.format == OxfmtConfigFormat.JSON }
-                 ?.let { readAction { OxfmtConfig.read(project, it.file) } } ?: return OxfmtImportResult.CONFIG_NOT_READABLE
+  val config = when (location.format) {
+    OxfmtConfigFormat.JSON -> readAction { OxfmtConfig.read(project, location.file) } ?: return OxfmtImportResult.CONFIG_NOT_READABLE
+    OxfmtConfigFormat.UNREADABLE -> return OxfmtImportResult.CONFIG_NOT_READABLE
+    OxfmtConfigFormat.JAVASCRIPT, OxfmtConfigFormat.VITE_PLUS -> when (val result = OxfmtJsConfigLoader.getInstance(project).load(location)) {
+      is OxfmtJsConfigResult.Loaded -> result.config
+      OxfmtJsConfigResult.Missing -> return OxfmtImportResult.CONFIG_NOT_FOUND
+      // The loader has shown why.
+      is OxfmtJsConfigResult.Untrusted, is OxfmtJsConfigResult.Failed -> return OxfmtImportResult.CONFIG_NOT_LOADED
+    }
+  }
 
   return withContext(Dispatchers.EDT) {
     if (OxfmtCodeStyle.isApplied(CodeStyle.getSettings(project), config)) return@withContext OxfmtImportResult.ALREADY_IMPORTED

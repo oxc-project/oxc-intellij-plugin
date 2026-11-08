@@ -8,6 +8,9 @@
 
 - Add support for IntelliJ split mode (Remote Development).
 - Add support for Dev Containers opened in the IDE's own window, without a backend in the container. Oxlint and Oxfmt run in the container and get the container's paths for files.
+- The Oxfmt code style and "Import Oxfmt Code Style" now read JavaScript and TypeScript configs: `oxfmt.config.ts`, `oxfmt.config.mts`, a JavaScript or TypeScript manual config path, and in a Vite+ project the `fmt` field of `vite.config.*`. They run the config with the project's Node.js, as Oxfmt does, so a TypeScript config needs Node.js 22.18 or later. A file the config imports isn't watched, so changing it doesn't update the code style. The time allowed is set by the Registry key `oxc.fmt.config.load.timeout.ms`, 30 seconds by default.
+- Running a JavaScript or TypeScript config only happens in a trusted project. In an untrusted one, a notification names the config once a session and offers to trust the project.
+- When a JavaScript or TypeScript config can't be read, a notification says why, once until the config or the Node.js interpreter changes. It offers "Configure Node.js…" for a missing or old Node.js, "Show Details" with the whole error otherwise, and "Edit Configuration File". "Import Oxfmt Code Style" reads a failed config again and shows its problem again.
 
 ### Changed
 
@@ -22,7 +25,7 @@
 - Oxfmt format on save no longer blocks the IDE. A failure is logged instead of shown as a notification.
 - Oxfmt's fix on save is now only set on the Actions on Save page. The Oxfmt settings page links to it.
 - "Prefer Oxfmt configuration to IDE code style" now also applies indent and margins for each file, including languages other than JavaScript and TypeScript.
-- The Oxfmt code style and "Import Oxfmt Code Style" now use the same config as Oxfmt's language server, including a manual config path, "Disable nested config lookups", and an `oxfmt.config.ts` in a nearer folder. When that config is a TypeScript file, the code style is left alone, because the plugin can't read it.
+- The Oxfmt code style and "Import Oxfmt Code Style" now use the same config as Oxfmt's language server, including a manual config path, "Disable nested config lookups", and an `oxfmt.config.ts` in a nearer folder. When Oxfmt is a native binary, which can't read a JavaScript or TypeScript config, the code style is left alone and Import says so.
 - **Breaking:** Changing an Oxfmt config no longer rewrites the project's code style. Only "Import Oxfmt Code Style" does, and it now stores the result in the project rather than the IDE-wide scheme.
 - "Import Oxfmt Code Style" now appears for every file that Oxfmt handles, and for folders, and says if there's no config.
 - Oxfmt's default file extensions no longer list the five with more than one dot, such as `.json.example`. They never matched a file.

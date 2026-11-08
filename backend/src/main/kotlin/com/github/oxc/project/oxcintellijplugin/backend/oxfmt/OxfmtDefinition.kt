@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.backend.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.backend.lsp.LspDisabledCustomization
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OXFMT_CONFIG_NAMES
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OXFMT_JSON_CONFIG_NAMES
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.fix.OxfmtFixer
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.lsp.OxfmtLspFormattingSupport
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.lsp.OxfmtLspIntegrationProvider
@@ -23,6 +24,7 @@ object OxfmtDefinition : ToolDefinition(
   configurableId = "OxfmtConfigurable",
   fixAllTimeoutRegistryKey = "oxc.fmt.fix.all.timeout.ms",
   vitePlusCommand = "fmt",
+  jsonConfigNames = OXFMT_JSON_CONFIG_NAMES,
   configNames = OXFMT_CONFIG_NAMES,
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>

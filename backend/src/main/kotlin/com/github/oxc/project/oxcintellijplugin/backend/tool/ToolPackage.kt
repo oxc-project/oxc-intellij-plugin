@@ -2,10 +2,12 @@ package com.github.oxc.project.oxcintellijplugin.backend.tool
 
 import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
+import com.intellij.javascript.nodejs.PackageJsonData
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpNodePackage
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
+import com.intellij.lang.javascript.buildTools.npm.PackageJsonUtil
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
@@ -41,6 +43,20 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
       return null
     }
     return ServerLaunch(executable, SERVER_PARAMETERS, root)
+  }
+
+  /**
+   * The JSON schema that ships with the tool that would run for [file], so that it matches the tool's
+   * version. Under Vite+ that's the tool `vp` runs, and for a manual binary it's the package the binary is
+   * in. Returns null if there's no installed package to take it from.
+   */
+  fun findSchema(file: VirtualFile): VirtualFile? {
+    val manualBinary = manualBinary()
+    val folder = when {
+      manualBinary != null -> packageContaining(manualBinary)
+      else -> findVitePlus(file)?.let { toolUnderVitePlus(it) } ?: find(file)?.let(::packageFolder)
+    }
+    return folder?.findChild(SCHEMA_FILE_NAME)?.takeIf { !it.isDirectory }
   }
 
   private fun manualBinary(): String? {
@@ -100,8 +116,39 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
       LocalFileSystem.getInstance().findFileByPath(nodePackage.systemIndependentPath)
     }
 
+  /**
+   * The tool package that `vp` runs. It asks Node for the tool from the server's folder, and then from
+   * its own, so the project's copy wins over the one `vite-plus` depends on. Yarn PnP has no
+   * `node_modules` to look in, so it gets nothing.
+   */
+  private fun toolUnderVitePlus(vitePlus: VitePlus): VirtualFile? =
+    nodeModulesLookup(vitePlus.launch.root)
+    ?: packageFolder(vitePlus.nodePackage)?.canonicalFile?.let(::nodeModulesLookup)
+
+  /** Node's lookup: `node_modules/<name>` in the folder and each one above it. */
+  private fun nodeModulesLookup(start: VirtualFile): VirtualFile? =
+    generateSequence(start) { it.parent }
+      .filter { it.name != NODE_MODULES }
+      .firstNotNullOfOrNull { folder ->
+        folder.findChild(NODE_MODULES)?.findChild(definition.packageName)?.takeIf { it.isDirectory }
+      }
+
+  /**
+   * The package a manual binary belongs to, such as `node_modules/oxlint/bin/oxlint`. The nearest
+   * `package.json` above the binary has to be the tool's, so a binary dropped into a project doesn't
+   * pick up the project's own `package.json`.
+   */
+  private fun packageContaining(binary: String): VirtualFile? {
+    val file = LocalFileSystem.getInstance().findFileByPath(binary)?.canonicalFile ?: return null
+    val packageJson = generateSequence(file.parent) { it.parent }
+                        .firstNotNullOfOrNull { it.findChild(PackageJsonUtil.FILE_NAME) } ?: return null
+    return packageJson.parent.takeIf { PackageJsonData.getOrCreate(packageJson).name == definition.packageName }
+  }
+
   private companion object {
     val SERVER_PARAMETERS = listOf("--lsp")
     const val VITE_PLUS_PACKAGE = "vite-plus"
+    const val NODE_MODULES = "node_modules"
+    const val SCHEMA_FILE_NAME = "configuration_schema.json"
   }
 }

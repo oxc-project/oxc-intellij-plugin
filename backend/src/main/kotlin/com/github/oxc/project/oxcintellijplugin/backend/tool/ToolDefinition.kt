@@ -25,6 +25,8 @@ abstract class ToolDefinition(
   val fixAllTimeoutRegistryKey: String,
   /** The subcommand of `vp` that runs this tool, as in `vp lint --lsp`. */
   val vitePlusCommand: String,
+  /** The config names that the tool's JSON schema describes. */
+  val jsonConfigNames: List<String>,
   /** Every config name that the tool looks for. `vite.config.*` isn't one, because it's Vite's file. */
   val configNames: List<String>,
 ) {
@@ -51,6 +53,10 @@ abstract class ToolDefinition(
   /** A config file of the tool's, by its name or because it's the manual config path. */
   fun isConfigFile(project: Project?, file: VirtualFile): Boolean =
     file.name in configNames || project != null && isManualConfig(project, file)
+
+  /** A config file that the tool's JSON schema describes. */
+  fun isJsonConfigFile(project: Project, file: VirtualFile): Boolean =
+    file.name in jsonConfigNames || isManualConfig(project, file)
 
   /**
    * The server resolves a relative path from its own folder, which depends on the file being checked, so

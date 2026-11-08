@@ -5,6 +5,7 @@
         <module name="intellij.platform.rpc.backend"/>
         <module name="Oxc.Shared"/>
         <module name="intellij.javascript.backend"/>
+        <module name="intellij.json.backend"/>
         <plugin id="com.intellij.modules.lsp"/>
         <plugin id="com.intellij.modules.json"/>
         <plugin id="JavaScript"/>
@@ -41,6 +42,12 @@
                            bundle="messages.OxcBackendBundle"
                            key="notification.group.oxc.code.style"/>
         <fileIconProvider implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcConfigFileIconProvider"/>
+        <json.catalog.exclusion implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcSchemaCatalogExclusion"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ContentAwareSchemaFileProvider
+                implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcJsonSchemaProvider"/>
     </extensions>
 
     <projectListeners>

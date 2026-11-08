@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.SimpleModificationTracker
 
 /**
  * Settings held only on the backend and written to a file in the project, which the Vite+ CLI and users
@@ -16,6 +17,8 @@ abstract class ToolPersistentSettings<S : BaseState, D : Any>(
 ) : SimplePersistentStateComponent<S>(initialState), ToolSettings {
 
   private var loaded = false
+
+  override val modificationTracker: SimpleModificationTracker = SimpleModificationTracker()
 
   protected abstract var storedFixAllOnSave: Boolean
 
@@ -66,6 +69,7 @@ abstract class ToolPersistentSettings<S : BaseState, D : Any>(
   }
 
   private fun publish(affectsServers: Boolean) {
+    modificationTracker.incModificationCount()
     project.messageBus.syncPublisher(OxcSettingsListener.TOPIC).settingsChanged(tool, affectsServers)
   }
 }

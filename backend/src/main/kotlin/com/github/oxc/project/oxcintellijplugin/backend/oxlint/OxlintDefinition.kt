@@ -27,6 +27,7 @@ object OxlintDefinition : ToolDefinition(
   configurableId = "OxlintConfigurable",
   fixAllTimeoutRegistryKey = "oxc.lint.fix.all.timeout.ms",
   vitePlusCommand = "lint",
+  jsonConfigNames = OXLINT_JSON_CONFIG_NAMES,
   configNames = OXLINT_JSON_CONFIG_NAMES + listOf("oxlint.config.ts", "oxlint.config.mts"),
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>

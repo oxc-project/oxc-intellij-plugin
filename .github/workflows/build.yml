@@ -179,12 +179,15 @@ jobs:
         include:
           - project: Windows
             tmpdir: ''
+            viteplus: ''
           - project: WSL
             tmpdir: '\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests'
+            viteplus: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-viteplus'
     env:
       OXC_TEST_WSL_DISTRO: Ubuntu-24.04
       OXC_TEST_WSL_NODE: /usr/local/bin/node
       OXC_TEST_TMPDIR: ${{ matrix.tmpdir }}
+      OXC_TEST_VITEPLUS_FIXTURE: ${{ matrix.viteplus }}
     steps:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
@@ -228,9 +231,23 @@ jobs:
         run: npm ci
 
       - name: Setup Vite+ Test
+        if: ${{ matrix.viteplus == '' }}
         shell: wsl-bash {0}
         working-directory: src/test/testData/viteplus/project
         run: npm ci
+
+      # The Vite+ test adds the fixture's folder to the project, so for a project in WSL it has to be in
+      # WSL too. The platform didn't report a change to a file on the Windows drive in that setup. It goes
+      # in /var/tmp because WSL can stop the idle distribution while Gradle compiles, and /tmp is
+      # cleared when it starts again.
+      - name: Setup Vite+ Test in WSL
+        if: ${{ matrix.viteplus != '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/viteplus/project
+        run: |
+          mkdir -p /var/tmp/oxc-viteplus
+          cp package.json package-lock.json vite.config.ts index.js /var/tmp/oxc-viteplus/
+          cd /var/tmp/oxc-viteplus && npm ci
 
       - name: Create Project Folder in WSL
         if: ${{ matrix.tmpdir != '' }}

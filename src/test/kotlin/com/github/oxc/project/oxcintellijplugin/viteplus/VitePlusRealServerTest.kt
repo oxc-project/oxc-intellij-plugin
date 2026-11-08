@@ -32,10 +32,15 @@ private const val SOURCE = "debugger;\nconst a = 'b'\n"
  * `vite.config.ts`. `vp` asks the client to watch every `vite.config.*`, so a change applies without a
  * restart. The fixture's `node_modules` is too big to copy for each test, so the fixture's folder is
  * added to the project instead, and `vite.config.ts` is put back after each test.
+ *
+ * `OXC_TEST_VITEPLUS_FIXTURE` points at another copy of the fixture. The WSL project job installs one
+ * inside WSL, so that the project and its `node_modules` are on the same side, as a user's would be.
  */
 class VitePlusRealServerTest : OxcFixtureTestCase() {
 
-  private val fixture: Path = Path.of("src/test/testData/viteplus/project").toAbsolutePath()
+  private val fixture: Path =
+    (System.getenv("OXC_TEST_VITEPLUS_FIXTURE")?.takeIf { it.isNotBlank() } ?: "src/test/testData/viteplus/project")
+      .let { Path.of(it).toAbsolutePath() }
   private val viteConfig: Path = fixture.resolve("vite.config.ts")
   private lateinit var originalViteConfig: String
   private lateinit var file: VirtualFile

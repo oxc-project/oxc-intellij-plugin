@@ -73,6 +73,9 @@ class OxcConfigFilesTest : OxcFixtureTestCase() {
     FakePackages.tool(myFixture, "node_modules/oxfmt", "oxfmt", schema = """
       { "type": "object", "properties": { "semi": { "type": "boolean" } } }
     """.trimIndent())
+    // Opening the file would otherwise start a server from the fake package, which exits at once and
+    // leaves the platform's shutdown thread running after the test.
+    OxfmtSettings.getInstance(project).state.configurationMode = ConfigurationMode.DISABLED
     myFixture.enableInspections(JsonSchemaComplianceInspection::class.java)
     myFixture.configureByText(".oxfmtrc.json", """{ "semi": <warning descr="Incompatible types.
  Required: boolean. Actual: string.">"no"</warning> }""")

@@ -15,6 +15,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerState
@@ -39,11 +40,12 @@ class OxcFixAll(private val project: Project) {
     definition.fixer(project).refusal()?.let { return it }
 
     val isOpen = isOpenInAnyClient(file)
-    if (!isOpen) refreshUnlessModified(file)
-    val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
-                   ?: return OxcFixAllResult.NothingToApply
     return try {
       withTimeout(timeoutMs(definition)) {
+        // In the timeout, because a refresh over `\\wsl$` or a remote file system can take any time.
+        if (!isOpen) refreshUnlessModified(file)
+        val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
+                       ?: return@withTimeout OxcFixAllResult.NothingToApply
         // The server reads a file that isn't open from disk, so it has to match the document.
         if (!isOpen) saveDocument(document)
         if (!startServer(definition, file)) return@withTimeout OxcFixAllResult.ToolNotFound
@@ -112,8 +114,9 @@ class OxcFixAll(private val project: Project) {
    */
   private suspend fun refreshUnlessModified(file: VirtualFile) {
     if (readAction { FileDocumentManager.getInstance().isFileModified(file) }) return
-    // A synchronous refresh waits for a write action, so it runs off the UI thread and outside a read action.
-    withContext(Dispatchers.IO) { VfsUtil.markDirtyAndRefresh(false, false, false, file) }
+    val dirty = VfsUtil.markDirty(false, false, file)
+    // Suspends instead of blocking a thread, so the timeout can cancel it. It must run outside a read action.
+    if (dirty.isNotEmpty()) RefreshQueue.getInstance().refresh(false, dirty)
   }
 
   private suspend fun saveDocument(document: Document) {

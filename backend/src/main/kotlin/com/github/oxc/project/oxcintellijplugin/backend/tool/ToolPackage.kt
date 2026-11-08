@@ -15,8 +15,16 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.Paths
 
-/** What to run for a file, and where its server should run from. */
-data class ServerLaunch(val executable: String, val parameters: List<String>, val root: VirtualFile)
+/**
+ * What to run for a file, and where its server should run from. [vitePlusFolder] is the `vite-plus`
+ * package that [executable] belongs to, when the server is `vp`.
+ */
+data class ServerLaunch(
+  val executable: String,
+  val parameters: List<String>,
+  val root: VirtualFile,
+  val vitePlusFolder: String? = null,
+)
 
 /**
  * Finds what to run for a file: the project's Vite+, else the tool's package, or the manual path.
@@ -78,10 +86,10 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     val nodePackage = descriptor.listAvailable(project, interpreter, file, false, true).firstOrNull()
                       ?: descriptor.findUnambiguousDependencyPackage(project)
                       ?: return null
-    val executable = nodePackage.getAbsolutePackagePathToRequire(project)
-                       ?.let { Paths.get(it, "bin", "vp").toString() } ?: return null
+    val folder = nodePackage.getAbsolutePackagePathToRequire(project) ?: return null
+    val executable = Paths.get(folder, "bin", "vp").toString()
     val root = serverRoot(nodePackage) ?: return null
-    return VitePlus(nodePackage, ServerLaunch(executable, listOf(definition.vitePlusCommand, "--lsp"), root))
+    return VitePlus(nodePackage, ServerLaunch(executable, listOf(definition.vitePlusCommand, "--lsp"), root, folder))
   }
 
   /** Prefers the nearest `node_modules` above the file, then falls back to a default package. */

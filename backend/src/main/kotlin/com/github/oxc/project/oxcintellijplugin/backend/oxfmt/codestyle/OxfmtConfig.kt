@@ -20,6 +20,10 @@ val OXFMT_JS_CONFIG_NAMES: List<String> = listOf("oxfmt.config.ts", "oxfmt.confi
 
 val OXFMT_CONFIG_NAMES: List<String> = OXFMT_JSON_CONFIG_NAMES + OXFMT_JS_CONFIG_NAMES
 
+/** The only configs that the server looks for under `vp`, in the order that Vite tries them. */
+val VITE_CONFIG_NAMES: List<String> =
+  listOf("vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs", "vite.config.mts", "vite.config.cts")
+
 private val JS_CONFIG_EXTENSIONS = setOf("js", "mjs", "cjs", "ts", "mts", "cts")
 
 /** The server reads any file that isn't JavaScript or TypeScript as JSON, which is all the plugin can read. */

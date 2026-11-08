@@ -32,7 +32,8 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
 
   /**
    * A config in the project or in a folder above it can change which config a file uses. So can any
-   * config's name, because a TypeScript config can hide a JSON one. The manual config can have any name.
+   * config's name, because a TypeScript config can hide a JSON one. Under `vp`, the configs are
+   * `vite.config.*`. The manual config can have any name.
    */
   private fun touchesConfig(event: VFileEvent): Boolean {
     val roots = listOfNotNull(project.basePath) + ProjectRootManager.getInstance(project).contentRoots.map { it.path }
@@ -45,7 +46,7 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
     )
     return paths.any { path ->
       (manual != null && (path.endsWith("/$manual") || FileUtil.pathsEqual(path, manual))) ||
-      (PathUtil.getFileName(path) in OXFMT_CONFIG_NAMES && roots.any { root ->
+      (PathUtil.getFileName(path).let { it in OXFMT_CONFIG_NAMES || it in VITE_CONFIG_NAMES } && roots.any { root ->
         FileUtil.isAncestor(root, path, false) || FileUtil.isAncestor(PathUtil.getParentPath(path), root, false)
       })
     }

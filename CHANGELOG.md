@@ -30,6 +30,7 @@
 - In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
 - Only `fmt.configPath` and `fmt.disableNestedConfig` are sent to Oxfmt's language server, which are the settings it reads.
 - In a Vite+ project, `vp` reloads a changed `vite.config.*` itself, instead of the plugin restarting the language servers.
+- In a Vite+ project, the Oxfmt code style and Import use the same config as `vp fmt`: the first `vite.config.*` with a `fmt` field, from the folder `vp` runs in upward. `.oxfmtrc.json` and `oxfmt.config.ts` aren't used there, because `vp fmt` ignores them.
 - The JSON schemas for `.oxlintrc.json(c)` and `.oxfmtrc.json(c)`, and for a manual config path, now come from the Oxlint or Oxfmt package that runs for the file, so they match its version and need no network. In a Vite+ project, that's the Oxlint or Oxfmt that `vp` runs. Without an installed package there's no schema, and the schema catalog's copy from Oxc's `main` branch isn't used for these files.
 - A manual config path only gets the Oxc icon in Manual mode, which is the only mode that uses it.
 

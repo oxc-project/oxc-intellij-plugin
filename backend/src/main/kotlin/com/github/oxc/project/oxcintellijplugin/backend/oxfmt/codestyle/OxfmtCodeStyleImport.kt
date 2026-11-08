@@ -13,8 +13,9 @@ import kotlinx.coroutines.withContext
 
 /** Writes the nearest config into the project's own code style, which is stored in `.idea/codeStyles`. */
 suspend fun importOxfmtCodeStyle(project: Project, file: VirtualFile): OxfmtImportResult {
-  val configFile = readAction { findOxfmtConfig(project, file) } ?: return OxfmtImportResult.CONFIG_NOT_FOUND
-  val config = readAction { OxfmtConfig.read(project, configFile) } ?: return OxfmtImportResult.CONFIG_NOT_READABLE
+  val location = readAction { locateOxfmtConfig(project, file) } ?: return OxfmtImportResult.CONFIG_NOT_FOUND
+  val config = location.takeIf { it.format == OxfmtConfigFormat.JSON }
+                 ?.let { readAction { OxfmtConfig.read(project, it.file) } } ?: return OxfmtImportResult.CONFIG_NOT_READABLE
 
   return withContext(Dispatchers.EDT) {
     if (OxfmtCodeStyle.isApplied(CodeStyle.getSettings(project), config)) return@withContext OxfmtImportResult.ALREADY_IMPORTED

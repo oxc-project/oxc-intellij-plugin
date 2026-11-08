@@ -24,7 +24,8 @@ class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
     val oxfmt = OxfmtSettings.getInstance(project)
     if (!oxfmt.state.preferOxfmtCodeStyleSettings || !oxfmt.isSupported(file)) return false
 
-    val config = findOxfmtConfig(project, file)?.let { OxfmtConfig.read(project, it) } ?: return false
+    val config = locateOxfmtConfig(project, file)?.takeIf { it.format == OxfmtConfigFormat.JSON }
+                   ?.let { OxfmtConfig.read(project, it.file) } ?: return false
     return OxfmtCodeStyle.apply(settings, config, psiFile.language)
   }
 

@@ -79,14 +79,17 @@ jobs:
           name: coverage-report
           path: ${{ github.workspace }}/build/reports/kover
 
+      # Uploaded after every run, not only failed ones, so test counts and times can be compared between
+      # jobs and runs. The XML results hold each test's time; the report and logs are a few MB.
       - name: Collect Tests Result
-        if: ${{ failure() || cancelled() }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tests-result
           # The sandbox folder starts with a dot, which the upload skips by default.
           include-hidden-files: true
           path: |
+            ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
 
@@ -134,12 +137,13 @@ jobs:
         run: ./gradlew test
 
       - name: Collect Tests Result
-        if: ${{ failure() || cancelled() }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tests-result-windows
           include-hidden-files: true
           path: |
+            ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
 
@@ -237,12 +241,13 @@ jobs:
         run: .\gradlew.bat test
 
       - name: Collect Tests Result
-        if: ${{ failure() || cancelled() }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tests-result-wsl-${{ matrix.project }}-project
           include-hidden-files: true
           path: |
+            ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
 

@@ -14,12 +14,15 @@ concurrency:
 env:
   # Only main in the main repository, and anything from the listed fork, can write to the cache.
   # Of those runs, only the Test and Test (Windows) jobs write, one for each OS, because each job that
-  # writes keeps its own copy of the 1.9 GB of dependencies. A job that has no entry of its own restores
-  # the latest one saved on the same OS.
+  # writes keeps its own copy of the dependencies. A job that has no entry of its own restores the latest
+  # one saved on the same OS.
   # TODO: Remove the check for nrayburn-tech.
   CACHE_READ_ONLY: >-
     ${{ !((github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main')
     || (github.event.pull_request.head.repo.full_name || github.repository) == 'nrayburn-tech/oxc-intellij-plugin') }}
+  # The IDE's archive is 1.5 GB of the 1.9 GB of dependencies, so every job downloads it from JetBrains
+  # instead. Restoring it took 13 to 30 seconds, and each job unpacks it again either way.
+  GRADLE_CACHE_EXCLUDES: caches/modules-2/files-2.1/com.jetbrains.intellij.idea
 
 jobs:
 
@@ -43,6 +46,7 @@ jobs:
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: ${{ env.CACHE_READ_ONLY }}
+          gradle-home-cache-excludes: ${{ env.GRADLE_CACHE_EXCLUDES }}
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -106,6 +110,7 @@ jobs:
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: ${{ env.CACHE_READ_ONLY }}
+          gradle-home-cache-excludes: ${{ env.GRADLE_CACHE_EXCLUDES }}
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -262,7 +267,7 @@ jobs:
           java-version: 25
 
       # Restores the entry that Test saves. The verifier reads the same IDE that the build compiles
-      # against, so only the verifier itself is downloaded again.
+      # against, so it adds only the verifier itself to the IDE that every job downloads.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:

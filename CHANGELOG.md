@@ -30,6 +30,7 @@
 - In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
 - Only `fmt.configPath` and `fmt.disableNestedConfig` are sent to Oxfmt's language server, which are the settings it reads.
 - In a Vite+ project, `vp` reloads a changed `vite.config.*` itself, instead of the plugin restarting the language servers.
+- A manual config path only gets the Oxc icon in Manual mode, which is the only mode that uses it.
 
 ### Fixed
 
@@ -38,6 +39,8 @@
 - Oxfmt no longer corrupts a file when the language server returns more than one edit.
 - An unknown `trailingComma` value in an Oxfmt config no longer causes an error.
 - A config change only affects the project that it's in.
+- Oxfmt's manual config path now gets the Oxc icon, as Oxlint's does.
+- `oxlint.config.mts` and `oxfmt.config.mts` now get the Oxc icon.
 
 ## [0.0.45] - 2026-10-15
 

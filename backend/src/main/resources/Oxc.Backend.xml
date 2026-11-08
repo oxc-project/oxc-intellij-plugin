@@ -40,12 +40,15 @@
                            displayType="BALLOON"
                            bundle="messages.OxcBackendBundle"
                            key="notification.group.oxc.code.style"/>
+        <fileIconProvider implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcConfigFileIconProvider"/>
     </extensions>
 
     <projectListeners>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolEditorWatcher"
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolSettingsWatcher"
+                  topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.config.OxcConfigFilesRefresher"
                   topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.OutsideConfigWatcher$Listener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>

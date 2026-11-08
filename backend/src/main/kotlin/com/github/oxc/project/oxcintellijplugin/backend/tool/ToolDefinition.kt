@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.customization.LspCustomization
 
 /** What differs between the tools. Everything else in this package is shared. */
@@ -36,6 +37,12 @@ abstract class ToolDefinition(
 
     return ToolPackage(project, this).resolve(file)?.let { ToolLspClientDescriptor(project, this, it) }
   }
+
+  /** The root of the running server that handles [file], if there is one. */
+  fun runningServerRoot(project: Project, file: VirtualFile): VirtualFile? =
+    LspClientManager.getInstance(project).getClients(providerClass)
+      .firstOrNull { it.descriptor.isSupportedFile(file) }
+      ?.descriptor?.roots?.singleOrNull()
 
   companion object {
     val all: List<ToolDefinition> by lazy { listOf(OxlintDefinition, OxfmtDefinition) }

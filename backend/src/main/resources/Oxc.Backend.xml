@@ -33,6 +33,13 @@
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider"/>
         <platform.lsp.integrationProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxfmt.lsp.OxfmtLspIntegrationProvider"/>
+        <codeStyleSettingsModifier
+                implementation="com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier"
+                order="first, before org.editorconfig.EditorConfigCodeStyleSettingsModifier"/>
+        <notificationGroup id="Oxc Code Style"
+                           displayType="BALLOON"
+                           bundle="messages.OxcBackendBundle"
+                           key="notification.group.oxc.code.style"/>
     </extensions>
 
     <projectListeners>
@@ -42,5 +49,9 @@
                   topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.OutsideConfigWatcher$Listener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleRefresher"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleRefresher"
+                  topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
     </projectListeners>
 </idea-plugin>

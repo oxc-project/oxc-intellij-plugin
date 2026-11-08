@@ -36,6 +36,11 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
+        <action id="OxfmtImportCodeStyleAction"
+                class="com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtImportCodeStyleAction">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
         <action id="OxlintRestartServerAction"
                 class="com.github.oxc.project.oxcintellijplugin.frontend.tool.OxlintRestartServerAction"/>
         <action id="OxfmtRestartServerAction"

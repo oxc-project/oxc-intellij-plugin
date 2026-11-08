@@ -20,6 +20,10 @@
 - "Apply Oxfmt Quick Fixes" now says when a file is already formatted, shows cancellable progress without blocking the IDE, and can format a closed file. Its timeout is per file, 30 seconds by default, and set by the Registry key `oxc.fmt.fix.all.timeout.ms`.
 - Oxfmt format on save no longer blocks the IDE. A failure is logged instead of shown as a notification.
 - Oxfmt's fix on save is now only set on the Actions on Save page. The Oxfmt settings page links to it.
+- "Prefer Oxfmt configuration to IDE code style" now also applies indent and margins for each file, including languages other than JavaScript and TypeScript.
+- The Oxfmt code style and "Import Oxfmt Code Style" now use the same config as Oxfmt's language server, including a manual config path, "Disable nested config lookups", and an `oxfmt.config.ts` in a nearer folder. When that config is a TypeScript file, the code style is left alone, because the plugin can't read it.
+- **Breaking:** Changing an Oxfmt config no longer rewrites the project's code style. Only "Import Oxfmt Code Style" does, and it now stores the result in the project rather than the IDE-wide scheme.
+- "Import Oxfmt Code Style" now appears for every file that Oxfmt handles, and for folders, and says if there's no config.
 - Oxfmt's default file extensions no longer list the five with more than one dot, such as `.json.example`. They never matched a file.
 - File extensions in both tools' settings can now contain `-` and `_`.
 - Only `fmt.configPath` and `fmt.disableNestedConfig` are sent to Oxfmt's language server, which are the settings it reads.
@@ -29,6 +33,8 @@
 - With more than one client connected, Oxlint's language server now keeps running while any client has a supported file open.
 - A manual Oxlint or Oxfmt binary at a path into WSL now runs inside WSL, instead of through Node.
 - Oxfmt no longer corrupts a file when the language server returns more than one edit.
+- An unknown `trailingComma` value in an Oxfmt config no longer causes an error.
+- A config change only affects the project that it's in.
 
 ### Removed
 

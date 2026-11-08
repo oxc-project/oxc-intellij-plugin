@@ -56,7 +56,7 @@ class PluginLoadingTest : BasePlatformTestCase() {
     fun testOxfmtIsRegistered() {
         assertNotNull(ActionManager.getInstance().getAction("OxfmtRestartServerAction"))
         assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxfmtConfigurable" })
-        for (id in listOf("OxfmtApplyFixAllAction")) {
+        for (id in listOf("OxfmtApplyFixAllAction", "OxfmtImportCodeStyleAction")) {
             val action = ActionManager.getInstance().getAction(id)
             assertNotNull(id, action)
             for (group in listOf("EditorPopupMenu", "ProjectViewPopupMenu")) {
@@ -73,6 +73,11 @@ class PluginLoadingTest : BasePlatformTestCase() {
         assertTrue(names.toString(), oxfmt > oxlint)
         val format = names.indexOf("FormatOnSaveAction")
         if (format >= 0) assertTrue(names.toString(), oxfmt > format)
+    }
+
+    fun testCodeStyleOverlayRunsBeforeEditorConfig() {
+        val names = ExtensionPointName<Any>("com.intellij.codeStyleSettingsModifier").extensionList.map { it.javaClass.simpleName }
+        assertEquals(names.toString(), 0, names.indexOf("OxfmtCodeStyleSettingsModifier"))
     }
 
     fun testFixOnSaveRunsBeforeFormatOnSave() {

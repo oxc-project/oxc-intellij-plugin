@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.shared
 
-private val EXTENSION_PATTERN = Regex("^\\.[a-zA-Z0-9]+$")
+/** One rule for both tools: a leading dot, then letters, digits, `-` or `_`. */
+private val EXTENSION_PATTERN = Regex("^\\.[a-zA-Z0-9_-]+$")
 
 fun isValidExtension(extension: String): Boolean = EXTENSION_PATTERN.matches(extension)
 

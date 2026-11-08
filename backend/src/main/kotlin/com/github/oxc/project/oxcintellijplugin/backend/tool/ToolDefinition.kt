@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.backend.tool
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.OxfmtDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.intellij.openapi.project.Project
@@ -37,7 +38,7 @@ abstract class ToolDefinition(
   }
 
   companion object {
-    val all: List<ToolDefinition> by lazy { listOf(OxlintDefinition) }
+    val all: List<ToolDefinition> by lazy { listOf(OxlintDefinition, OxfmtDefinition) }
 
     fun of(tool: OxcTool): ToolDefinition = all.first { it.tool == tool }
   }

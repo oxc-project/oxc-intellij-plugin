@@ -7,7 +7,9 @@
 //   cached: code actions to answer with straight away
 //   afterDiagnostic: code actions to answer with once diagnostics have been pulled after a code action
 //     request, because the platform can also pull them by itself before that
-//   hang: true to never answer a code action request
+//   hang: true to never answer a code action or formatting request
+//   formatting: text edits to answer a formatting request with, as { "start": [line, character],
+//     "end": [line, character], "newText" }
 //
 // A code action is { "title", "isPreferred", "insert" }, where insert is text to add at the file's start.
 "use strict";
@@ -33,6 +35,16 @@ function toCodeAction(action, uri) {
   };
 }
 
+function toTextEdit({ start, end, newText }) {
+  return {
+    range: {
+      start: { line: start[0], character: start[1] },
+      end: { line: end[0], character: end[1] },
+    },
+    newText,
+  };
+}
+
 function handle(message) {
   if (message.id === undefined || message.method === undefined) return;
   fs.appendFileSync("requests.log", `${JSON.stringify({ method: message.method, params: message.params })}\n`);
@@ -45,6 +57,7 @@ function handle(message) {
           capabilities: {
             textDocumentSync: { openClose: true, change: 1 },
             codeActionProvider: true,
+            documentFormattingProvider: true,
             diagnosticProvider: { interFileDependencies: false, workspaceDiagnostics: false },
           },
         },
@@ -60,6 +73,12 @@ function handle(message) {
       const actions = cached ?? (diagnosticsPulled ? afterDiagnostic : []) ?? [];
       send({ id: message.id, result: actions.map((it) => toCodeAction(it, message.params.textDocument.uri)) });
       codeActionRequested = true;
+      break;
+    }
+    case "textDocument/formatting": {
+      const { formatting, hang } = script();
+      if (hang) break;
+      send({ id: message.id, result: (formatting ?? []).map(toTextEdit) });
       break;
     }
     default:

@@ -40,6 +40,8 @@ internal abstract class ToolRestartServerAction(private val tool: OxcTool) : AnA
 
 internal class OxlintRestartServerAction : ToolRestartServerAction(OxcTool.OXLINT)
 
+internal class OxfmtRestartServerAction : ToolRestartServerAction(OxcTool.OXFMT)
+
 @Service(Service.Level.PROJECT)
 internal class ToolServerRestarter(
   private val project: Project,

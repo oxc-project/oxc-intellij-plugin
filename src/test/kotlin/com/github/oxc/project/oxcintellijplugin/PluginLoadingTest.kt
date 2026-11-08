@@ -53,6 +53,28 @@ class PluginLoadingTest : BasePlatformTestCase() {
         }
     }
 
+    fun testOxfmtIsRegistered() {
+        assertNotNull(ActionManager.getInstance().getAction("OxfmtRestartServerAction"))
+        assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxfmtConfigurable" })
+        for (id in listOf("OxfmtApplyFixAllAction")) {
+            val action = ActionManager.getInstance().getAction(id)
+            assertNotNull(id, action)
+            for (group in listOf("EditorPopupMenu", "ProjectViewPopupMenu")) {
+                val children = (ActionManager.getInstance().getAction(group) as DefaultActionGroup).getChildren(ActionManager.getInstance())
+                assertTrue("$id in $group", action in children)
+            }
+        }
+    }
+
+    fun testOxfmtRunsLastOnSave() {
+        val names = ExtensionPointName<Any>("com.intellij.actionOnSave").extensionList.map { it.javaClass.simpleName }
+        val oxlint = names.indexOf("OxlintFixAllOnSaveAction")
+        val oxfmt = names.indexOf("OxfmtFixAllOnSaveAction")
+        assertTrue(names.toString(), oxfmt > oxlint)
+        val format = names.indexOf("FormatOnSaveAction")
+        if (format >= 0) assertTrue(names.toString(), oxfmt > format)
+    }
+
     fun testFixOnSaveRunsBeforeFormatOnSave() {
         val names = ExtensionPointName<Any>("com.intellij.actionOnSave").extensionList.map { it.javaClass.simpleName }
         val fix = names.indexOf("OxlintFixAllOnSaveAction")
@@ -81,6 +103,7 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
     fun testRegistryKeyIsDefined() {
         assertEquals(30000, Registry.intValue("oxc.lint.fix.all.timeout.ms"))
+        assertEquals(30000, Registry.intValue("oxc.fmt.fix.all.timeout.ms"))
     }
 
     fun testFixAllAnswersOverRpc() {

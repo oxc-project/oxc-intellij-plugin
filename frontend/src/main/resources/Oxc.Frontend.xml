@@ -17,6 +17,12 @@
                              bundle="messages.OxcFrontendBundle"
                              key="oxlint.settings.name"
                              nonDefaultProject="false"/>
+        <projectConfigurable parentId="tools"
+                             instance="com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.settings.OxfmtConfigurable"
+                             id="OxfmtConfigurable"
+                             bundle="messages.OxcFrontendBundle"
+                             key="oxfmt.settings.name"
+                             nonDefaultProject="false"/>
     </extensions>
 
     <actions resource-bundle="messages.OxcFrontendBundle">
@@ -25,7 +31,14 @@
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
+        <action id="OxfmtApplyFixAllAction"
+                class="com.github.oxc.project.oxcintellijplugin.frontend.tool.OxfmtFixAllAction">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </action>
         <action id="OxlintRestartServerAction"
                 class="com.github.oxc.project.oxcintellijplugin.frontend.tool.OxlintRestartServerAction"/>
+        <action id="OxfmtRestartServerAction"
+                class="com.github.oxc.project.oxcintellijplugin.frontend.tool.OxfmtRestartServerAction"/>
     </actions>
 </idea-plugin>

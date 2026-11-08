@@ -81,6 +81,10 @@ jobs:
         working-directory: src/test/testData/oxlint/highlighting/no-config
         run: npm ci
 
+      - name: Setup Oxfmt Formatting Test
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
       - name: Run Tests
         run: ./gradlew check
 
@@ -124,6 +128,10 @@ jobs:
 
       - name: Setup Oxlint Highlighting No Config Test
         working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Oxfmt Formatting Test
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
       - name: Run Tests
@@ -190,10 +198,15 @@ jobs:
           curl -fsSL "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.xz" \
             | tar -xJ -C /usr/local --strip-components=1
 
-      # Run inside WSL so that the Linux Oxlint binary is installed.
+      # Run inside WSL so that the Linux binaries are installed.
       - name: Setup Oxlint Highlighting No Config Test
         shell: wsl-bash {0}
         working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Oxfmt Formatting Test
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
       - name: Create Project Folder in WSL

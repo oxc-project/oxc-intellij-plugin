@@ -13,6 +13,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.LspClientManager
@@ -37,11 +38,12 @@ class OxcFixAll(private val project: Project) {
     if (!settings.isEnabled) return OxcFixAllResult.NothingToApply
     definition.fixer(project).refusal()?.let { return it }
 
+    val isOpen = isOpenInAnyClient(file)
+    if (!isOpen) refreshUnlessModified(file)
     val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
                    ?: return OxcFixAllResult.NothingToApply
     return try {
       withTimeout(timeoutMs(definition)) {
-        val isOpen = isOpenInAnyClient(file)
         // The server reads a file that isn't open from disk, so it has to match the document.
         if (!isOpen) saveDocument(document)
         if (!startServer(definition, file)) return@withTimeout OxcFixAllResult.ToolNotFound
@@ -102,6 +104,17 @@ class OxcFixAll(private val project: Project) {
 
   private fun isOpenInAnyClient(file: VirtualFile): Boolean =
     file in FileEditorManager.getInstance(project).openFilesWithRemotes
+
+  /**
+   * Picks up a change made outside the IDE that the file watcher hasn't reported yet, such as a checkout
+   * just before the action. Otherwise the document keeps the old text, the server fixes the new text on
+   * disk, and saving the result conflicts with the disk. A file with unsaved changes keeps them.
+   */
+  private suspend fun refreshUnlessModified(file: VirtualFile) {
+    if (readAction { FileDocumentManager.getInstance().isFileModified(file) }) return
+    // A synchronous refresh waits for a write action, so it runs off the UI thread and outside a read action.
+    withContext(Dispatchers.IO) { VfsUtil.markDirtyAndRefresh(false, false, false, file) }
+  }
 
   private suspend fun saveDocument(document: Document) {
     withContext(Dispatchers.EDT) { FileDocumentManager.getInstance().saveDocument(document) }

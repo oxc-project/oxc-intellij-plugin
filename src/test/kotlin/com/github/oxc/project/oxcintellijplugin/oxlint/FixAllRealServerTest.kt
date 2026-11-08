@@ -16,6 +16,8 @@ import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import kotlinx.coroutines.runBlocking
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 /**
  * Starts a real Oxlint server. Needs Node on PATH and `npm ci` run in the fixture folder. `no-var` has a
@@ -47,6 +49,20 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
     assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("const fixed = 1;\nconsole.log(fixed);\ndebugger;\n", String(file.contentsToByteArray()))
+  }
+
+  /**
+   * A change made outside the IDE that the file watcher hasn't reported yet, such as a checkout just
+   * before the action. The document already holds the old text.
+   */
+  fun testClosedFileChangedOnDiskIsFixedFromTheDisk() {
+    val staleDocument = FileDocumentManager.getInstance().getDocument(file)
+    file.toNioPath().writeText("var changed = 2;\nconsole.log(changed);\n")
+
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
+
+    assertEquals("const changed = 2;\nconsole.log(changed);\n", file.toNioPath().readText())
+    assertEquals("const changed = 2;\nconsole.log(changed);\n", staleDocument?.text)
   }
 
   fun testDangerousFixKindAppliesFixes() {

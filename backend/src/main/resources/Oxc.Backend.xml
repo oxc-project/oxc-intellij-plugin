@@ -21,18 +21,18 @@
                       implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAllOnSaveAction"
                       order="first, before FormatOnSaveAction"/>
         <actionOnSaveInfoProvider id="OxcOnSaveInfoProvider"
-                                  implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxcOnSaveInfoProvider"
+                                  implementation="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcOnSaveInfoProvider"
                                   order="after FormatOnSaveInfoProvider, after EsLintOnSaveInfoProvider, before FileWatcherOnSaveInfoProvider, before UploadOnSaveInfoProvider"/>
         <platform.lsp.integrationProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider"/>
     </extensions>
 
     <projectListeners>
-        <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintEditorWatcher"
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolEditorWatcher"
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
-        <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintSettingsWatcher"
-                  topic="com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsListener"/>
-        <listener class="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintOutsideConfigWatcher$Listener"
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolSettingsWatcher"
+                  topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.OutsideConfigWatcher$Listener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
 </idea-plugin>

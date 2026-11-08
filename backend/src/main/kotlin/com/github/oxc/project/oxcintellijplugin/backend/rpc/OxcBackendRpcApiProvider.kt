@@ -3,14 +3,15 @@
 package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
 import com.github.oxc.project.oxcintellijplugin.backend.files.BackendFolderLister
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAll
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsListener
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
+import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
+import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFolder
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintFixAllResult
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.SaveAndSyncHandler
@@ -36,8 +37,8 @@ import kotlinx.coroutines.withContext
 
 internal class OxcBackendRpcApiProvider : RemoteApiProvider {
   override fun RemoteApiProvider.Sink.remoteApis() {
-    remoteApi(remoteApiDescriptor<OxlintServerApi>()) {
-      OxlintServerApiImpl()
+    remoteApi(remoteApiDescriptor<OxcToolApi>()) {
+      OxcToolApiImpl()
     }
     remoteApi(remoteApiDescriptor<BackendFilesApi>()) {
       BackendFilesApiImpl()
@@ -48,20 +49,19 @@ internal class OxcBackendRpcApiProvider : RemoteApiProvider {
   }
 }
 
-private class OxlintServerApiImpl : OxlintServerApi {
+private class OxcToolApiImpl : OxcToolApi {
 
-  override suspend fun restart(projectId: ProjectId) {
+  override suspend fun restart(projectId: ProjectId, tool: OxcTool) {
     val project = projectId.findProjectOrNull() ?: return
     withContext(Dispatchers.EDT) {
-      LspClientManager.getInstance(project)
-        .stopAndRestartClientsIfNeeded(OxlintLspIntegrationProvider::class.java)
+      LspClientManager.getInstance(project).stopAndRestartClientsIfNeeded(ToolDefinition.of(tool).providerClass)
     }
   }
 
-  override suspend fun fixAll(projectId: ProjectId, file: VirtualFileId): OxlintFixAllResult {
-    val project = projectId.findProjectOrNull() ?: return OxlintFixAllResult.NothingToApply
-    val virtualFile = file.virtualFile() ?: return OxlintFixAllResult.NothingToApply
-    return OxlintFixAll.getInstance(project).fixFile(virtualFile)
+  override suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult {
+    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.NothingToApply
+    val virtualFile = file.virtualFile() ?: return OxcFixAllResult.NothingToApply
+    return OxcFixAll.getInstance(project).fixFile(ToolDefinition.of(tool), virtualFile)
   }
 }
 
@@ -81,21 +81,29 @@ private class OxlintSettingsApiImpl : OxlintSettingsApi {
   override suspend fun apply(projectId: ProjectId?, settings: OxlintSettingsData) {
     val project = settingsProject(projectId) ?: return
     OxlintSettings.getInstance(project).update(settings)
-    if (!project.isDefault) SaveAndSyncHandler.getInstance().scheduleProjectSave(project)
+    scheduleSave(project)
   }
 
   override suspend fun updates(projectId: ProjectId): Flow<OxlintSettingsData> {
     val project = projectId.findProjectOrNull() ?: return emptyFlow()
-    val settings = OxlintSettings.getInstance(project)
-    // Reads the settings when emitting, so that a value read earlier can't replace a newer change.
-    return callbackFlow {
-      val connection = project.messageBus.connect()
-      connection.subscribe(OxlintSettingsListener.TOPIC, OxlintSettingsListener { trySend(Unit) })
-      send(Unit)
-      awaitClose { connection.disconnect() }
-    }.conflate().map { settings.toData() }.distinctUntilChanged()
+    return settingsUpdates(project, OxcTool.OXLINT) { OxlintSettings.getInstance(project).toData() }
   }
-
-  private fun settingsProject(projectId: ProjectId?): Project? =
-    if (projectId == null) ProjectManager.getInstance().defaultProject else projectId.findProjectOrNull()
 }
+
+private fun settingsProject(projectId: ProjectId?): Project? =
+  if (projectId == null) ProjectManager.getInstance().defaultProject else projectId.findProjectOrNull()
+
+private fun scheduleSave(project: Project) {
+  if (!project.isDefault) SaveAndSyncHandler.getInstance().scheduleProjectSave(project)
+}
+
+/** Reads the settings when emitting, so that a value read earlier can't replace a newer change. */
+private fun <D : Any> settingsUpdates(project: Project, tool: OxcTool, read: () -> D): Flow<D> =
+  callbackFlow {
+    val connection = project.messageBus.connect()
+    connection.subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { changedTool, _ ->
+      if (changedTool == tool) trySend(Unit)
+    })
+    send(Unit)
+    awaitClose { connection.disconnect() }
+  }.conflate().map { read() }.distinctUntilChanged()

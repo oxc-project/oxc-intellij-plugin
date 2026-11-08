@@ -1,7 +1,9 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ServerLaunch
 import com.github.oxc.project.oxcintellijplugin.backend.lsp.pathToFileUri
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspClientDescriptor
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspClientDescriptor
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
 import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting.onPooledThread
@@ -68,5 +70,5 @@ class ServerPathsTest : OxcFixtureTestCase() {
     LocalFileSystem.getInstance().refreshAndFindFileByPath(myFixture.tempDirPath)!!
 
   private fun descriptor(root: VirtualFile) =
-    OxlintLspClientDescriptor(project, root, "${myFixture.tempDirPath}/oxlint")
+    ToolLspClientDescriptor(project, OxlintDefinition, ServerLaunch("${myFixture.tempDirPath}/oxlint", listOf("--lsp"), root))
 }

@@ -1,4 +1,4 @@
-package com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp
+package com.github.oxc.project.oxcintellijplugin.backend.tool
 
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
@@ -11,7 +11,7 @@ import com.intellij.openapi.util.io.OSAgnosticPathUtil
  * in the workspace is sent as a relative path, which the platform resolves against the workspace.
  * A file outside it can't work that way, so [fileOutsideWorkspace] tells the plugin to watch it.
  */
-data class OxlintConfigPath(val serverValue: String, val fileOutsideWorkspace: String?) {
+data class ToolConfigPath(val serverValue: String, val fileOutsideWorkspace: String?) {
 
   companion object {
     fun of(
@@ -19,7 +19,7 @@ data class OxlintConfigPath(val serverValue: String, val fileOutsideWorkspace: S
       workspace: String,
       toServerPath: (String) -> String?,
       toLocalPath: (String) -> String?,
-    ): OxlintConfigPath? {
+    ): ToolConfigPath? {
       val path = configured?.trim()?.takeIf { it.isNotEmpty() }?.let(FileUtil::toSystemIndependentName)
                  ?: return null
       val localPath = if (OSAgnosticPathUtil.isAbsolute(path)) {
@@ -30,10 +30,10 @@ data class OxlintConfigPath(val serverValue: String, val fileOutsideWorkspace: S
       }
 
       if (FileUtil.isAncestor(workspace, localPath, false)) {
-        return OxlintConfigPath(FileUtil.getRelativePath(workspace, localPath, '/') ?: path, null)
+        return ToolConfigPath(FileUtil.getRelativePath(workspace, localPath, '/') ?: path, null)
       }
       val serverValue = if (OSAgnosticPathUtil.isAbsolute(path)) toServerPath(localPath) ?: path else path
-      return OxlintConfigPath(serverValue, localPath)
+      return ToolConfigPath(serverValue, localPath)
     }
   }
 }

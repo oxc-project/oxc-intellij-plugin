@@ -1,10 +1,11 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintEditorWatcher
+import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolEditorWatcher
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
@@ -73,7 +74,7 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
 
     val scope = CoroutineScope(Job())
     try {
-      OxlintEditorWatcher().fileClosed(OtherClientHasFilesOpen(project, scope, listOf(file)), file)
+      ToolEditorWatcher().fileClosed(OtherClientHasFilesOpen(project, scope, listOf(file)), file)
       PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
     }
     finally {
@@ -189,7 +190,7 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
   private fun restartOverRpc() {
     val projectId = project.projectId()
     val restart = ApplicationManager.getApplication().executeOnPooledThread {
-      runBlocking { OxlintServerApi.getInstance().restart(projectId) }
+      runBlocking { OxcToolApi.getInstance().restart(projectId, OxcTool.OXLINT) }
     }
     PlatformTestUtil.waitForFuture(restart, 30_000)
   }

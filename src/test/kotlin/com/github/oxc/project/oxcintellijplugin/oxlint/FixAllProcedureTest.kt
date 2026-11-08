@@ -1,10 +1,11 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAll
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintFixAllResult
+import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
@@ -36,7 +37,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   fun testCachedActionIsAppliedWithoutPullingDiagnostics() {
     script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("fixed\noriginal\n", text())
     assertSize(1, fixAllRequests())
@@ -45,7 +46,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   fun testEmptyCacheIsRefilledByPullingDiagnostics() {
     script("""{ "afterDiagnostic": [${action("fixed\n", preferred = true)}] }""")
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("fixed\noriginal\n", text())
     assertSize(2, fixAllRequests())
@@ -54,7 +55,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   fun testOnlyPreferredActionsAreApplied() {
     script("""{ "cached": [${action("not preferred\n", preferred = false)}, ${action("fixed\n", preferred = true)}] }""")
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("fixed\noriginal\n", text())
   }
@@ -62,7 +63,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   fun testNothingIsAppliedWhenNoActionIsPreferred() {
     script("""{ "cached": [${action("not preferred\n", preferred = false)}] }""")
 
-    assertEquals(OxlintFixAllResult.NothingToApply, runFixAll())
+    assertEquals(OxcFixAllResult.NothingToApply, runFixAll())
 
     assertEquals("original\n", text())
   }
@@ -72,7 +73,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     val timeout = Registry.get("oxc.lint.fix.all.timeout.ms")
     timeout.setValue(500, testRootDisposable)
 
-    assertEquals(OxlintFixAllResult.TimedOut, runFixAll())
+    assertEquals(OxcFixAllResult.TimedOut, runFixAll())
 
     assertEquals("original\n", text())
   }
@@ -81,7 +82,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
     OxlintSettings.getInstance(project).state.fixKind = OxlintFixKind.NONE
 
-    assertEquals(OxlintFixAllResult.FixesTurnedOff, runFixAll())
+    assertEquals(OxcFixAllResult.FixesTurnedOff, runFixAll())
 
     assertEquals("original\n", text())
     assertEmpty(requestedMethods())
@@ -103,14 +104,14 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   fun testUnsupportedFileIsReported() {
     val text = myFixture.addFileToProject("notes.txt", "original\n").virtualFile
 
-    assertEquals(OxlintFixAllResult.UnsupportedFile, runFixAll(text))
+    assertEquals(OxcFixAllResult.UnsupportedFile, runFixAll(text))
   }
 
   fun testDisabledAsksTheServerForNothing() {
     script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
     OxlintSettings.getInstance(project).state.configurationMode = ConfigurationMode.DISABLED
 
-    assertEquals(OxlintFixAllResult.NothingToApply, runFixAll())
+    assertEquals(OxcFixAllResult.NothingToApply, runFixAll())
 
     assertEmpty(requestedMethods())
   }
@@ -121,7 +122,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     waitUntil("the server is running") { runningServers().size == 1 }
     OxlintSettings.getInstance(project).state.fixKind = OxlintFixKind.NONE
 
-    assertEquals(OxlintFixAllResult.FixesTurnedOff, runFixAll())
+    assertEquals(OxcFixAllResult.FixesTurnedOff, runFixAll())
 
     assertEquals("original\n", text())
     assertEmpty(fixAllRequests())
@@ -131,14 +132,14 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
     myFixture.configureFromExistingVirtualFile(file)
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
   }
 
   fun testAutomaticModeWithNoPackageIsReported() {
     script("{}")
     OxlintSettings.getInstance(project).state.configurationMode = ConfigurationMode.AUTOMATIC
 
-    assertEquals(OxlintFixAllResult.OxlintNotFound, runFixAll())
+    assertEquals(OxcFixAllResult.ToolNotFound, runFixAll())
     assertEmpty(allServers())
   }
 
@@ -147,14 +148,14 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     script("{}")
     OxlintSettings.getInstance(project).state.configurationMode = ConfigurationMode.AUTOMATIC
 
-    assertEquals(OxlintFixAllResult.OxlintNotFound, runFixAll())
+    assertEquals(OxcFixAllResult.ToolNotFound, runFixAll())
   }
 
   fun testManualModeWithNoPathAndNoPackageIsReported() {
     script("{}")
     OxlintSettings.getInstance(project).state.binaryPath = ""
 
-    assertEquals(OxlintFixAllResult.OxlintNotFound, runFixAll())
+    assertEquals(OxcFixAllResult.ToolNotFound, runFixAll())
   }
 
   fun testServerThatCannotStartFails() {
@@ -162,7 +163,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     shortenTheServerConnectTimeout()
     OxlintSettings.getInstance(project).state.binaryPath = "${myFixture.tempDirPath}/missing"
 
-    assertInstanceOf(runFixAll(), OxlintFixAllResult.Failed::class.java)
+    assertInstanceOf(runFixAll(), OxcFixAllResult.Failed::class.java)
     waitForThePlatformToFinishStopping()
   }
 
@@ -177,14 +178,14 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     server.toFile().setExecutable(true)
     OxlintSettings.getInstance(project).state.binaryPath = server.toString()
 
-    assertInstanceOf(runFixAll(), OxlintFixAllResult.Failed::class.java)
+    assertInstanceOf(runFixAll(), OxcFixAllResult.Failed::class.java)
     waitForThePlatformToFinishStopping()
   }
 
   fun testClosedFileIsSavedAndTheServerStopsAfterwards() {
     script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("fixed\noriginal\n", String(file.contentsToByteArray()))
     waitUntil("the server has stopped") { runningServers().isEmpty() }
@@ -195,7 +196,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     myFixture.configureFromExistingVirtualFile(file)
     waitUntil("the server is running") { runningServers().size == 1 }
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("fixed\noriginal\n", myFixture.editor.document.text)
     assertEquals("original\n", String(file.contentsToByteArray()))
@@ -257,9 +258,9 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   private fun text(): String =
     com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)!!.text
 
-  private fun runFixAll(target: VirtualFile = file): OxlintFixAllResult {
-    val call = ApplicationManager.getApplication().executeOnPooledThread<OxlintFixAllResult> {
-      runBlocking { OxlintFixAll.getInstance(project).fixFile(target) }
+  private fun runFixAll(target: VirtualFile = file): OxcFixAllResult {
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult> {
+      runBlocking { OxcFixAll.getInstance(project).fixFile(OxlintDefinition, target) }
     }
     return PlatformTestUtil.waitForFuture(call, 60_000)
   }

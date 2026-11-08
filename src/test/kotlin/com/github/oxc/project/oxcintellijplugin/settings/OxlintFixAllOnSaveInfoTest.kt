@@ -1,8 +1,9 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAllOnSaveInfo
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolFixAllOnSaveInfo
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsListener
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.ide.actionsOnSave.ActionOnSaveContext
@@ -67,7 +68,7 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
   fun testANewDialogDoesNotSeeAnotherDialogsUnappliedChange() {
     row().isActionOnSaveEnabled = true
 
-    val rowInANewDialog = OxlintFixAllOnSaveInfo(newContext())
+    val rowInANewDialog = ToolFixAllOnSaveInfo(newContext(), OxlintDefinition)
 
     assertFalse(rowInANewDialog.isActionOnSaveEnabled)
     assertFalse(rowInANewDialog.isModified())
@@ -116,7 +117,7 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
   fun testChangingOnlyFixOnSaveDoesNotAffectServers() {
     val changes = mutableListOf<Boolean>()
     project.messageBus.connect(testRootDisposable)
-      .subscribe(OxlintSettingsListener.TOPIC, OxlintSettingsListener { changes += it })
+      .subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { _, affectsServers -> changes += affectsServers })
 
     settings.updateFixAllOnSave(true)
     settings.update(settings.toData().copy(typeAware = true))
@@ -124,7 +125,7 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
     assertEquals(listOf(false, true), changes)
   }
 
-  private fun row(): OxlintFixAllOnSaveInfo = OxlintFixAllOnSaveInfo(context)
+  private fun row(): ToolFixAllOnSaveInfo = ToolFixAllOnSaveInfo(context, OxlintDefinition)
 
   /** The platform only creates these for the settings dialog, and keeps one while the dialog is open. */
   private fun newContext(): ActionOnSaveContext {

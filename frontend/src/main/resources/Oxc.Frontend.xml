@@ -6,7 +6,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity
-                implementation="com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintSettingsCacheStarter"/>
+                implementation="com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCacheStarter"/>
         <notificationGroup id="Oxc"
                            displayType="BALLOON"
                            bundle="messages.OxcFrontendBundle"
@@ -21,11 +21,11 @@
 
     <actions resource-bundle="messages.OxcFrontendBundle">
         <action id="OxlintApplyFixAllAction"
-                class="com.github.oxc.project.oxcintellijplugin.frontend.oxlint.OxlintFixAllAction">
+                class="com.github.oxc.project.oxcintellijplugin.frontend.tool.OxlintFixAllAction">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </action>
         <action id="OxlintRestartServerAction"
-                class="com.github.oxc.project.oxcintellijplugin.frontend.oxlint.OxlintRestartServerAction"/>
+                class="com.github.oxc.project.oxcintellijplugin.frontend.tool.OxlintRestartServerAction"/>
     </actions>
 </idea-plugin>

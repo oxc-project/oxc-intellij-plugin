@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsListener
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
@@ -112,7 +112,7 @@ class OxlintSettingsTest : BasePlatformTestCase() {
   fun testLoadingDifferentStateNotifiesAndLoadingTheSameStateDoesNot() {
     var changes = 0
     project.messageBus.connect(testRootDisposable)
-      .subscribe(OxlintSettingsListener.TOPIC, OxlintSettingsListener { changes++ })
+      .subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { _, _ -> changes++ })
     settings.loadState(OxlintSettingsState())
     changes = 0
 
@@ -126,7 +126,7 @@ class OxlintSettingsTest : BasePlatformTestCase() {
   fun testUpdateChangesTheStateInPlaceSoThatItGetsSaved() {
     var changes = 0
     project.messageBus.connect(testRootDisposable)
-      .subscribe(OxlintSettingsListener.TOPIC, OxlintSettingsListener { changes++ })
+      .subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { _, _ -> changes++ })
     val stateBefore = settings.state
     val countBefore = stateBefore.modificationCount
 

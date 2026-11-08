@@ -1,10 +1,11 @@
 @file:Suppress("UnstableApiUsage")
 
-package com.github.oxc.project.oxcintellijplugin.frontend.oxlint
+package com.github.oxc.project.oxcintellijplugin.frontend.tool
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcIcons
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
+import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -19,7 +20,7 @@ import fleet.rpc.client.durable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-internal class OxlintRestartServerAction : AnAction(), DumbAware {
+internal abstract class ToolRestartServerAction(private val tool: OxcTool) : AnAction(), DumbAware {
 
   init {
     templatePresentation.icon = OxcIcons.OxcRound
@@ -33,23 +34,25 @@ internal class OxlintRestartServerAction : AnAction(), DumbAware {
 
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
-    project.service<OxlintServerRestarter>().restart()
+    project.service<ToolServerRestarter>().restart(tool)
   }
 }
 
+internal class OxlintRestartServerAction : ToolRestartServerAction(OxcTool.OXLINT)
+
 @Service(Service.Level.PROJECT)
-internal class OxlintServerRestarter(
+internal class ToolServerRestarter(
   private val project: Project,
   private val coroutineScope: CoroutineScope,
 ) {
 
-  fun restart() {
+  fun restart(tool: OxcTool) {
     coroutineScope.launch {
-      durable { OxlintServerApi.getInstance().restart(project.projectId()) }
+      durable { OxcToolApi.getInstance().restart(project.projectId(), tool) }
       NotificationGroupManager.getInstance()
         .getNotificationGroup("Oxc")
         .createNotification(
-          OxcFrontendBundle.message("oxlint.language.server.restarted"),
+          OxcFrontendBundle.message("${tool.messagePrefix}.language.server.restarted"),
           NotificationType.INFORMATION,
         )
         .notify(project)

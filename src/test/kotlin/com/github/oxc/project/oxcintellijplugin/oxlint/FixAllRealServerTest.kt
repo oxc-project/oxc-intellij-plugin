@@ -1,8 +1,9 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAll
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintFixAllResult
+import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
@@ -37,13 +38,13 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
   fun testOpenFileIsFixed() {
     openAndWaitForDiagnostics()
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("const fixed = 1;\nconsole.log(fixed);\ndebugger;\n", myFixture.editor.document.text)
   }
 
   fun testClosedFileIsFixedAndSaved() {
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("const fixed = 1;\nconsole.log(fixed);\ndebugger;\n", String(file.contentsToByteArray()))
   }
@@ -52,7 +53,7 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
     OxlintSettings.getInstance(project).state.fixKind = OxlintFixKind.ALL
     openAndWaitForDiagnostics()
 
-    assertEquals(OxlintFixAllResult.Applied, runFixAll())
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertTrue(myFixture.editor.document.text, "const fixed" in myFixture.editor.document.text)
   }
@@ -94,9 +95,9 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
     }
   }
 
-  private fun runFixAll(): OxlintFixAllResult {
-    val call = ApplicationManager.getApplication().executeOnPooledThread<OxlintFixAllResult> {
-      runBlocking { OxlintFixAll.getInstance(project).fixFile(file) }
+  private fun runFixAll(): OxcFixAllResult {
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult> {
+      runBlocking { OxcFixAll.getInstance(project).fixFile(OxlintDefinition, file) }
     }
     return PlatformTestUtil.waitForFuture(call, 60_000)
   }

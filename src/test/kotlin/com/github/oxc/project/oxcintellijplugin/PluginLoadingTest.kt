@@ -1,10 +1,11 @@
 package com.github.oxc.project.oxcintellijplugin
 
+import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintFixAllResult
-import com.github.oxc.project.oxcintellijplugin.shared.oxlint.OxlintServerApi
+import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.plugins.PluginManagerCore
@@ -85,11 +86,11 @@ class PluginLoadingTest : BasePlatformTestCase() {
     fun testFixAllAnswersOverRpc() {
         val projectId = project.projectId()
         val file = myFixture.addFileToProject("notes.txt", "").virtualFile.rpcId()
-        val call = ApplicationManager.getApplication().executeOnPooledThread<OxlintFixAllResult> {
-            runBlocking { OxlintServerApi.getInstance().fixAll(projectId, file) }
+        val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult> {
+            runBlocking { OxcToolApi.getInstance().fixAll(projectId, OxcTool.OXLINT, file) }
         }
 
-        assertEquals(OxlintFixAllResult.UnsupportedFile, PlatformTestUtil.waitForFuture(call, 30_000))
+        assertEquals(OxcFixAllResult.UnsupportedFile, PlatformTestUtil.waitForFuture(call, 30_000))
     }
 
     fun testSettingsUpdatesAnswerOverRpc() {
@@ -113,7 +114,7 @@ class PluginLoadingTest : BasePlatformTestCase() {
     fun testBackendAnswersOverRpc() {
         val projectId = project.projectId()
         val call = ApplicationManager.getApplication().executeOnPooledThread {
-            runBlocking { OxlintServerApi.getInstance().restart(projectId) }
+            runBlocking { OxcToolApi.getInstance().restart(projectId, OxcTool.OXLINT) }
         }
 
         PlatformTestUtil.waitForFuture(call, 30_000)

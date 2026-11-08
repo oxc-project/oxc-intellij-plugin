@@ -3,7 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.oxlint
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAllOnSaveAction
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
-import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintSettingsCache
+import com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCache
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
@@ -113,7 +113,7 @@ class FixAllActionTest : BasePlatformTestCase() {
   fun testHiddenInAMenuWhenDisabled() {
     settings.update(settings.toData().copy(configurationMode = ConfigurationMode.DISABLED))
     waitUntil("the frontend knows") {
-      project.service<OxlintSettingsCache>().current?.configurationMode == ConfigurationMode.DISABLED
+      project.service<OxcSettingsCache>().oxlint?.configurationMode == ConfigurationMode.DISABLED
     }
 
     assertFalse(update(file("a.js")).isVisible)
@@ -122,7 +122,7 @@ class FixAllActionTest : BasePlatformTestCase() {
   fun testFollowsCustomExtensions() {
     settings.update(settings.toData().copy(supportedExtensions = listOf(".txt")))
     waitUntil("the frontend knows") {
-      project.service<OxlintSettingsCache>().current?.supportedExtensions == listOf(".txt")
+      project.service<OxcSettingsCache>().oxlint?.supportedExtensions == listOf(".txt")
     }
 
     assertTrue(update(file("a.txt")).isVisible)
@@ -158,7 +158,7 @@ class FixAllActionTest : BasePlatformTestCase() {
   }
 
   private fun waitForCache() {
-    waitUntil("the frontend has the settings") { project.service<OxlintSettingsCache>().current?.typeAware == true }
+    waitUntil("the frontend has the settings") { project.service<OxcSettingsCache>().oxlint?.typeAware == true }
   }
 
   private fun update(file: VirtualFile): Presentation {

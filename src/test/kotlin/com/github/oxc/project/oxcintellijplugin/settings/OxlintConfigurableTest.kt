@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsListener
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.findInvalidExtension
@@ -55,7 +55,7 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
   fun testApplyStoresEditsOnTheBackendAndNotifies() {
     var changes = 0
     project.messageBus.connect(testRootDisposable)
-      .subscribe(OxlintSettingsListener.TOPIC, OxlintSettingsListener { changes++ })
+      .subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { _, _ -> changes++ })
 
     openPage { configurable, panel ->
       radio(panel, "Manual").doClick()

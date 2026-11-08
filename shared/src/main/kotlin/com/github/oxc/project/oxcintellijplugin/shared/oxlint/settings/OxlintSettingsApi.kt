@@ -3,6 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings
 
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.shared.isSupportedExtension
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.rpc.RemoteApiProviderService
 import fleet.rpc.RemoteApi
@@ -58,4 +59,4 @@ data class OxlintSettingsData(
 
 /** An empty list of [configured] extensions means [DEFAULT_OXLINT_EXTENSIONS]. */
 fun isOxlintSupportedExtension(configured: List<String>, extension: String?): Boolean =
-  extension != null && ".$extension" in configured.ifEmpty { DEFAULT_OXLINT_EXTENSIONS }
+  isSupportedExtension(configured, DEFAULT_OXLINT_EXTENSIONS, extension)

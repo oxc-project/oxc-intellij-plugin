@@ -4,8 +4,8 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
-import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.findInvalidExtension
-import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.parseExtensions
+import com.github.oxc.project.oxcintellijplugin.frontend.settings.findInvalidExtension
+import com.github.oxc.project.oxcintellijplugin.frontend.settings.parseExtensions
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.DEFAULT_OXLINT_EXTENSIONS
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind

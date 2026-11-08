@@ -255,6 +255,25 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     )
   }
 
+  /**
+   * After Import the project's settings match the config, so the overlay changes nothing. A later change
+   * to the config still has to reach the open file.
+   */
+  fun testConfigChangeAfterImportRefreshesTheOverlay() {
+    useRealCodeStyleLookup()
+    settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))
+    val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
+    val file = myFixture.addFileToProject("index.js", "")
+    myFixture.configureFromExistingVirtualFile(file.virtualFile)
+    waitForIndent(file, 3)
+    assertEquals(OxfmtImportResult.IMPORTED, runImport(file.virtualFile))
+    waitForIndent(file, 3)
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+
+    waitForIndent(file, 5)
+  }
+
   fun testTurningThePreferenceOffRemovesTheOverlay() {
     useRealCodeStyleLookup()
     settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))

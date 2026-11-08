@@ -6,7 +6,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleSettings
-import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.psi.codeStyle.modifier.CodeStyleSettingsModifier
 import com.intellij.psi.codeStyle.modifier.CodeStyleStatusBarUIContributor
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
@@ -29,6 +28,8 @@ class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
     if (!oxfmt.state.preferOxfmtCodeStyleSettings || !oxfmt.isSupported(file)) return false
 
     val config = locateOxfmtConfig(project, file)?.let { readOxfmtConfigNow(project, it) } ?: return false
+    // Notifying alone didn't reach a file's cached overlay after Import, so the refresh also bumps this.
+    settings.addDependency(OxfmtOverlayTracker.getInstance(project))
     return OxfmtCodeStyle.apply(settings, config, psiFile.language)
   }
 
@@ -48,7 +49,7 @@ class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
 fun disableOxfmtCodeStyle(project: Project) {
   val settings = OxfmtSettings.getInstance(project)
   settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = false))
-  CodeStyleSettingsManager.getInstance(project).notifyCodeStyleSettingsChanged()
+  refreshOxfmtOverlay(project)
 }
 
 /** JSON is read now, and a JavaScript or TypeScript config once Node has read it. */

@@ -40,7 +40,7 @@ suspend fun importOxfmtCodeStyle(project: Project, file: VirtualFile): OxfmtImpo
     OxfmtCodeStyle.apply(settings, config)
     // The store only writes the code style when this count has changed.
     settings.modificationTracker.incModificationCount()
-    manager.notifyCodeStyleSettingsChanged()
+    refreshOxfmtOverlay(project)
     SaveAndSyncHandler.getInstance().scheduleProjectSave(project)
     OxfmtImportResult.IMPORTED
   }

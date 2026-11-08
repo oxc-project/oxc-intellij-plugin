@@ -21,7 +21,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -342,9 +341,7 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
 
   /** Makes files ask the overlay again, which reads anything that changed. */
   private fun refreshOverlay() {
-    ApplicationManager.getApplication().invokeLater({
-      CodeStyleSettingsManager.getInstance(project).notifyCodeStyleSettingsChanged()
-    }, project.disposed)
+    ApplicationManager.getApplication().invokeLater({ refreshOxfmtOverlay(project) }, project.disposed)
   }
 
   override fun dispose() {

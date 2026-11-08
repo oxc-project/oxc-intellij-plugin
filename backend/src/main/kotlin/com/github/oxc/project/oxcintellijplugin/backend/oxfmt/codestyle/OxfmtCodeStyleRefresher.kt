@@ -12,7 +12,6 @@ import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
-import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.util.PathUtil
 
 /**
@@ -53,8 +52,6 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
   }
 
   private fun refresh() {
-    ApplicationManager.getApplication().invokeLater({
-      CodeStyleSettingsManager.getInstance(project).notifyCodeStyleSettingsChanged()
-    }, project.disposed)
+    ApplicationManager.getApplication().invokeLater({ refreshOxfmtOverlay(project) }, project.disposed)
   }
 }

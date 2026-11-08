@@ -3,6 +3,13 @@ package com.github.oxc.project.oxcintellijplugin.backend.process
 import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.execution.wsl.WslPath
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.platform.eel.EelDescriptor
+import com.intellij.platform.eel.path.EelPath
+import com.intellij.platform.eel.path.EelPathException
+import com.intellij.platform.eel.provider.LocalEelDescriptor
+import com.intellij.platform.eel.provider.asEelPath
+import com.intellij.platform.eel.provider.asNioPath
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -59,6 +66,52 @@ class WslServerPathMapper(
       localPath
     }
   }
+}
+
+/**
+ * Maps paths for a server in an [environment] that the IDE reaches through Eel, such as a Dev Container.
+ * The IDE's path into it, such as `/$devcontainer.ij/…/workspaces/app`, is `/workspaces/app` to the
+ * server. A path in any other environment can't be reached. This only computes paths, so it never connects
+ * to the environment. [toEelPath] can be replaced in tests, which have no such environments.
+ */
+class EelServerPathMapper(
+  private val environment: EelDescriptor,
+  private val toEelPath: (Path) -> EelPath = Path::asEelPath,
+) : ServerPathMapper {
+
+  override fun toServerPath(localPath: String): String? =
+    eelPathOf(localPath)?.takeIf { it.descriptor == environment }?.toString()
+
+  override fun toLocalPath(serverPath: String): String? {
+    // A path into an environment, such as `/$devcontainer.ij/…`, is already the IDE's, not one from the server.
+    if (eelPathOf(serverPath)?.descriptor.let { it != null && it !is LocalEelDescriptor }) return null
+
+    return try {
+      FileUtil.toSystemIndependentName(EelPath.parse(serverPath, environment).asNioPath().toString())
+    }
+    catch (_: EelPathException) {
+      null
+    }
+    catch (_: IllegalArgumentException) {
+      null
+    }
+  }
+
+  /** Where the IDE's [path] is, or null if it isn't an absolute path. */
+  private fun eelPathOf(path: String): EelPath? =
+    try {
+      toEelPath(Path.of(path))
+    }
+    catch (_: InvalidPathException) {
+      null
+    }
+    catch (_: EelPathException) {
+      null
+    }
+    // Thrown for an environment that has no root on the IDE's side.
+    catch (_: NoSuchElementException) {
+      null
+    }
 }
 
 /**

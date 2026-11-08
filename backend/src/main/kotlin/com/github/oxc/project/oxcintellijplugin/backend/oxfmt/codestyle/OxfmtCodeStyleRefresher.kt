@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
+import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.intellij.openapi.application.ApplicationManager
@@ -35,7 +36,8 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
    */
   private fun touchesConfig(event: VFileEvent): Boolean {
     val roots = listOfNotNull(project.basePath) + ProjectRootManager.getInstance(project).contentRoots.map { it.path }
-    val manual = OxfmtSettings.getInstance(project).state.configPath?.let(FileUtil::toSystemIndependentName)
+    val manual = OxfmtSettings.getInstance(project).state.configPath?.trim()?.takeIf { it.isNotEmpty() }
+      ?.let { FileUtil.toSystemIndependentName(resolveSettingPath(project, it)) }
     val paths = listOfNotNull(
       event.path,
       (event as? VFilePropertyChangeEvent)?.takeIf { it.isRename }?.newPath,

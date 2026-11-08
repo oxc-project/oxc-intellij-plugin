@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.backend.tool
 
+import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpNodePackage
@@ -22,9 +23,9 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
   fun resolve(file: VirtualFile): ServerLaunch? {
     val settings = definition.settings(project)
     val nodePackage = find(file)
-    val manualBinary = settings.binaryPath?.takeIf {
-      settings.configurationMode == ConfigurationMode.MANUAL && it.isNotBlank()
-    }
+    val manualBinary = settings.binaryPath?.trim()?.takeIf {
+      settings.configurationMode == ConfigurationMode.MANUAL && it.isNotEmpty()
+    }?.let { resolveSettingPath(project, it) }
     val executable = manualBinary ?: nodePackage?.let(::executablePath)
     val root = nodePackage?.let(::serverRoot)
                ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file).takeIf { manualBinary != null }

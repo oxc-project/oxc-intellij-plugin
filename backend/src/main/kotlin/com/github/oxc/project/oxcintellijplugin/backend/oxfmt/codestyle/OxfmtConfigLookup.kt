@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.OxfmtDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
+import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -30,7 +31,7 @@ fun findOxfmtConfig(project: Project, file: VirtualFile): VirtualFile? {
   val root = oxfmtServerRoot(project, file)
 
   val manual = settings.configPath?.trim()?.takeIf { settings.configurationMode == ConfigurationMode.MANUAL && it.isNotEmpty() }
-  if (manual != null) return resolveManualConfig(manual, root)
+  if (manual != null) return resolveManualConfig(resolveSettingPath(project, manual), root)
 
   val rootConfig = root?.let { configAtOrAbove(it) }
   if (settings.disableNestedConfig) return rootConfig
@@ -58,7 +59,11 @@ fun oxfmtServerRoot(project: Project, file: VirtualFile): VirtualFile? =
   ?: project.guessProjectDir()?.takeIf { VfsUtilCore.isAncestor(it, file, false) }
   ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file)
 
-/** A path that the server would read but this machine can't, such as one only inside WSL, isn't found. */
+/**
+ * A path that the server would read but this machine can't isn't found, such as a Linux path for a server
+ * in WSL when the project is on the Windows side. In a project in WSL or a container, [path] has already
+ * been resolved, so its Linux paths are found.
+ */
 private fun resolveManualConfig(path: String, root: VirtualFile?): VirtualFile? {
   val normalized = FileUtil.toSystemIndependentName(path)
   val absolute = when {

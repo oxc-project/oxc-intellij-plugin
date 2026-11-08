@@ -101,6 +101,14 @@ class NativeServerRunTest : TestCase() {
     assertEquals("/bin/oxlint.cmd", commandLine.exePath)
   }
 
+  /** In a container, the variables that are already set are the container's, not the IDE's. */
+  fun testLogLevelFollowsTheVariablesWhereItRuns() {
+    val commandLine = nativeCommandLine(
+      "/bin/oxlint", emptyList(), folder.toString(), isWindows = false, existingVariables = setOf("RUST_LOG"))
+
+    assertEquals(setOf("OXC_LOG"), commandLine.environment.keys)
+  }
+
   fun testLogLevelIsOnlySetForVariablesThatAreNotSet() {
     assertEquals(setOf("OXC_LOG", "RUST_LOG"), logEnvironment(emptySet()).keys)
     assertEquals(setOf("RUST_LOG"), logEnvironment(setOf("OXC_LOG")).keys)

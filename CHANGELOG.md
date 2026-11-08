@@ -7,6 +7,7 @@
 ### Added
 
 - Add support for IntelliJ split mode (Remote Development).
+- Add support for Dev Containers opened in the IDE's own window, without a backend in the container. Oxlint and Oxfmt run in the container and get the container's paths for files.
 
 ### Changed
 
@@ -26,6 +27,7 @@
 - "Import Oxfmt Code Style" now appears for every file that Oxfmt handles, and for folders, and says if there's no config.
 - Oxfmt's default file extensions no longer list the five with more than one dot, such as `.json.example`. They never matched a file.
 - File extensions in both tools' settings can now contain `-` and `_`.
+- In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
 - Only `fmt.configPath` and `fmt.disableNestedConfig` are sent to Oxfmt's language server, which are the settings it reads.
 
 ### Fixed

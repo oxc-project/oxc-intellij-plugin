@@ -3,7 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.tool
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
-import com.github.oxc.project.oxcintellijplugin.frontend.OxcIcons
+import com.github.oxc.project.oxcintellijplugin.shared.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.intellij.notification.NotificationGroupManager

@@ -3,8 +3,8 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
-import com.github.oxc.project.oxcintellijplugin.frontend.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCache
+import com.github.oxc.project.oxcintellijplugin.shared.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult

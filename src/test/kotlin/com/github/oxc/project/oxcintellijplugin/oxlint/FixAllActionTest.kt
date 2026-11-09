@@ -6,7 +6,9 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCache
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
+import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
@@ -79,6 +81,27 @@ class FixAllActionTest : BasePlatformTestCase() {
     )
     assertEquals(NotificationType.WARNING, notification.type)
     assertEquals(listOf("Open Oxlint settings"), notification.actions.map { it.templateText })
+  }
+
+  fun testRunningTheActionInAnUntrustedProjectAsksToTrustAndRunsAgain() {
+    untrustProject(project, testRootDisposable)
+    val notifications = collectNotifications()
+    val file = file("a.js")
+
+    action().actionPerformed(event(file, Presentation(), ActionPlaces.EDITOR_POPUP, ActionUiKind.POPUP))
+
+    waitUntil("the notification appears") { notifications.isNotEmpty() }
+    val untrusted = notifications.single()
+    assertEquals("Oxlint 'Fix All' needs a trusted project", untrusted.title)
+    assertEquals("Fix All runs Oxlint from the project, which only happens in a trusted project.", untrusted.content)
+    assertEquals(NotificationType.WARNING, untrusted.type)
+    assertEquals(listOf("Trust Project"), untrusted.actions.map { it.templateText })
+
+    // Trust Project asks the backend, through the frontend, and then Fix All runs again.
+    Notification.fire(untrusted, untrusted.actions.single(), null)
+    waitUntil("the project is trusted") { TrustedProjects.isProjectTrusted(project) }
+    waitUntil("Fix All has run again") { notifications.size == 2 }
+    assertEquals("Oxlint not found", notifications.last().title)
   }
 
   fun testSavingWithNothingToFixStaysQuiet() {

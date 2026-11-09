@@ -20,6 +20,9 @@ interface OxcToolApi : RemoteApi<Unit> {
   /** Applies the tool's changes to the file, which doesn't have to be open in an editor. */
   suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult
 
+  /** Trusts the project, which running anything from it needs. The backend holds the project's trust. */
+  suspend fun trustProject(projectId: ProjectId)
+
   companion object {
     suspend fun getInstance(): OxcToolApi =
       RemoteApiProviderService.resolve(remoteApiDescriptor<OxcToolApi>())
@@ -42,6 +45,10 @@ sealed interface OxcFixAllResult {
   /** Oxlint's fix kind is `None`. The server wasn't asked for anything. */
   @Serializable
   data object FixesTurnedOff : OxcFixAllResult
+
+  /** The project isn't trusted, so nothing from it was run. */
+  @Serializable
+  data object Untrusted : OxcFixAllResult
 
   /** There's no package or manual path to run for the file. */
   @Serializable

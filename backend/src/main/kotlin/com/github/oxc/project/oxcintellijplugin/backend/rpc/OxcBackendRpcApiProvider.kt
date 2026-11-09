@@ -84,6 +84,11 @@ private class OxcToolApiImpl : OxcToolApi {
     val virtualFile = file.virtualFile() ?: return OxcFixAllResult.NothingToApply
     return OxcFixAll.getInstance(project).fixFile(ToolDefinition.of(tool), virtualFile)
   }
+
+  override suspend fun trustProject(projectId: ProjectId) {
+    val project = projectId.findProjectOrNull() ?: return
+    TrustedProjects.setProjectTrusted(project, true)
+  }
 }
 
 private class BackendFilesApiImpl : BackendFilesApi {
@@ -139,11 +144,6 @@ private class OxfmtCodeStyleApiImpl : OxfmtCodeStyleApi {
   override suspend fun configNotices(projectId: ProjectId): Flow<OxfmtConfigNotice> {
     val project = projectId.findProjectOrNull() ?: return emptyFlow()
     return OxfmtJsConfigLoader.getInstance(project).notices
-  }
-
-  override suspend fun trustProject(projectId: ProjectId) {
-    val project = projectId.findProjectOrNull() ?: return
-    TrustedProjects.setProjectTrusted(project, true)
   }
 
   override suspend fun openConfig(projectId: ProjectId, configUrl: String) {

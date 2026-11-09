@@ -3,6 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.backend.tool
 import com.github.oxc.project.oxcintellijplugin.backend.OxcBackendBundle
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.intellij.execution.ExecutionException
+import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
@@ -38,6 +39,8 @@ class OxcFixAll(private val project: Project) {
     if (!settings.isSupported(file)) return OxcFixAllResult.UnsupportedFile
     if (!settings.isEnabled) return OxcFixAllResult.NothingToApply
     definition.fixer(project).refusal()?.let { return it }
+    // The platform starts no server in an untrusted project, and says nothing, so this has to say it.
+    if (!TrustedProjects.isProjectTrusted(project)) return OxcFixAllResult.Untrusted
 
     val isOpen = isOpenInAnyClient(file)
     return try {
@@ -48,7 +51,7 @@ class OxcFixAll(private val project: Project) {
                        ?: return@withTimeout OxcFixAllResult.NothingToApply
         // The server reads a file that isn't open from disk, so it has to match the document.
         if (!isOpen) saveDocument(document)
-        if (!startServer(definition, file)) return@withTimeout OxcFixAllResult.ToolNotFound
+        startServer(definition, file)?.let { return@withTimeout it }
 
         val applied = fixDocument(definition, file, document)
         if (!isOpen) {
@@ -86,14 +89,16 @@ class OxcFixAll(private val project: Project) {
     LspClientManager.getInstance(project).getClients(definition.providerClass)
       .firstOrNull { it.descriptor.isSupportedFile(file) && it.state == LspServerState.Running }
 
-  /** Waits for the file's server, starting it if needed. Returns false if there's nothing to run. */
-  private suspend fun startServer(definition: ToolDefinition, file: VirtualFile): Boolean {
-    if (findClient(definition, file) != null) return true
+  /** Waits for the file's server, starting it if needed. Returns why it can't run, or null once it runs. */
+  private suspend fun startServer(definition: ToolDefinition, file: VirtualFile): OxcFixAllResult? {
+    if (findClient(definition, file) != null) return null
 
     val provider = definition.providerClass
-    val descriptor = readAction { definition.createDescriptor(project, file) } ?: return false
+    val descriptor = readAction { definition.createDescriptor(project, file) } ?: return OxcFixAllResult.ToolNotFound
     LspClientManager.getInstance(project).ensureClientStarted(provider, descriptor)
     while (findClient(definition, file) == null) {
+      // The start returns at once and reports nothing, so trust taken away while waiting is only seen here.
+      if (!TrustedProjects.isProjectTrusted(project)) return OxcFixAllResult.Untrusted
       val failed = LspClientManager.getInstance(project).getClients(provider)
         .any { it.descriptor.isSupportedFile(file) && it.state == LspServerState.ShutdownUnexpectedly }
       if (failed) {
@@ -101,7 +106,7 @@ class OxcFixAll(private val project: Project) {
       }
       delay(50)
     }
-    return true
+    return null
   }
 
   private fun isOpenInAnyClient(file: VirtualFile): Boolean =

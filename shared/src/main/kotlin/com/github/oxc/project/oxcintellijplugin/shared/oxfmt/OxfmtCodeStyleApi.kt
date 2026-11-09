@@ -27,9 +27,6 @@ interface OxfmtCodeStyleApi : RemoteApi<Unit> {
    */
   suspend fun configNotices(projectId: ProjectId): Flow<OxfmtConfigNotice>
 
-  /** Trusts the project, which is what reading a JavaScript or TypeScript config needs. */
-  suspend fun trustProject(projectId: ProjectId)
-
   /** Opens the config at [configUrl] in an editor. A thin client can't find a file it hasn't opened, so the backend opens it. */
   suspend fun openConfig(projectId: ProjectId, configUrl: String)
 

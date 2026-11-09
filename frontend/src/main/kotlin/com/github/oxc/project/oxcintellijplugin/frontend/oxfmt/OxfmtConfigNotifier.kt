@@ -3,6 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtJsConfigFailure
@@ -57,9 +58,9 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
       OxcFrontendBundle.message("oxfmt.js.config.untrusted.title"),
       OxcFrontendBundle.message("oxfmt.js.config.untrusted.description", notice.configName),
       NotificationType.WARNING,
-    ).addAction(NotificationAction.createSimpleExpiring(OxcFrontendBundle.message("oxfmt.js.config.trust.project")) {
+    ).addAction(NotificationAction.createSimpleExpiring(OxcFrontendBundle.message("trust.project")) {
       // The backend holds the project's trust.
-      backend { trustProject(project.projectId()) }
+      scope.launch { durable { OxcToolApi.getInstance().trustProject(project.projectId()) } }
     })
 
   private fun failed(notice: OxfmtConfigNotice.Failed): Notification {
@@ -85,7 +86,7 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
       })
   }
 
-  /** Trust, the Node.js page and the config are all the backend's, so these actions ask it. */
+  /** The Node.js page and the config are the backend's, so these actions ask it. */
   private fun backend(call: suspend OxfmtCodeStyleApi.() -> Unit) {
     scope.launch { durable { OxfmtCodeStyleApi.getInstance().call() } }
   }

@@ -8,6 +8,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.SystemInfo
@@ -180,6 +181,19 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
 
     assertInstanceOf(runFixAll(), OxcFixAllResult.Failed::class.java)
     waitForThePlatformToFinishStopping()
+  }
+
+  /** The platform starts no server here and says nothing, so Fix All used to wait for the whole timeout. */
+  fun testUntrustedProjectRunsNothingAndSaysSo() {
+    script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
+    untrustProject(project, testRootDisposable)
+
+    assertEquals(OxcFixAllResult.Untrusted, runFixAll())
+
+    assertEquals("original\n", text())
+    assertEquals("original\n", String(file.contentsToByteArray()))
+    assertEmpty(allServers())
+    assertEmpty(requestedMethods())
   }
 
   fun testClosedFileIsSavedAndTheServerStopsAfterwards() {

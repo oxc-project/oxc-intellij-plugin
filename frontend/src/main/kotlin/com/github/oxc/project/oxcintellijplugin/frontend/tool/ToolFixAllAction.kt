@@ -115,6 +115,13 @@ internal class ToolFixAllRunner(private val project: Project, private val scope:
         OxcFrontendBundle.message("$prefix.fix.all.failure.description", result.message),
         NotificationType.ERROR,
       )
+      OxcFixAllResult.Untrusted -> notification(
+        "$prefix.fix.all.untrusted.label",
+        OxcFrontendBundle.message("$prefix.fix.all.untrusted.description"),
+        NotificationType.WARNING,
+      ).addAction(NotificationAction.createSimpleExpiring(OxcFrontendBundle.message("trust.project")) {
+        trustAndRun(tool, file)
+      })
       OxcFixAllResult.UnsupportedFile -> notification(
         "$prefix.file.not.supported.title",
         OxcFrontendBundle.message("$prefix.file.not.supported.description", file.name),
@@ -122,6 +129,14 @@ internal class ToolFixAllRunner(private val project: Project, private val scope:
       ).addAction(openSettings(tool, "$prefix.configure.extensions.link"))
     }
     notification.notify(project)
+  }
+
+  /** The backend holds the project's trust. Fix All runs again, because that's what was asked for. */
+  private fun trustAndRun(tool: OxcTool, file: VirtualFile) {
+    scope.launch {
+      durable { OxcToolApi.getInstance().trustProject(project.projectId()) }
+      run(tool, file)
+    }
   }
 
   private fun openSettings(tool: OxcTool, textKey: String): NotificationAction =

@@ -14,6 +14,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.testutil.FakePackages
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
+import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.application.options.CodeStyle
 import com.intellij.ide.trustedProjects.TrustedProjects
@@ -28,7 +29,6 @@ import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -42,7 +42,6 @@ import kotlin.time.Duration.Companion.seconds
 
 /** The frontend shows these notifications, in its own group. */
 private const val NOTIFICATION_GROUP = "Oxc"
-private const val TRUST_CHECK_PROPERTY = "idea.trust.headless.disabled"
 
 /**
  * JavaScript and TypeScript configs, which the overlay and Import read by running them with the project's
@@ -186,7 +185,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
   fun testUntrustedProjectRunsNothingAndAsksToTrust() {
     val config = myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 4 };\n").virtualFile
     val file = myFixture.addFileToProject("index.js", "")
-    untrusted()
+    untrustProject(project, testRootDisposable)
 
     waitUntil("the untrusted notification is shown") { runModifier(file); notifications.isNotEmpty() }
     // Another config doesn't ask again in this session.
@@ -345,16 +344,6 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     waitUntil("the failure is shown") { notifications.isNotEmpty() }
     assertEquals("Expected a `fmt` field in the default export of vite.shared.mjs.", notifications.single().content)
-  }
-
-  private fun untrusted() {
-    val previous = System.getProperty(TRUST_CHECK_PROPERTY)
-    System.setProperty(TRUST_CHECK_PROPERTY, "false")
-    TrustedProjects.setProjectTrusted(project, false)
-    Disposer.register(testRootDisposable) {
-      if (previous == null) System.clearProperty(TRUST_CHECK_PROPERTY) else System.setProperty(TRUST_CHECK_PROPERTY, previous)
-    }
-    assertFalse("The project should count as untrusted", TrustedProjects.isProjectTrusted(project))
   }
 
   private fun locate(file: VirtualFile): OxfmtConfigLocation =

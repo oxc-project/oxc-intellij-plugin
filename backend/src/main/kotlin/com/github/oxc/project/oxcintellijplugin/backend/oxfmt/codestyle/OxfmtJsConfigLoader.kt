@@ -8,6 +8,7 @@ import com.intellij.execution.process.CapturingProcessRunner
 import com.intellij.execution.process.ProcessOutput
 import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.ide.trustedProjects.TrustedProjectsListener
+import com.intellij.ide.trustedProjects.TrustedProjectsLocator
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.execution.NodeTargetRunOptions
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
@@ -137,6 +138,10 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
     ApplicationManager.getApplication().messageBus.connect(this).subscribe(TrustedProjectsListener.TOPIC, object : TrustedProjectsListener {
       override fun onProjectTrusted(project: Project) = trustChanged(project)
       override fun onProjectUntrusted(project: Project) = trustChanged(project)
+      // Settings | Trusted Locations names a folder with no project, which the default drops. The folder may
+      // hold this project, and a refresh only makes files ask again, so refresh whatever it names.
+      override fun onProjectTrusted(locatedProject: TrustedProjectsLocator.LocatedProject) = refreshOverlay()
+      override fun onProjectUntrusted(locatedProject: TrustedProjectsLocator.LocatedProject) = refreshOverlay()
     })
   }
 

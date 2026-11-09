@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCon
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtConfigLocation
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigLoader
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigResult
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtOverlayTracker
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.locateOxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
@@ -18,6 +19,8 @@ import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.application.options.CodeStyle
 import com.intellij.ide.trustedProjects.TrustedProjects
+import com.intellij.ide.trustedProjects.TrustedProjectsListener
+import com.intellij.ide.trustedProjects.TrustedProjectsLocator
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.lang.javascript.JavascriptLanguage
@@ -37,6 +40,7 @@ import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
 import com.intellij.testFramework.PlatformTestUtil
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.seconds
 
@@ -206,6 +210,30 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     val overlay = waitForOverlay(file)
     assertEquals(8, overlay.getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
+  }
+
+  /**
+   * Settings | Trusted Locations trusts a folder and names no project, so nothing told the overlay, which
+   * kept Untrusted until a file was reopened.
+   */
+  fun testTrustFromTrustedLocationsRefreshesTheOverlay() {
+    myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 4 };\n")
+    val file = myFixture.addFileToProject("index.js", "")
+    untrustProject(project, testRootDisposable)
+    waitUntil("the untrusted notification is shown") { runModifier(file); notifications.isNotEmpty() }
+    val tracker = OxfmtOverlayTracker.getInstance(project)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    val before = tracker.modificationCount
+
+    // The project counts as trusted again without an event, as after Trusted Locations stores the folder.
+    System.clearProperty(TrustedProjects.TRUST_HEADLESS_DISABLED_PROPERTY)
+    assertTrue(TrustedProjects.isProjectTrusted(project))
+    ApplicationManager.getApplication().messageBus.syncPublisher(TrustedProjectsListener.TOPIC)
+      .onProjectTrusted(TrustedProjectsLocator.locateProject(Path.of(project.basePath!!), null))
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+
+    assertTrue("the overlay was refreshed", tracker.modificationCount > before)
+    assertEquals(4, waitForOverlay(file).getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
   }
 
   fun testNoNodeOffersItsSettings() {

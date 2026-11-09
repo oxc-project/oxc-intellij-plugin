@@ -20,8 +20,8 @@ const val BACKEND_ROOTS_PATH: String = ""
 interface BackendFilesApi : RemoteApi<Unit> {
 
   /**
-   * Lists a folder. A blank path means the project's folder, and a file means the folder containing
-   * it. A path that can't be read returns its error and the closest folder above it. A null project
+   * Lists a folder. A blank path means the project's folder, a relative path is relative to it, and a
+   * file means the folder containing it. A path that can't be read returns its error and the closest folder above it. A null project
    * means the default project, which has no folder or [ProjectId].
    */
   suspend fun listFolder(projectId: ProjectId?, path: String?): BackendFolder

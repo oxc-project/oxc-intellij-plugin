@@ -21,7 +21,7 @@ class BackendFolderLister(private val defaultFolder: String?) {
 
     val requested = requestedPath?.takeIf { it.isNotBlank() } ?: defaultFolder ?: return listRoots()
     val path = try {
-      Path.of(requested).toAbsolutePath().normalize()
+      resolve(Path.of(requested)).toAbsolutePath().normalize()
     }
     catch (_: InvalidPathException) {
       return listRoots().copy(error = OxcBackendBundle.message("files.path.invalid", requested))
@@ -42,6 +42,15 @@ class BackendFolderLister(private val defaultFolder: String?) {
         error = OxcBackendBundle.message("files.folder.not.readable", folder, exception.message.orEmpty()),
       )
     }
+  }
+
+  /**
+   * A relative setting, such as `configs/team.json`, is relative to the project, as the settings read it,
+   * not to the backend's working directory, which is the IDE's folder or `/`.
+   */
+  private fun resolve(requested: Path): Path {
+    if (requested.isAbsolute) return requested
+    return defaultFolder?.let { Path.of(it).resolve(requested) } ?: requested
   }
 
   private fun closestFolder(path: Path): Path? =

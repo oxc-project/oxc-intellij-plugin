@@ -62,6 +62,31 @@ class BackendFolderListerTest : BasePlatformTestCase() {
     assertNotNull(folder.error)
   }
 
+  fun testARelativePathIsUnderTheDefaultFolder() {
+    root.resolve("configs").createDirectory()
+    root.resolve("configs/team.json").createFile()
+
+    val folder = BackendFolderLister(root.toString()).list("configs/team.json")
+
+    assertEquals(root.resolve("configs").toString(), folder.path)
+    assertEquals(listOf("team.json"), folder.entries.map { it.name })
+    assertNull(folder.error)
+  }
+
+  fun testAParentRelativePathIsUnderTheDefaultFolder() {
+    val folder = BackendFolderLister(root.resolve("zFolder").toString()).list("../b.json")
+
+    assertEquals(root.toString(), folder.path)
+    assertNull(folder.error)
+  }
+
+  fun testAnAbsolutePathIgnoresTheDefaultFolder() {
+    val folder = BackendFolderLister(root.resolve("zFolder").toString()).list(root.resolve("b.json").toString())
+
+    assertEquals(root.toString(), folder.path)
+    assertNull(folder.error)
+  }
+
   fun testRootsListHasNoParent() {
     val roots = BackendFolderLister(null).list(BACKEND_ROOTS_PATH)
 

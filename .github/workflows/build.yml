@@ -66,6 +66,28 @@ jobs:
         working-directory: src/test/testData/viteplus/project
         run: npm ci
 
+      # The package manager tests read each manager's own install layout in a workspace. Yarn's
+      # release is committed in the fixture, and npx fetches pnpm and Bun, so each needs only Node.
+      - name: Setup npm Workspace Test
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup Yarn PnP Workspace Test
+        working-directory: src/test/testData/package-managers/yarn-pnp
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      - name: Setup Bun Workspace Test
+        working-directory: src/test/testData/package-managers/bun
+        run: npx -y bun@1.3.14 install --frozen-lockfile
+
       # check also writes Kover's coverage report, which merges the shared, frontend and backend modules.
       - name: Run Tests
         run: ./gradlew check
@@ -132,6 +154,26 @@ jobs:
         working-directory: src/test/testData/viteplus/project
         run: npm ci
 
+      - name: Setup npm Workspace Test
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup Yarn PnP Workspace Test
+        working-directory: src/test/testData/package-managers/yarn-pnp
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      - name: Setup Bun Workspace Test
+        working-directory: src/test/testData/package-managers/bun
+        run: npx -y bun@1.3.14 install --frozen-lockfile
+
       - name: Run Tests
         shell: bash
         run: ./gradlew test
@@ -160,14 +202,17 @@ jobs:
           - project: Windows
             tmpdir: ''
             viteplus: ''
+            packagemanagers: ''
           - project: WSL
             tmpdir: '\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests'
             viteplus: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-viteplus'
+            packagemanagers: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-package-managers'
     env:
       OXC_TEST_WSL_DISTRO: Ubuntu-24.04
       OXC_TEST_WSL_NODE: /usr/local/bin/node
       OXC_TEST_TMPDIR: ${{ matrix.tmpdir }}
       OXC_TEST_VITEPLUS_FIXTURE: ${{ matrix.viteplus }}
+      OXC_TEST_PACKAGE_MANAGER_FIXTURES: ${{ matrix.packagemanagers }}
     steps:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
@@ -229,6 +274,52 @@ jobs:
           mkdir -p /var/tmp/oxc-viteplus
           cp package.json package-lock.json vite.config.ts index.js /var/tmp/oxc-viteplus/
           cd /var/tmp/oxc-viteplus && npm ci
+
+      - name: Setup npm Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup Yarn PnP Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/yarn-pnp
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      - name: Setup Bun Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/bun
+        run: npx -y bun@1.3.14 install --frozen-lockfile
+
+      # For a project in WSL, the package manager fixtures go in WSL's /var/tmp for the same reasons as the
+      # Vite+ fixture. The shell stops at the first install that fails.
+      - name: Setup Package Manager Tests in WSL
+        if: ${{ matrix.packagemanagers != '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers
+        run: |
+          mkdir -p /var/tmp/oxc-package-managers
+          tar --exclude=node_modules -cf - npm yarn yarn-pnp pnpm bun | tar -xf - -C /var/tmp/oxc-package-managers
+          cd /var/tmp/oxc-package-managers
+          (cd npm && npm ci)
+          (cd yarn && node .yarn/releases/yarn-4.18.1.cjs install --immutable)
+          (cd yarn-pnp && node .yarn/releases/yarn-4.18.1.cjs install --immutable)
+          (cd pnpm && npx -y pnpm@12.18.0 install --frozen-lockfile)
+          (cd bun && npx -y bun@1.3.14 install --frozen-lockfile)
 
       - name: Create Project Folder in WSL
         if: ${{ matrix.tmpdir != '' }}

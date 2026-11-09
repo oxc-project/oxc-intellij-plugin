@@ -1,0 +1,9 @@
+{
+  "name": "@fixture/nested",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "oxfmt": "0.70.0",
+    "oxlint": "1.80.0"
+  }
+}

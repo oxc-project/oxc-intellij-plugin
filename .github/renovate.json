@@ -6,6 +6,17 @@
       "groupName": "java",
       "matchManagers": ["gradle", "gradle-wrapper"],
       "rangeStrategy": "auto"
+    },
+    {
+      "description": "Keep the nested fixture packages on older Oxlint and Oxfmt releases than their workspace root, so they can't be hoisted.",
+      "matchFileNames": ["src/test/testData/package-managers/*/packages/nested/**"],
+      "enabled": false
+    },
+    {
+      "description": "The workflow installs the fixtures with these exact package manager versions, and Yarn's committed release is named after its version.",
+      "matchFileNames": ["src/test/testData/package-managers/**"],
+      "matchDepTypes": ["packageManager"],
+      "enabled": false
     }
   ]
 }

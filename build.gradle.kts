@@ -191,7 +191,7 @@ tasks {
 
         // The tests read these themselves, so they must be inputs. Otherwise, a WSL job in CI can take
         // the cached result of the Windows job, which restores the same cache, and skip its tests.
-        listOf("OXC_TEST_WSL_DISTRO", "OXC_TEST_WSL_NODE", "OXC_TEST_VITEPLUS_FIXTURE").forEach {
+        listOf("OXC_TEST_WSL_DISTRO", "OXC_TEST_WSL_NODE", "OXC_TEST_VITEPLUS_FIXTURE", "OXC_TEST_PACKAGE_MANAGER_FIXTURES").forEach {
             inputs.property(it, environment(it).orElse(""))
         }
 

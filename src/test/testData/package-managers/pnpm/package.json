@@ -1,0 +1,10 @@
+{
+  "name": "oxc-pnpm-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.18.0",
+  "devDependencies": {
+    "oxfmt": "0.77.0",
+    "oxlint": "1.88.0"
+  }
+}

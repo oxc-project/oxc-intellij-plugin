@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPa
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.javascript.nodejs.PackageJsonData
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
+import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpManager
 import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpNodePackage
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
@@ -130,21 +131,41 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
       packageFolder(nodePackage)?.parent?.parent
     }
 
+  /**
+   * The installed package's own folder. Under Yarn PnP that's Yarn's copy of the package that the
+   * workspace depends on: an unplugged folder, or a folder inside a zip in Yarn's cache.
+   */
   private fun packageFolder(nodePackage: NodePackage): VirtualFile? =
     if (nodePackage is YarnPnpNodePackage) {
-      nodePackage.getPackageJson(project)?.parent
+      nodePackage.getPackageJson(project)
+        ?.let { YarnPnpManager.getInstance(project).findInstalledPackageDir(it, nodePackage.name) }
     } else {
       LocalFileSystem.getInstance().findFileByPath(nodePackage.systemIndependentPath)
     }
 
   /**
    * The tool package that `vp` runs. It asks Node for the tool from the server's folder, and then from
-   * its own, so the project's copy wins over the one `vite-plus` depends on. Yarn PnP has no
-   * `node_modules` to look in, so it gets nothing.
+   * its own, so the project's copy wins over the one `vite-plus` depends on.
    */
-  private fun toolUnderVitePlus(vitePlus: VitePlus): VirtualFile? =
-    nodeModulesLookup(vitePlus.launch.root)
-    ?: packageFolder(vitePlus.nodePackage)?.canonicalFile?.let(::nodeModulesLookup)
+  private fun toolUnderVitePlus(vitePlus: VitePlus): VirtualFile? {
+    val nodePackage = vitePlus.nodePackage
+    if (nodePackage is YarnPnpNodePackage) return pnpToolUnderVitePlus(nodePackage)
+    return nodeModulesLookup(vitePlus.launch.root)
+           ?: packageFolder(nodePackage)?.canonicalFile?.let(::nodeModulesLookup)
+  }
+
+  /**
+   * The same lookup under Yarn PnP, which only resolves declared dependencies: the server's workspace's
+   * own dependency on the tool, and then `vite-plus`'s. A workspace doesn't fall back to the root's.
+   */
+  private fun pnpToolUnderVitePlus(vitePlus: YarnPnpNodePackage): VirtualFile? {
+    val packageJson = vitePlus.getPackageJson(project) ?: return null
+    val pnp = YarnPnpManager.getInstance(project)
+    return pnp.findInstalledPackageDir(packageJson, definition.packageName)
+           ?: pnp.findDependency(packageJson, VITE_PLUS_PACKAGE)
+             ?.findChildDependencyByName(definition.packageName)
+             ?.resolveLocation()
+  }
 
   /** Node's lookup: `node_modules/<name>` in the folder and each one above it. */
   private fun nodeModulesLookup(start: VirtualFile): VirtualFile? =

@@ -11,16 +11,26 @@ import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPa
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.javascript.nodejs.packageJson.PackageJsonFileManager
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.service
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.lsp.api.LspClientDescriptor
 import com.intellij.platform.lsp.api.customization.LspCustomization
+import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import org.eclipse.lsp4j.ConfigurationItem
 import org.eclipse.lsp4j.InitializeParams
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 
 class ToolLspClientDescriptor(
   project: Project,
@@ -34,8 +44,37 @@ class ToolLspClientDescriptor(
   @Volatile
   private var serverRun: ServerRun? = null
 
+  /**
+   * FR-LIFE-6: a supported file under the root that also resolves to this server's launch. Otherwise the
+   * first server would take its whole folder, and a nested package or a Vite+ folder in it would never
+   * start its own server. The platform calls this in read actions, mostly on background threads but on
+   * the UI thread when formatting, and again on every document change, so the answer is kept per folder.
+   */
   override fun isSupportedFile(file: VirtualFile): Boolean =
-    settings.isSupported(file) && roots.any { VfsUtilCore.isAncestor(it, file, false) }
+    settings.isSupported(file) && roots.any { VfsUtilCore.isAncestor(it, file, false) } && resolvesHere(file)
+
+  /**
+   * Whether files in a folder resolve to [launch]. The lookup walks `node_modules` and reads
+   * `package.json`, so this is kept until a file is created, deleted or moved, a `package.json` or the
+   * project's roots change, or indexing starts or ends. A settings change restarts the servers, which
+   * replaces the descriptor too.
+   */
+  private val sameLaunchByFolder: CachedValue<ConcurrentMap<VirtualFile, Boolean>> =
+    CachedValuesManager.getManager(project).createCachedValue {
+      CachedValueProvider.Result.create(
+        ConcurrentHashMap(),
+        VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
+        PackageJsonFileManager.getInstance(project).modificationTracker,
+        ProjectRootModificationTracker.getInstance(project),
+        DumbService.getInstance(project),
+        settings.modificationTracker,
+      )
+    }
+
+  private fun resolvesHere(file: VirtualFile): Boolean =
+    sameLaunchByFolder.value.getOrPut(file.parent ?: file) {
+      ReadAction.computeBlocking<Boolean, RuntimeException> { ToolPackage(project, definition).resolve(file) == launch }
+    }
 
   override fun createCommandLine(): GeneralCommandLine = throw UnsupportedOperationException(
     "Not expected to be called because startServerProcess() is overridden")

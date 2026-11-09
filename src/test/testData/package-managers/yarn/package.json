@@ -1,0 +1,13 @@
+{
+  "name": "oxc-yarn-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "packageManager": "yarn@4.18.1",
+  "devDependencies": {
+    "oxfmt": "0.77.0",
+    "oxlint": "1.88.0"
+  }
+}

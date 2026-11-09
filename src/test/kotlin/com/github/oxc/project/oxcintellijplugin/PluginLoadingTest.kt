@@ -8,6 +8,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
+import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.ide.vfs.rpcId
 import com.intellij.notification.NotificationGroup
@@ -32,6 +33,13 @@ import java.util.ResourceBundle
  * This does not replace running the plugin in split mode.
  */
 class PluginLoadingTest : BasePlatformTestCase() {
+
+    // Some of these ask the backend, whose answers follow the settings, which another class may have left changed.
+    override fun setUp() {
+        super.setUp()
+        resetOxcSettings(project)
+    }
+
     fun testPluginIsLoaded() {
         val pluginIsLoaded = PluginManagerCore.isLoaded(PluginId.getId("com.github.oxc.project.oxcintellijplugin"))
 

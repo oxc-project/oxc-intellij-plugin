@@ -7,6 +7,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.isValidExtension
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.DEFAULT_OXFMT_EXTENSIONS
+import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.openapi.util.JDOMUtil
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -22,6 +23,15 @@ class OxfmtSettingsTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     settings.loadState(OxfmtSettingsState())
+  }
+
+  override fun tearDown() {
+    try {
+      resetOxcSettings(project)
+    }
+    finally {
+      super.tearDown()
+    }
   }
 
   fun testDefaults() {

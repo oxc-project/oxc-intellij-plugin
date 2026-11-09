@@ -8,6 +8,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
@@ -45,7 +46,7 @@ class FixAllActionTest : BasePlatformTestCase() {
 
   override fun tearDown() {
     try {
-      settings.loadState(OxlintSettingsState())
+      resetOxcSettings(project)
     }
     finally {
       super.tearDown()

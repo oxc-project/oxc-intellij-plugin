@@ -6,6 +6,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintUnusedDisableDirectives
+import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.openapi.util.JDOMUtil
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -21,6 +22,15 @@ class OxlintSettingsTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     settings.loadState(OxlintSettingsState())
+  }
+
+  override fun tearDown() {
+    try {
+      resetOxcSettings(project)
+    }
+    finally {
+      super.tearDown()
+    }
   }
 
   fun testDefaults() {

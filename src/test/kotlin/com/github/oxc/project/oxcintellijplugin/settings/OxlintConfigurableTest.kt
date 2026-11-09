@@ -10,6 +10,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.DEFAULT_OXLINT_EXTENSIONS
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.openapi.application.EDT
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
@@ -39,6 +40,15 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     settings.loadState(OxlintSettingsState())
+  }
+
+  override fun tearDown() {
+    try {
+      resetOxcSettings(project)
+    }
+    finally {
+      super.tearDown()
+    }
   }
 
   fun testIsNotModifiableUntilTheBackendAnswersThenShowsItsValues() {

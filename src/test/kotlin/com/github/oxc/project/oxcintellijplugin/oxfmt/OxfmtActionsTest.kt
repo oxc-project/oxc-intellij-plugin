@@ -7,6 +7,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolFixAllOnSaveInf
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCache
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.ide.actionsOnSave.ActionOnSaveContext
 import com.intellij.notification.Notification
 import com.intellij.notification.Notifications
@@ -43,6 +44,15 @@ class OxfmtActionsTest : BasePlatformTestCase() {
     // shares this project, while the rest still lags behind.
     val expected = settings.toData()
     waitUntil("the frontend has the settings") { project.service<OxcSettingsCache>().oxfmt == expected }
+  }
+
+  override fun tearDown() {
+    try {
+      resetOxcSettings(project)
+    }
+    finally {
+      super.tearDown()
+    }
   }
 
   fun testFixAllIsShownForAFileOnlyOxfmtHandles() {

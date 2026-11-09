@@ -6,6 +6,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.ide.actionsOnSave.ActionOnSaveContext
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.options.Configurable
@@ -27,6 +28,15 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
     super.setUp()
     settings.loadState(OxlintSettingsState())
     context = newContext()
+  }
+
+  override fun tearDown() {
+    try {
+      resetOxcSettings(project)
+    }
+    finally {
+      super.tearDown()
+    }
   }
 
   fun testApplyStoresTheValue() {

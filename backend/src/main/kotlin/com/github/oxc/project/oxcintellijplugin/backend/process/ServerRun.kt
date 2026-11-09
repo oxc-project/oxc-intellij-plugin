@@ -5,9 +5,8 @@ import com.intellij.execution.ExecutionException
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.progress.EmptyProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.util.Computable
+import com.intellij.openapi.progress.coroutineToIndicator
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -66,6 +65,10 @@ fun logEnvironment(existingVariables: Set<String>): Map<String, String> {
     .associateWith { level }
 }
 
+/**
+ * Runs [start] with a progress indicator, which starting a process through a Node interpreter's target
+ * expects, without showing any progress. The platform calls the server start on a background thread
+ * that may have no job, so this blocks the way the platform's own server start does.
+ */
 internal fun startWithoutProgress(start: () -> OSProcessHandler): OSProcessHandler =
-  // TODO: This is marked as obsolete. Figure out the alternative.
-  ProgressManager.getInstance().runProcess(Computable(start), EmptyProgressIndicator())
+  runBlockingMaybeCancellable { coroutineToIndicator { start() } }

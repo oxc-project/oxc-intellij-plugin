@@ -34,6 +34,7 @@ import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.project.ProjectId
@@ -183,13 +184,18 @@ private fun scheduleSave(project: Project) {
   if (!project.isDefault) SaveAndSyncHandler.getInstance().scheduleProjectSave(project)
 }
 
-/** Reads the settings when emitting, so that a value read earlier can't replace a newer change. */
+/**
+ * Reads the settings when emitting, so that a value read earlier can't replace a newer change. Ends when
+ * the plugin unloads or the project closes, rather than waiting for the collector, which can be a thin
+ * client, to cancel.
+ */
 private fun <D : Any> settingsUpdates(project: Project, tool: OxcTool, read: () -> D): Flow<D> =
   callbackFlow {
-    val connection = project.messageBus.connect()
-    connection.subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { changedTool, _ ->
+    val lifetime = Disposer.newDisposable(OxcProjectDisposable.getInstance(project), "Oxc ${tool.name} settings updates")
+    Disposer.register(lifetime) { close() }
+    project.messageBus.connect(lifetime).subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { changedTool, _ ->
       if (changedTool == tool) trySend(Unit)
     })
     send(Unit)
-    awaitClose { connection.disconnect() }
+    awaitClose { Disposer.dispose(lifetime) }
   }.conflate().map { read() }.distinctUntilChanged()

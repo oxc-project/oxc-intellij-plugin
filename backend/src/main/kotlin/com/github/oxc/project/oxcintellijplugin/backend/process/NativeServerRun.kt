@@ -7,7 +7,6 @@ import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.execution.wsl.WslPath
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.EelUnavailableException
 import com.intellij.platform.eel.EelExecApi
@@ -17,6 +16,7 @@ import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
+import com.intellij.util.system.OS
 import java.nio.file.Path
 
 private val LOG = Logger.getInstance(NativeServerRun::class.java)
@@ -111,7 +111,7 @@ fun nativeCommandLine(
   executable: String,
   parameters: List<String>,
   workingDirectory: String,
-  isWindows: Boolean = SystemInfo.isWindows,
+  isWindows: Boolean = OS.CURRENT == OS.Windows,
   commandInterpreter: String? = System.getenv("ComSpec"),
   existingVariables: Set<String>? = null,
 ): GeneralCommandLine {

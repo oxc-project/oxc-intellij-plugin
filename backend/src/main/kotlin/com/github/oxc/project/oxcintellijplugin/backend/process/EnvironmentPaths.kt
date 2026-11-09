@@ -1,7 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.backend.process
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.platform.eel.EelDescriptor
@@ -10,6 +9,7 @@ import com.intellij.platform.eel.path.EelPathException
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.getEelDescriptor
+import com.intellij.util.system.OS
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -54,7 +54,7 @@ fun resolveSettingPath(
 fun launchEnvironment(
   executable: String,
   workingDirectory: String,
-  isWindows: Boolean = SystemInfo.isWindows,
+  isWindows: Boolean = OS.CURRENT == OS.Windows,
   environmentOf: (String) -> EelDescriptor = ::environmentOf,
 ): EelDescriptor {
   val executableEnvironment = environmentOf(executable)

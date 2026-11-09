@@ -1,18 +1,23 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
-import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
-import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolEditorWatcher
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolEditorWatcher
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.intellij.codeWithMe.ClientId
+import com.intellij.codeWithMe.asContextElement
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.LspClientManager
@@ -20,6 +25,8 @@ import com.intellij.platform.lsp.api.LspServerState
 import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
+import com.intellij.testFramework.replaceService
+import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -98,6 +105,43 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 
     assertEmpty(runningServers())
+  }
+
+  // LC4: the platform's own restart only starts servers for the current client's open files, and a new
+  // server only gets didOpen for those, so a restart from a backend event left a thin client's file without one.
+  fun testRestartOverRpcStartsAServerForAFileOpenOnlyInAnotherClient() {
+    val file = myFixture.configureFromTempProjectFile("index.js").virtualFile
+    val firstServer = runningServer()
+
+    whileOpenOnlyInAnotherClient(file) {
+      restartOverRpc()
+      waitForANewServerThatOpenedTheFile(firstServer)
+    }
+  }
+
+  fun testSettingsChangeStartsAServerForAFileOpenOnlyInAnotherClient() {
+    val file = myFixture.configureFromTempProjectFile("index.js").virtualFile
+    val firstServer = runningServer()
+
+    whileOpenOnlyInAnotherClient(file) {
+      settings.update(settings.toData().copy(typeAware = true))
+      waitForANewServerThatOpenedTheFile(firstServer)
+    }
+  }
+
+  fun testOutsideConfigChangeStartsAServerForAFileOpenOnlyInAnotherClient() {
+    val outside = FileUtil.createTempDirectory("oxc-outside", null, true).toPath().resolve("custom.json")
+    Files.writeString(outside, "{}")
+    settings.state.configurationMode = ConfigurationMode.MANUAL
+    settings.state.configPath = outside.toString()
+    val file = myFixture.configureFromTempProjectFile("index.js").virtualFile
+    val firstServer = runningServer()
+
+    whileOpenOnlyInAnotherClient(file) {
+      Files.writeString(outside, """{ "rules": { "no-debugger": "error" } }""")
+      LocalFileSystem.getInstance().refreshNioFiles(listOf(outside))
+      waitForANewServerThatOpenedTheFile(firstServer)
+    }
   }
 
   fun testApplyingSettingsRestartsTheServer() {
@@ -183,6 +227,33 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
     }
   }
 
+  /**
+   * Makes [file] look open in another client only, as a thin client's file looks to the backend: only that
+   * client's `openFiles` lists it.
+   */
+  private fun whileOpenOnlyInAnotherClient(file: VirtualFile, action: () -> Unit) {
+    val scope = CoroutineScope(Job())
+    val disposable = Disposer.newDisposable()
+    try {
+      val manager = OtherClientHasFilesOpen(project, scope, listOf(file))
+      project.replaceService(FileEditorManager::class.java, manager, disposable)
+      runBlocking(OTHER_CLIENT.asContextElement()) { ToolEditorWatcher().fileOpened(manager, file) }
+      action()
+    }
+    finally {
+      Disposer.dispose(disposable)
+      scope.cancel()
+    }
+  }
+
+  /** The diagnostic shows that the new server got `didOpen` for the file, not only that it started. */
+  private fun waitForANewServerThatOpenedTheFile(firstServer: LspClient) {
+    waitUntil("a new server has the file open") {
+      runningServers().singleOrNull().let { it != null && it !== firstServer } &&
+      myFixture.doHighlighting().any { "`debugger` statement" in it.description.orEmpty() }
+    }
+  }
+
   private fun allServers(): Collection<LspClient> =
     LspClientManager.getInstance(project).getClients(OxlintLspIntegrationProvider::class.java)
 
@@ -205,9 +276,11 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
       .filter { it.state == LspServerState.Running }
 }
 
+private val OTHER_CLIENT = ClientId("oxc-test-other-client")
+
 /**
- * What the manager reports while a client closes its last file and another client still has files
- * open. A light test project has only one client, so this can't come from a real second client.
+ * What the manager reports while another client has files open and this one has none. A light test project
+ * has only one client, so this can't come from a real second client.
  */
 private class OtherClientHasFilesOpen(
   project: Project,
@@ -216,7 +289,7 @@ private class OtherClientHasFilesOpen(
 ) : FileEditorManagerImpl(project, scope) {
 
   override val openFiles: Array<VirtualFile>
-    get() = VirtualFile.EMPTY_ARRAY
+    get() = if (ClientId.current == OTHER_CLIENT) otherClientFiles.toTypedArray() else VirtualFile.EMPTY_ARRAY
 
   override val openFilesWithRemotes: List<VirtualFile>
     get() = otherClientFiles

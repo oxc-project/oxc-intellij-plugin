@@ -10,7 +10,6 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import com.intellij.platform.lsp.api.LspClientManager
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -68,7 +67,7 @@ class OutsideConfigWatcher : Disposable {
       if (changed.isEmpty()) return
 
       ApplicationManager.getApplication().invokeLater({
-        changed.forEach { LspClientManager.getInstance(project).stopAndRestartClientsIfNeeded(it.providerClass) }
+        changed.forEach(project.service<ToolServerStarter>()::restart)
       }, project.disposed)
     }
   }

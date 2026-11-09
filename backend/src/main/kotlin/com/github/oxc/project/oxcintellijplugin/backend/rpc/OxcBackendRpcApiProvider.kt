@@ -10,6 +10,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolServerStarter
 import com.github.oxc.project.oxcintellijplugin.backend.tool.askToTrustProject
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
@@ -29,6 +30,7 @@ import com.intellij.ide.vfs.virtualFile
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.asContextElement
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
@@ -36,7 +38,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProjectOrNull
 import com.intellij.platform.rpc.backend.RemoteApiProvider
@@ -76,7 +77,7 @@ private class OxcToolApiImpl : OxcToolApi {
   override suspend fun restart(projectId: ProjectId, tool: OxcTool) {
     val project = projectId.findProjectOrNull() ?: return
     withContext(Dispatchers.EDT) {
-      LspClientManager.getInstance(project).stopAndRestartClientsIfNeeded(ToolDefinition.of(tool).providerClass)
+      project.service<ToolServerStarter>().restart(ToolDefinition.of(tool))
     }
   }
 

@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.platform.lsp.api.LspClientManager
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Restarts a tool's servers when its manual config outside the workspace changes. Nothing else would
@@ -20,27 +21,36 @@ import com.intellij.platform.lsp.api.LspClientManager
 @Service(Service.Level.PROJECT)
 class OutsideConfigWatcher : Disposable {
 
-  private val watches = mutableMapOf<OxcTool, Watch>()
+  /** Read without a lock, because [Listener] reads it in a write action, which a refresh in [watch] waits for. */
+  private val watches = ConcurrentHashMap<OxcTool, Watch>()
+  private val lock = Any()
+  private var disposed = false
 
   /** Reads from the disk, so this has to be called on a background thread. */
-  @Synchronized
   fun watch(tool: OxcTool, file: String?) {
     if (file == watches[tool]?.file) return
 
     val fileSystem = LocalFileSystem.getInstance()
-    watches.remove(tool)?.request?.let(fileSystem::removeWatchedRoot)
-    if (file != null) {
-      // The file has to be loaded for changes to it to be reported.
-      fileSystem.refreshAndFindFileByPath(file)
-      watches[tool] = Watch(file, fileSystem.addRootToWatch(file, false))
+    // The file has to be loaded for changes to it to be reported. The refresh waits for a write action,
+    // so it runs before the lock is taken.
+    if (file != null) fileSystem.refreshAndFindFileByPath(file)
+    synchronized(lock) {
+      if (file == watches[tool]?.file) return
+      val previous = when {
+        file == null -> watches.remove(tool)
+        // Disposed while refreshing: adding a root now would leak it.
+        disposed -> return
+        else -> watches.put(tool, Watch(file, fileSystem.addRootToWatch(file, false)))
+      }
+      previous?.request?.let(fileSystem::removeWatchedRoot)
     }
   }
 
-  @Synchronized
   fun isWatched(tool: OxcTool, path: String): Boolean =
     watches[tool]?.let { FileUtil.pathsEqual(it.file, path) } == true
 
   override fun dispose() {
+    synchronized(lock) { disposed = true }
     OxcTool.entries.forEach { watch(it, null) }
   }
 

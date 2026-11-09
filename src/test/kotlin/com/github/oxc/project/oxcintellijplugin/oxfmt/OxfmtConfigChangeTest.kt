@@ -120,6 +120,10 @@ class OxfmtConfigChangeTest : OxcFixtureTestCase() {
     writeDocument(SINGLE)
     waitForFormat(file, DOUBLE)
 
+    // Single quotes again first, because the defaults give the same double quotes as `false`, so only a
+    // change back to them shows that the server saw the config go.
+    writeFile(config, content(true))
+    waitForFormat(file, SINGLE)
     WriteAction.runAndWait<Exception> { config.delete(this) }
     waitForFormat(file, DOUBLE)
 

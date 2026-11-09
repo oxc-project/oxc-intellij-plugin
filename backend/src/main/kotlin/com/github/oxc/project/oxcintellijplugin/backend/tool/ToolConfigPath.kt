@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.backend.tool
 
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
+import com.intellij.util.PathUtil
 
 /**
  * The manual config path, ready to send to a server.
@@ -20,15 +21,17 @@ data class ToolConfigPath(val serverValue: String, val fileOutsideWorkspace: Str
       toServerPath: (String) -> String?,
       toLocalPath: (String) -> String?,
     ): ToolConfigPath? {
-      val path = configured?.trim()?.takeIf { it.isNotEmpty() }?.let(FileUtil::toSystemIndependentName)
+      val path = configured?.trim()?.takeIf { it.isNotEmpty() }?.let(PathUtil::toSystemIndependentName)
                  ?: return null
       val localPath = if (OSAgnosticPathUtil.isAbsolute(path)) {
-        toLocalPath(path)?.let(FileUtil::toSystemIndependentName) ?: path
+        toLocalPath(path)?.let(PathUtil::toSystemIndependentName) ?: path
       }
       else {
         FileUtil.toCanonicalPath("$workspace/$path")
       }
 
+      // FileUtil is obsolete, but nothing public canonicalizes, compares and relativizes path strings that may be
+      // another OS's, and an absolute setting can still hold `..` here, which isAncestor resolves first.
       if (FileUtil.isAncestor(workspace, localPath, false)) {
         return ToolConfigPath(FileUtil.getRelativePath(workspace, localPath, '/') ?: path, null)
       }

@@ -12,6 +12,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
@@ -49,9 +50,10 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
       (event as? VFileMoveEvent)?.newPath,
     )
     return paths.any { path ->
+      // FileUtil is obsolete, but nothing public replaces pathsEqual for path strings.
       manual.any { FileUtil.pathsEqual(path, it) } ||
       (PathUtil.getFileName(path).let { it in OXFMT_CONFIG_NAMES || it in VITE_CONFIG_NAMES } && roots.any { root ->
-        FileUtil.isAncestor(root, path, false) || FileUtil.isAncestor(PathUtil.getParentPath(path), root, false)
+        OSAgnosticPathUtil.startsWith(path, root) || OSAgnosticPathUtil.startsWith(root, PathUtil.getParentPath(path))
       })
     }
   }

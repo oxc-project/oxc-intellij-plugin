@@ -16,6 +16,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClientManager
+import com.intellij.util.PathUtil
 
 /** How the server reads a config, which is how the plugin has to read it too. */
 enum class OxfmtConfigFormat {
@@ -130,9 +131,10 @@ private fun resolveManualConfig(path: String, root: VirtualFile?): VirtualFile? 
  * lookup reads it from the server's [root]. Null for a relative path without a root.
  */
 internal fun manualConfigPath(path: String, root: String?): String? {
-  val normalized = FileUtil.toSystemIndependentName(path)
+  val normalized = PathUtil.toSystemIndependentName(path)
   return when {
     OSAgnosticPathUtil.isAbsolute(normalized) -> normalized
+    // FileUtil is obsolete, but nothing public resolves `..` in a path string that may be another OS's; NIO would misread it.
     root != null -> FileUtil.toCanonicalPath("$root/$normalized")
     else -> null
   }

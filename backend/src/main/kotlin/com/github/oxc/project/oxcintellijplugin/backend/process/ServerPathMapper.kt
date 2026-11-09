@@ -6,13 +6,13 @@ import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
 import com.intellij.javascript.nodejs.interpreter.remote.NodeJsRemoteInterpreter
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.path.EelPath
 import com.intellij.platform.eel.path.EelPathException
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
+import com.intellij.util.PathUtil
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 
@@ -90,7 +90,7 @@ class EelServerPathMapper(
     if (eelPathOf(serverPath)?.descriptor.let { it != null && it !is LocalEelDescriptor }) return null
 
     return try {
-      FileUtil.toSystemIndependentName(EelPath.parse(serverPath, environment).asNioPath().toString())
+      PathUtil.toSystemIndependentName(EelPath.parse(serverPath, environment).asNioPath().toString())
     }
     catch (_: EelPathException) {
       null

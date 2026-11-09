@@ -14,6 +14,7 @@ import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.customization.LspCustomization
+import com.intellij.util.PathUtil
 
 /** What differs between the tools. Everything else in this package is shared. */
 abstract class ToolDefinition(
@@ -69,7 +70,8 @@ abstract class ToolDefinition(
     val settings = settings(project)
     if (settings.configurationMode != ConfigurationMode.MANUAL) return false
     val path = settings.configPath?.trim()?.takeIf { it.isNotEmpty() }
-                 ?.let { FileUtil.toSystemIndependentName(resolveSettingPath(project, it)) } ?: return false
+                 ?.let { PathUtil.toSystemIndependentName(resolveSettingPath(project, it)) } ?: return false
+    // FileUtil is obsolete, but nothing public compares or canonicalizes path strings without NIO, which misreads another OS's.
     if (OSAgnosticPathUtil.isAbsolute(path)) return FileUtil.pathsEqual(path, file.path)
 
     val roots = ProjectRootManager.getInstance(project).contentRoots.asSequence() + listOfNotNull(project.guessProjectDir())

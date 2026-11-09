@@ -46,6 +46,7 @@ class OutsideConfigWatcher : Disposable {
     }
   }
 
+  // FileUtil is obsolete, but nothing public replaces pathsEqual for path strings.
   fun isWatched(tool: OxcTool, path: String): Boolean =
     watches[tool]?.let { FileUtil.pathsEqual(it.file, path) } == true
 

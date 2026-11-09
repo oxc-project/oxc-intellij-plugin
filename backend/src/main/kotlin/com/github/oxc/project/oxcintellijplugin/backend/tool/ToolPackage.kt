@@ -10,11 +10,11 @@ import com.intellij.javascript.nodejs.util.NodePackageDescriptor
 import com.intellij.lang.javascript.buildTools.npm.PackageJsonUtil
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.PathUtil
 import java.nio.file.Paths
 
 /**
@@ -181,7 +181,7 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
  * in the root, such as `oxlint`, stays a command for the PATH lookup, and an absolute path is unchanged.
  */
 internal fun resolveManualBinary(path: String, root: VirtualFile): String {
-  val normalized = FileUtil.toSystemIndependentName(path)
+  val normalized = PathUtil.toSystemIndependentName(path)
   if (OSAgnosticPathUtil.isAbsolute(normalized)) return path
   val inRoot = '/' in normalized || root.findFileByRelativePath(normalized)?.takeIf { !it.isDirectory } != null
   if (!inRoot) return path

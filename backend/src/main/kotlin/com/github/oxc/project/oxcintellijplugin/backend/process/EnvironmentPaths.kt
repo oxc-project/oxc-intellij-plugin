@@ -1,7 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.backend.process
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.path.EelPath
@@ -9,6 +8,7 @@ import com.intellij.platform.eel.path.EelPathException
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.getEelDescriptor
+import com.intellij.util.PathUtil
 import com.intellij.util.system.OS
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
@@ -36,7 +36,7 @@ fun resolveSettingPath(
   if (projectEnvironment is LocalEelDescriptor || environmentOf(path) !is LocalEelDescriptor) return path
 
   return try {
-    FileUtil.toSystemIndependentName(EelPath.parse(path, projectEnvironment).asNioPath().toString())
+    PathUtil.toSystemIndependentName(EelPath.parse(path, projectEnvironment).asNioPath().toString())
   }
   // Not an absolute path in the project's environment.
   catch (_: EelPathException) {

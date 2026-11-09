@@ -11,6 +11,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.intellij.ide.vfs.rpcId
+import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -85,57 +86,7 @@ internal class ToolFixAllRunner(private val project: Project, private val scope:
   }
 
   private fun notify(tool: OxcTool, result: OxcFixAllResult, file: VirtualFile) {
-    val prefix = tool.messagePrefix
-    val notification = when (result) {
-      OxcFixAllResult.NothingToApply -> notification(
-        "$prefix.fix.all.nothing.label",
-        OxcFrontendBundle.message("$prefix.fix.all.nothing.description", file.name),
-        NotificationType.INFORMATION,
-      )
-      OxcFixAllResult.FixesTurnedOff -> notification(
-        "$prefix.fix.all.turned.off.label",
-        OxcFrontendBundle.message("$prefix.fix.all.turned.off.description"),
-        NotificationType.INFORMATION,
-      ).addAction(openSettings(tool, "$prefix.open.settings.link"))
-      OxcFixAllResult.ToolNotFound -> notification(
-        "$prefix.fix.all.not.found.label",
-        OxcFrontendBundle.message("$prefix.fix.all.not.found.description", file.name),
-        NotificationType.WARNING,
-      ).addAction(openSettings(tool, "$prefix.open.settings.link"))
-      OxcFixAllResult.Applied -> notification(
-        "$prefix.fix.all.success.label",
-        OxcFrontendBundle.message("$prefix.fix.all.success.description"),
-        NotificationType.INFORMATION,
-      )
-      OxcFixAllResult.TimedOut -> notification(
-        "$prefix.fix.all.timeout.label",
-        OxcFrontendBundle.message("$prefix.fix.all.timeout.description"),
-        NotificationType.WARNING,
-      )
-      is OxcFixAllResult.Failed -> notification(
-        "$prefix.fix.all.failure.label",
-        OxcFrontendBundle.message("$prefix.fix.all.failure.description", result.message),
-        NotificationType.ERROR,
-      )
-      OxcFixAllResult.Untrusted -> notification(
-        "$prefix.fix.all.untrusted.label",
-        OxcFrontendBundle.message("$prefix.fix.all.untrusted.description"),
-        NotificationType.WARNING,
-      ).addAction(NotificationAction.createSimpleExpiring(OxcFrontendBundle.message("trust.project")) {
-        trustAndRun(tool, file)
-      })
-      OxcFixAllResult.FileUnavailable -> notification(
-        "file.unavailable.title",
-        OxcFrontendBundle.message("file.unavailable.description", file.name),
-        NotificationType.WARNING,
-      )
-      OxcFixAllResult.UnsupportedFile -> notification(
-        "$prefix.file.not.supported.title",
-        OxcFrontendBundle.message("$prefix.file.not.supported.description", file.name),
-        NotificationType.WARNING,
-      ).addAction(openSettings(tool, "$prefix.configure.extensions.link"))
-    }
-    notification.notify(project)
+    fixAllNotification(project, tool, result, file.name) { trustAndRun(tool, file) }.notify(project)
   }
 
   /**
@@ -147,16 +98,80 @@ internal class ToolFixAllRunner(private val project: Project, private val scope:
       if (durable { OxcToolApi.getInstance().trustProject(project.projectId()) }) run(tool, file)
     }
   }
-
-  private fun openSettings(tool: OxcTool, textKey: String): NotificationAction =
-    NotificationAction.createSimple(OxcFrontendBundle.message(textKey)) {
-      ShowSettingsUtil.getInstance().showSettingsDialog(project, tool.configurableClass)
-    }
-
-  private fun notification(titleKey: String, content: String, type: NotificationType) =
-    NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
-      .createNotification(OxcFrontendBundle.message(titleKey), content, type)
 }
+
+/**
+ * The balloon for a Fix All [result] on the file named [fileName]. [trustAndRun] is Trust Project's action.
+ * Public for tests, which check that every message it can show exists.
+ */
+fun fixAllNotification(
+  project: Project,
+  tool: OxcTool,
+  result: OxcFixAllResult,
+  fileName: String,
+  trustAndRun: () -> Unit,
+): Notification {
+  val prefix = tool.messagePrefix
+  return when (result) {
+    OxcFixAllResult.NothingToApply -> notification(
+      "$prefix.fix.all.nothing.label",
+      OxcFrontendBundle.message("$prefix.fix.all.nothing.description", fileName),
+      NotificationType.INFORMATION,
+    )
+    // Only Oxlint has a setting that turns its fixes off, so only Oxlint answers this.
+    OxcFixAllResult.FixesTurnedOff -> notification(
+      "oxlint.fix.all.turned.off.label",
+      OxcFrontendBundle.message("oxlint.fix.all.turned.off.description"),
+      NotificationType.INFORMATION,
+    ).addAction(openSettings(project, OxcTool.OXLINT, "oxlint.open.settings.link"))
+    OxcFixAllResult.ToolNotFound -> notification(
+      "$prefix.fix.all.not.found.label",
+      OxcFrontendBundle.message("$prefix.fix.all.not.found.description", fileName),
+      NotificationType.WARNING,
+    ).addAction(openSettings(project, tool, "$prefix.open.settings.link"))
+    OxcFixAllResult.Applied -> notification(
+      "$prefix.fix.all.success.label",
+      OxcFrontendBundle.message("$prefix.fix.all.success.description"),
+      NotificationType.INFORMATION,
+    )
+    OxcFixAllResult.TimedOut -> notification(
+      "$prefix.fix.all.timeout.label",
+      OxcFrontendBundle.message("$prefix.fix.all.timeout.description"),
+      NotificationType.WARNING,
+    )
+    is OxcFixAllResult.Failed -> notification(
+      "$prefix.fix.all.failure.label",
+      OxcFrontendBundle.message("$prefix.fix.all.failure.description", result.message),
+      NotificationType.ERROR,
+    )
+    OxcFixAllResult.Untrusted -> notification(
+      "$prefix.fix.all.untrusted.label",
+      OxcFrontendBundle.message("$prefix.fix.all.untrusted.description"),
+      NotificationType.WARNING,
+    ).addAction(NotificationAction.createSimpleExpiring(OxcFrontendBundle.message("trust.project")) {
+      trustAndRun()
+    })
+    OxcFixAllResult.FileUnavailable -> notification(
+      "file.unavailable.title",
+      OxcFrontendBundle.message("file.unavailable.description", fileName),
+      NotificationType.WARNING,
+    )
+    OxcFixAllResult.UnsupportedFile -> notification(
+      "$prefix.file.not.supported.title",
+      OxcFrontendBundle.message("$prefix.file.not.supported.description", fileName),
+      NotificationType.WARNING,
+    ).addAction(openSettings(project, tool, "$prefix.configure.extensions.link"))
+  }
+}
+
+private fun openSettings(project: Project, tool: OxcTool, textKey: String): NotificationAction =
+  NotificationAction.createSimple(OxcFrontendBundle.message(textKey)) {
+    ShowSettingsUtil.getInstance().showSettingsDialog(project, tool.configurableClass)
+  }
+
+private fun notification(titleKey: String, content: String, type: NotificationType) =
+  NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
+    .createNotification(OxcFrontendBundle.message(titleKey), content, type)
 
 internal val OxcTool.messagePrefix: String
   get() = name.lowercase()

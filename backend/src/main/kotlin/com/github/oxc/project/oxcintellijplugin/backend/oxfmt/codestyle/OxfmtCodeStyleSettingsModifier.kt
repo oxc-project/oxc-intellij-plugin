@@ -21,6 +21,8 @@ class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
 
   override fun modifySettings(settings: TransientCodeStyleSettings, psiFile: PsiFile): Boolean {
     val project = psiFile.project
+    // Settings for New Projects can turn the overlay on there, and its preview asks for a file in it.
+    if (project.isDefault) return false
     val file = psiFile.virtualFile ?: return false
     if (project.isDisposed || !ApplicationManager.getApplication().isReadAccessAllowed) return false
 
@@ -38,8 +40,9 @@ class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
   override fun getStatusBarUiContributor(transientSettings: TransientCodeStyleSettings): CodeStyleStatusBarUIContributor =
     OxfmtCodeStyleStatusBarUiContributor()
 
+  /** Never for the default project, which has no files of its own and no LSP manager to find a config with. */
   override fun mayOverrideSettingsOf(project: Project): Boolean =
-    OxfmtSettings.getInstance(project).state.preferOxfmtCodeStyleSettings
+    !project.isDefault && OxfmtSettings.getInstance(project).state.preferOxfmtCodeStyleSettings
 
   override fun getDisablingFunction(project: Project): Consumer<CodeStyleSettings?> = Consumer {
     disableOxfmtCodeStyle(project)

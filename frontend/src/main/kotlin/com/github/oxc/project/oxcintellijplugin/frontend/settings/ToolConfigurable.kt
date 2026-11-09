@@ -268,8 +268,8 @@ abstract class ToolConfigurable<T : Any>(
           }
         }
       cell.comment(
-        OxcFrontendBundle.message("settings.extensions.comment") + " <a href=\"reset\">" +
-        OxcFrontendBundle.message("settings.extensions.reset") + "</a>",
+        // One message with the link in it, so a translation can put the link where its grammar needs it.
+        OxcFrontendBundle.message("settings.extensions.comment"),
         // Shorter than the default, which is what would make the page wider than the dialog.
         45,
       )

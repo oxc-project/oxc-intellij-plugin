@@ -15,9 +15,12 @@ class OxcOnSaveInfoProvider : ActionOnSaveInfoProvider() {
   override fun getActionOnSaveInfos(context: ActionOnSaveContext): List<ActionOnSaveInfo> =
     ToolDefinition.all.map { ToolFixAllOnSaveInfo(context, it) }
 
-  override fun getSearchableOptions(): Collection<String> =
-    ToolDefinition.all.map { OxcBackendBundle.message("${it.messagePrefix}.fix.all.on.save.checkbox.on.actions.on.save.page") }
+  /** The rows' own names, so that searching for a row's text finds it. */
+  override fun getSearchableOptions(): Collection<String> = ToolDefinition.all.map(::fixAllOnSaveName)
 }
+
+private fun fixAllOnSaveName(definition: ToolDefinition): String =
+  OxcBackendBundle.message("${definition.messagePrefix}.run.fix.all.on.save.checkbox.on.actions.on.save.page")
 
 private val PENDING_FIX_ALL_ON_SAVE: Map<OxcTool, Key<Boolean>> =
   OxcTool.entries.associateWith { Key.create("oxc.${it.name.lowercase()}.pending.fix.all.on.save") }
@@ -37,8 +40,7 @@ class ToolFixAllOnSaveInfo(context: ActionOnSaveContext, private val definition:
     get() = context.getUserData(pendingKey)
     set(value) = context.putUserData(pendingKey, value)
 
-  override fun getActionOnSaveName(): String =
-    OxcBackendBundle.message("${definition.messagePrefix}.run.fix.all.on.save.checkbox.on.actions.on.save.page")
+  override fun getActionOnSaveName(): String = fixAllOnSaveName(definition)
 
   override fun isSaveActionApplicable(): Boolean = settings.isEnabled
 

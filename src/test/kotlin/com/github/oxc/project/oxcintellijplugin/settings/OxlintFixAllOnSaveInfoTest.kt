@@ -1,6 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcOnSaveInfoProvider
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolFixAllOnSaveInfo
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
@@ -133,6 +135,13 @@ class OxlintFixAllOnSaveInfoTest : BasePlatformTestCase() {
     settings.update(settings.toData().copy(typeAware = true))
 
     assertEquals(listOf(false, true), changes)
+  }
+
+  /** Settings search goes by these options, so they have to be the text the rows show. */
+  fun testSearchFindsEachRowByTheTextItShows() {
+    val names = ToolDefinition.all.map { ToolFixAllOnSaveInfo(context, it).actionOnSaveName }
+
+    assertEquals(names, OxcOnSaveInfoProvider().searchableOptions.toList())
   }
 
   private fun row(): ToolFixAllOnSaveInfo = ToolFixAllOnSaveInfo(context, OxlintDefinition)

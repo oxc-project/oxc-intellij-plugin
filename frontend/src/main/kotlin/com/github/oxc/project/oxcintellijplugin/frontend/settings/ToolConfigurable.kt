@@ -224,17 +224,18 @@ abstract class ToolConfigurable<T : Any>(
     }
 
     indent {
-      pathRow(OxcFrontendBundle.message("$prefix.settings.binary.path"), binaryPath).visibleIf(manual.selected)
-      pathRow(OxcFrontendBundle.message("$prefix.settings.config.path"), configPath).visibleIf(manual.selected)
+      pathRow("$prefix.settings.binary.path", binaryPath).visibleIf(manual.selected)
+      pathRow("$prefix.settings.config.path", configPath).visibleIf(manual.selected)
     }
     return disabled.selected.not()
   }
 
-  private fun Panel.pathRow(label: String, property: MutableProperty<String>): Row =
-    row(label) {
+  /** [labelKey] names the row's label, and with `.chooser.title` the file chooser's title. */
+  private fun Panel.pathRow(labelKey: String, property: MutableProperty<String>): Row =
+    row(OxcFrontendBundle.message(labelKey)) {
       val field = TextFieldWithBrowseButton()
       field.addActionListener {
-        chooseBackendFile(project, label.removeSuffix(":"), field.text)?.let { field.text = it }
+        chooseBackendFile(project, OxcFrontendBundle.message("$labelKey.chooser.title"), field.text)?.let { field.text = it }
       }
       cell(field)
         .align(AlignX.FILL)

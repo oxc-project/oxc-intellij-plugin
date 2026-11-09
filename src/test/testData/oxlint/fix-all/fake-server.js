@@ -8,6 +8,7 @@
 //   afterDiagnostic: code actions to answer with once diagnostics have been pulled after a code action
 //     request, because the platform can also pull them by itself before that
 //   hang: true to never answer a code action or formatting request
+//   initializeDelayMs: how long to wait before answering initialize, to keep the server starting
 //   formatting: text edits to answer a formatting request with, as { "start": [line, character],
 //     "end": [line, character], "newText" }
 //
@@ -23,6 +24,11 @@ let diagnosticsPulled = false;
 function send(message) {
   const body = JSON.stringify({ jsonrpc: "2.0", ...message });
   process.stdout.write(`Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`);
+}
+
+function later(delayMs, message) {
+  if (delayMs) setTimeout(send, delayMs, message);
+  else send(message);
 }
 
 function toCodeAction(action, uri) {
@@ -51,7 +57,8 @@ function handle(message) {
 
   switch (message.method) {
     case "initialize":
-      send({
+      // Some tests start this server without a script, so a missing one means no delay.
+      later(fs.existsSync("fake-server.json") ? script().initializeDelayMs : undefined, {
         id: message.id,
         result: {
           capabilities: {

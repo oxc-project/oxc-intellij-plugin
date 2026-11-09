@@ -17,6 +17,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerState
 import com.intellij.testFramework.PlatformTestUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.file.Files
@@ -205,6 +208,70 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     waitUntil("the server has stopped") { runningServers().isEmpty() }
   }
 
+  fun testClosedFileWhoseServerNeverAnswersStopsTheServerAfterTheTimeout() {
+    script("""{ "hang": true }""")
+    Registry.get("oxc.lint.fix.all.timeout.ms").setValue(2_000, testRootDisposable)
+
+    assertEquals(OxcFixAllResult.TimedOut, runFixAll())
+
+    waitUntil("the server has stopped") { liveServers().isEmpty() }
+  }
+
+  fun testCancelledFixAllForAClosedFileStopsTheServer() {
+    script("""{ "hang": true }""")
+    val job = CoroutineScope(Dispatchers.Default).launch { OxcFixAll.getInstance(project).fixFile(OxlintDefinition, file) }
+    waitUntil("Fix All has asked the server") { fixAllRequests().isNotEmpty() }
+
+    job.cancel()
+
+    waitUntil("Fix All has finished") { job.isCompleted }
+    waitUntil("the server has stopped") { liveServers().isEmpty() }
+  }
+
+  /** Before, Fix All only left its wait for a server that crashed, so this waited for the whole timeout. */
+  fun testServerStoppedWhileStartingFailsWithoutWaitingForTheTimeout() {
+    script("""{ "initializeDelayMs": 2000, "cached": [${action("fixed\n", preferred = true)}] }""")
+    Registry.get("oxc.lint.fix.all.timeout.ms").setValue(120_000, testRootDisposable)
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult> {
+      runBlocking { OxcFixAll.getInstance(project).fixFile(OxlintDefinition, file) }
+    }
+    waitUntil("the server is starting") { allServers().any { it.state == LspServerState.Initializing } }
+    // Fix All looks every 50 ms, and a stopped client leaves the list at once, so let it see the client first.
+    Thread.sleep(200)
+
+    LspClientManager.getInstance(project).stopClients(OxlintLspIntegrationProvider::class.java)
+
+    assertInstanceOf(PlatformTestUtil.waitForFuture(call, 30_000), OxcFixAllResult.Failed::class.java)
+    assertEquals("original\n", String(file.contentsToByteArray()))
+  }
+
+  /** The action starts the server before its modal dialog, and the fix that follows stops it. */
+  fun testStartForAClosedFileLeavesTheServerForTheFixWhichStopsIt() {
+    script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
+
+    assertNull(startServerForFile())
+    assertNotEmpty(runningServers())
+
+    assertEquals(OxcFixAllResult.Applied, runFixAll())
+    waitUntil("the server has stopped") { liveServers().isEmpty() }
+  }
+
+  /**
+   * The stop mustn't wait for the server to initialize, which the platform's shutdown does off the EDT.
+   * The delay is longer than the timeout, and short enough for that shutdown to end within the test.
+   */
+  fun testStartThatTimesOutForAClosedFileStopsTheServer() {
+    script("""{ "initializeDelayMs": 3000 }""")
+    Registry.get("oxc.lint.fix.all.timeout.ms").setValue(1_000, testRootDisposable)
+    val start = System.nanoTime()
+
+    assertEquals(OxcFixAllResult.TimedOut, startServerForFile())
+
+    assertTrue("Fix All waited for the server to initialize", System.nanoTime() - start < 2_500_000_000)
+    waitUntil("the server has stopped") { liveServers().isEmpty() }
+    waitUntil("the server's process has exited") { fakeServerProcesses().isEmpty() }
+  }
+
   fun testOpenFileIsLeftUnsavedAndTheServerKeepsRunning() {
     script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
     myFixture.configureFromExistingVirtualFile(file)
@@ -272,6 +339,16 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   private fun text(): String =
     com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)!!.text
 
+  private fun fakeServerProcesses(): List<ProcessHandle> =
+    ProcessHandle.current().descendants().filter { "fake-server.js" in it.info().commandLine().orElse("") }.toList()
+
+  private fun startServerForFile(): OxcFixAllResult? {
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult?> {
+      runBlocking { OxcFixAll.getInstance(project).startServerForFile(OxlintDefinition, file) }
+    }
+    return PlatformTestUtil.waitForFuture(call, 60_000)
+  }
+
   private fun runFixAll(target: VirtualFile = file): OxcFixAllResult {
     val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult> {
       runBlocking { OxcFixAll.getInstance(project).fixFile(OxlintDefinition, target) }
@@ -281,6 +358,9 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
 
   private fun allServers() =
     LspClientManager.getInstance(project).getClients(OxlintLspIntegrationProvider::class.java)
+
+  private fun liveServers() =
+    allServers().filter { it.state == LspServerState.Running || it.state == LspServerState.Initializing }
 
   private fun runningServers() =
     LspClientManager.getInstance(project).getClients(OxlintLspIntegrationProvider::class.java)

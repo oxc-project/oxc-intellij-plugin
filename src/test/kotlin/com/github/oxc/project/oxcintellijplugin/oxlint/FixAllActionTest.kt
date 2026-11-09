@@ -208,8 +208,13 @@ class FixAllActionTest : BasePlatformTestCase() {
     return notifications
   }
 
+  /**
+   * Waits for this test's whole settings, because a single field can already have the value from the test
+   * before, which shares this project, while the rest still lags behind.
+   */
   private fun waitForCache() {
-    waitUntil("the frontend has the settings") { project.service<OxcSettingsCache>().oxlint?.typeAware == true }
+    val expected = settings.toData()
+    waitUntil("the frontend has the settings") { project.service<OxcSettingsCache>().oxlint == expected }
   }
 
   private fun update(file: VirtualFile): Presentation {

@@ -39,7 +39,10 @@ class OxfmtActionsTest : BasePlatformTestCase() {
     super.setUp()
     settings.loadState(OxfmtSettingsState())
     settings.update(settings.toData().copy(disableNestedConfig = true))
-    waitUntil("the frontend has the settings") { project.service<OxcSettingsCache>().oxfmt?.disableNestedConfig == true }
+    // The whole settings, because a single field can already have the value from the test before, which
+    // shares this project, while the rest still lags behind.
+    val expected = settings.toData()
+    waitUntil("the frontend has the settings") { project.service<OxcSettingsCache>().oxfmt == expected }
   }
 
   fun testFixAllIsShownForAFileOnlyOxfmtHandles() {

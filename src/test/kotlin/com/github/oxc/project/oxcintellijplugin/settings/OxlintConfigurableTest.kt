@@ -11,6 +11,13 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.DEFAULT_O
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.openapi.application.EDT
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBRadioButton
@@ -70,6 +77,25 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
       assertTrue(settings.state.disableNestedConfig)
       assertEquals(OxlintFixKind.DANGEROUS_FIX, settings.state.fixKind)
       assertFalse(configurable.isModified)
+    }
+  }
+
+  /**
+   * Settings opened from a modal dialog is modal too. The page must still load, because the platform calls
+   * reset before the page is in a window, where its own modality would be the non-modal one.
+   */
+  fun testLoadsWhileAModalDialogIsShowing() {
+    val configurable = OxlintConfigurable(project)
+    try {
+      configurable.createComponent()
+      runWithModalProgressBlocking(project, "Modal dialog") {
+        withContext(Dispatchers.EDT) { configurable.reset() }
+        withTimeoutOrNull(20.seconds) { while (!configurable.isLoaded) delay(20) }
+      }
+      assertTrue("The page should load while the modal dialog shows", configurable.isLoaded)
+    }
+    finally {
+      configurable.disposeUIResources()
     }
   }
 

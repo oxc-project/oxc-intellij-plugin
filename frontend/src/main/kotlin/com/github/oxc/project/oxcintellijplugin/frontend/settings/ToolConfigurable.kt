@@ -164,11 +164,13 @@ abstract class ToolConfigurable<T : Any>(
     isLoaded = false
     loading?.cancel()
     loadingPanel?.startLoading()
-    val modality = ModalityState.stateForComponent(dialogPanel).asContextElement()
     loading = client.scope.launch(Dispatchers.Default) {
       client.runReportingFailure("$prefix.settings.load.failed") {
         val settings = client.load { loadSettings(client.projectId) }
-        withContext(Dispatchers.EDT + modality) {
+        // Any modality, because Settings opened from a modal dialog is modal too, and the page isn't in a
+        // window yet when this is called, so its own modality would wait for that dialog to close. Only
+        // the page changes here, which is safe in any modality.
+        withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
           model = settings
           dialogPanel.reset()
           isLoaded = true

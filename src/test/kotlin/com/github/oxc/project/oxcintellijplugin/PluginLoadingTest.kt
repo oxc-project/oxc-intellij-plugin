@@ -10,6 +10,8 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSet
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.ide.vfs.rpcId
+import com.intellij.notification.NotificationGroup
+import com.intellij.notification.NotificationGroupManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
@@ -94,7 +96,7 @@ class PluginLoadingTest : BasePlatformTestCase() {
     }
 
     fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {
-        for (name in listOf("messages.OxcFrontendBundle", "messages.OxcBackendBundle")) {
+        for (name in listOf("messages.OxcFrontendBundle", "messages.OxcBackendBundle", "messages.OxcSharedBundle")) {
             val bundle = ResourceBundle.getBundle(name, Locale.ROOT, bundleLoader(name))
             for (key in bundle.keySet()) {
                 val value = bundle.getString(key)
@@ -104,7 +106,17 @@ class PluginLoadingTest : BasePlatformTestCase() {
     }
 
     private fun bundleLoader(name: String): ClassLoader =
-        (if ("Frontend" in name) OxlintConfigurable::class.java else OxlintSettings::class.java).classLoader
+        when {
+            "Frontend" in name -> OxlintConfigurable::class.java
+            "Shared" in name -> OxcTool::class.java
+            else -> OxlintSettings::class.java
+        }.classLoader
+
+    /** The backend posts with this group, so it has to be registered where the backend can find it too. */
+    fun testCodeStyleNotificationGroupIsRegistered() {
+        assertNotNull(NotificationGroupManager.getInstance().getNotificationGroup("Oxc Code Style"))
+        assertEquals("Oxc code style", NotificationGroup.getGroupTitle("Oxc Code Style"))
+    }
 
     fun testRegistryKeyIsDefined() {
         assertEquals(30000, Registry.intValue("oxc.lint.fix.all.timeout.ms"))

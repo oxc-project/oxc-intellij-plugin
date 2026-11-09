@@ -40,10 +40,6 @@
         <codeStyleSettingsModifier
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier"
                 order="first, before org.editorconfig.EditorConfigCodeStyleSettingsModifier"/>
-        <notificationGroup id="Oxc Code Style"
-                           displayType="BALLOON"
-                           bundle="messages.OxcBackendBundle"
-                           key="notification.group.oxc.code.style"/>
         <fileIconProvider implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcConfigFileIconProvider"/>
         <json.catalog.exclusion implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcSchemaCatalogExclusion"/>
     </extensions>

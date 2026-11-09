@@ -20,7 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** The backend's own notification group, because the `Oxc` group is on the frontend. */
+/** The backend's own notification group, because the `Oxc` group is on the frontend. Registered in the shared module. */
 internal const val CODE_STYLE_NOTIFICATION_GROUP = "Oxc Code Style"
 
 class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {

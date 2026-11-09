@@ -4,4 +4,12 @@
         <module name="intellij.platform.project"/>
         <module name="intellij.platform.rpc"/>
     </dependencies>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- The backend posts with it, and a notification group is frontend API, so both sides need it. -->
+        <notificationGroup id="Oxc Code Style"
+                           displayType="BALLOON"
+                           bundle="messages.OxcSharedBundle"
+                           key="notification.group.oxc.code.style"/>
+    </extensions>
 </idea-plugin>

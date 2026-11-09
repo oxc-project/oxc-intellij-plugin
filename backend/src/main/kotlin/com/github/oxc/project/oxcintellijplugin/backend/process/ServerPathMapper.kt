@@ -3,6 +3,9 @@ package com.github.oxc.project.oxcintellijplugin.backend.process
 import com.intellij.execution.wsl.WSLDistribution
 import com.intellij.execution.wsl.WslPath
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
+import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
+import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
+import com.intellij.javascript.nodejs.interpreter.remote.NodeJsRemoteInterpreter
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.path.EelPath
@@ -136,3 +139,35 @@ internal class TargetRunPathMapper(private val run: NodeTargetRun) : ServerPathM
       null
     }
 }
+
+/** Asks [first], and [fallback] only for what [first] has no answer to. */
+internal class FallbackPathMapper(
+  private val first: ServerPathMapper,
+  private val fallback: ServerPathMapper,
+) : ServerPathMapper {
+
+  override fun toServerPath(localPath: String): String? = first.toServerPath(localPath) ?: fallback.toServerPath(localPath)
+
+  override fun toLocalPath(serverPath: String): String? = first.toLocalPath(serverPath) ?: fallback.toLocalPath(serverPath)
+}
+
+/**
+ * The mapper for a Node interpreter outside WSL. A local, Docker or SSH interpreter maps through its
+ * [targetRun], as before. Any other kind in a project that's in an [environment], such as a Dev Container's
+ * own Node, has a run with no path mapper, so the run would ask the file system whether each path is a
+ * folder, which is a call into the container on the UI thread. Its paths are computed from the environment
+ * instead, and the run only answers what that can't. Only the interpreter's class and the environment are
+ * looked at, so choosing doesn't touch the file system either.
+ */
+fun nodePathMapper(
+  interpreter: NodeJsInterpreter,
+  environment: EelDescriptor,
+  targetRun: ServerPathMapper,
+  environmentPaths: (EelDescriptor) -> ServerPathMapper = { EelServerPathMapper(it) },
+): ServerPathMapper =
+  if (interpreter is NodeJsLocalInterpreter || interpreter is NodeJsRemoteInterpreter || environment is LocalEelDescriptor) {
+    targetRun
+  }
+  else {
+    FallbackPathMapper(environmentPaths(environment), targetRun)
+  }

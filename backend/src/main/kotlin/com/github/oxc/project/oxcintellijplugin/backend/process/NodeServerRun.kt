@@ -8,6 +8,7 @@ import com.intellij.javascript.nodejs.execution.NodeTargetRunOptions
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
 import com.intellij.openapi.project.Project
+import com.intellij.platform.eel.provider.getEelDescriptor
 
 /**
  * Launches a language server through the project's Node interpreter, and converts paths between the
@@ -30,7 +31,7 @@ class NodeServerRun(
       ?.let { createWslPathMapper(it, workingDirectory) }
     run.envData = run.envData.with(logEnvironment(run.envData.envs.keys))
     val processHandler = run.startProcessEx().processHandler
-    pathMapper = wslPathMapper ?: TargetRunPathMapper(run)
+    pathMapper = wslPathMapper ?: nodePathMapper(run.interpreter, project.getEelDescriptor(), TargetRunPathMapper(run))
     processHandler
   }
 

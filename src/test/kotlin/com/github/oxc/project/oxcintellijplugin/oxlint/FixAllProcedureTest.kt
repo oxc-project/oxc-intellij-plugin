@@ -11,6 +11,7 @@ import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
@@ -270,6 +271,23 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     assertTrue("Fix All waited for the server to initialize", System.nanoTime() - start < 2_500_000_000)
     waitUntil("the server has stopped") { liveServers().isEmpty() }
     waitUntil("the server's process has exited") { fakeServerProcesses().isEmpty() }
+  }
+
+  /** The fix is positions in the text the server saw, so text typed while it worked must not be overwritten. */
+  fun testDocumentChangedWhileTheServerWorksIsLeftAlone() {
+    script("""{ "answerDelayMs": 2000, "cached": [${action("fixed\n", preferred = true)}] }""")
+    myFixture.configureFromExistingVirtualFile(file)
+    waitUntil("the server is running") { runningServers().size == 1 }
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult> {
+      runBlocking { OxcFixAll.getInstance(project).fixFile(OxlintDefinition, file) }
+    }
+    waitUntil("Fix All has asked the server") { fixAllRequests().isNotEmpty() }
+
+    val document = myFixture.editor.document
+    WriteCommandAction.runWriteCommandAction(project) { document.insertString(document.textLength, "typed\n") }
+
+    assertEquals(OxcFixAllResult.NothingToApply, PlatformTestUtil.waitForFuture(call, 60_000))
+    assertEquals("original\ntyped\n", document.text)
   }
 
   fun testOpenFileIsLeftUnsavedAndTheServerKeepsRunning() {

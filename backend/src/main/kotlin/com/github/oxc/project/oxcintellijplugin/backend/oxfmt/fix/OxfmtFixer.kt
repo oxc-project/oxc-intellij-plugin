@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolFixer
 import com.intellij.application.options.CodeStyle
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.command.execute
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
@@ -29,17 +30,19 @@ class OxfmtFixer(private val project: Project) : ToolFixer {
     val params = DocumentFormattingParams(client.getDocumentIdentifier(file), options)
     val results = withTimeout(timeoutMs) { client.sendRequest { it.textDocumentService.formatting(params) } }
 
-    var applied = false
-    WriteCommandAction.runWriteCommandAction(project, OxcBackendBundle.message("oxfmt.run.quickfix"), "Oxc", {
-      // The edits are positions in the text that the server saw.
-      if (document.modificationStamp != stamp) {
-        thisLogger().info("Not formatting ${file.path}, because it changed while waiting for the server")
-        return@runWriteCommandAction
+    // Suspends instead of blocking a thread, so a cancel stops it rather than being swallowed.
+    return WriteCommandAction.writeCommandAction(project)
+      .withName(OxcBackendBundle.message("oxfmt.run.quickfix"))
+      .withGroupId("Oxc")
+      .execute {
+        // The edits are positions in the text that the server saw.
+        if (document.modificationStamp != stamp) {
+          thisLogger().info("Not formatting ${file.path}, because it changed while waiting for the server")
+          return@execute false
+        }
+        val edits = results.orEmpty().filterNot { isUnchanged(document, it) }
+        edits.isNotEmpty() && applyTextEdits(document, edits)
       }
-      val edits = results.orEmpty().filterNot { isUnchanged(document, it) }
-      if (edits.isNotEmpty()) applied = applyTextEdits(document, edits)
-    })
-    return applied
   }
 
   /** A document always uses `\n`, so a config asking for `\r\n` would otherwise always have an edit. */

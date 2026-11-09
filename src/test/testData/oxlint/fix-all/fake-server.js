@@ -9,6 +9,7 @@
 //     request, because the platform can also pull them by itself before that
 //   hang: true to never answer a code action or formatting request
 //   initializeDelayMs: how long to wait before answering initialize, to keep the server starting
+//   answerDelayMs: how long to wait before answering a code action or formatting request
 //   formatting: text edits to answer a formatting request with, as { "start": [line, character],
 //     "end": [line, character], "newText" }
 //
@@ -75,17 +76,17 @@ function handle(message) {
       send({ id: message.id, result: { kind: "full", items: [] } });
       break;
     case "textDocument/codeAction": {
-      const { cached, afterDiagnostic, hang } = script();
+      const { cached, afterDiagnostic, hang, answerDelayMs } = script();
       if (hang) break;
       const actions = cached ?? (diagnosticsPulled ? afterDiagnostic : []) ?? [];
-      send({ id: message.id, result: actions.map((it) => toCodeAction(it, message.params.textDocument.uri)) });
+      later(answerDelayMs, { id: message.id, result: actions.map((it) => toCodeAction(it, message.params.textDocument.uri)) });
       codeActionRequested = true;
       break;
     }
     case "textDocument/formatting": {
-      const { formatting, hang } = script();
+      const { formatting, hang, answerDelayMs } = script();
       if (hang) break;
-      send({ id: message.id, result: (formatting ?? []).map(toTextEdit) });
+      later(answerDelayMs, { id: message.id, result: (formatting ?? []).map(toTextEdit) });
       break;
     }
     default:

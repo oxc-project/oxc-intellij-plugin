@@ -7,6 +7,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.command.execute
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
@@ -34,7 +35,7 @@ class OxlintFixer(private val project: Project) : ToolFixer {
     OxcFixAllResult.FixesTurnedOff.takeIf { fixKind == OxlintFixKind.NONE }
 
   override suspend fun fix(client: LspClient, file: VirtualFile, document: Document, timeoutMs: Long): Boolean {
-    val params = codeActionParams(client, file, document)
+    val (stamp, params) = readAction { document.modificationStamp to codeActionParams(client, file, document) }
     val results = withTimeout(timeoutMs) {
       val cached = client.sendRequest { it.textDocumentService.codeAction(params) }
       if (!cached.isNullOrEmpty()) return@withTimeout cached
@@ -48,10 +49,19 @@ class OxlintFixer(private val project: Project) : ToolFixer {
     val actions = preferredActions(client, results)
     if (actions.isEmpty()) return false
 
-    WriteCommandAction.runWriteCommandAction(project, OxcBackendBundle.message("oxlint.run.quickfix"), "Oxc", {
-      actions.forEach { it.invoke(file) }
-    })
-    return true
+    // Suspends instead of blocking a thread, so a cancel stops it rather than being swallowed.
+    return WriteCommandAction.writeCommandAction(project)
+      .withName(OxcBackendBundle.message("oxlint.run.quickfix"))
+      .withGroupId("Oxc")
+      .execute {
+        // The edits are positions in the text that the server saw.
+        if (document.modificationStamp != stamp) {
+          thisLogger().info("Not fixing ${file.path}, because it changed while waiting for the server")
+          return@execute false
+        }
+        actions.forEach { it.invoke(file) }
+        document.modificationStamp != stamp
+      }
   }
 
   private fun codeActionParams(client: LspClient, file: VirtualFile, document: Document): CodeActionParams {

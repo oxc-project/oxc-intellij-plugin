@@ -7,7 +7,9 @@ import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
@@ -97,6 +99,23 @@ class OxfmtFormatProcedureTest : OxcFixtureTestCase() {
     val other = myFixture.addFileToProject("notes.txt", "").virtualFile
 
     assertEquals(OxcFixAllResult.UnsupportedFile, runFormat(other))
+  }
+
+  /** The edits are positions in the text the server saw, so text typed while it worked must not be overwritten. */
+  fun testDocumentChangedWhileTheServerWorksIsLeftAlone() {
+    script("""{ "answerDelayMs": 2000, "formatting": [${edit(0, 0, 0, 3, "first line")}] }""")
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxcFixAllResult> {
+      runBlocking { OxcFixAll.getInstance(project).fixFile(OxfmtDefinition, file) }
+    }
+    waitUntil("the server has been asked") {
+      Files.exists(requestLog()) && Files.readAllLines(requestLog()).any { "textDocument/formatting" in it }
+    }
+
+    val document = FileDocumentManager.getInstance().getDocument(file)!!
+    WriteCommandAction.runWriteCommandAction(project) { document.insertString(document.textLength, "typed\n") }
+
+    assertEquals(OxcFixAllResult.NothingToApply, PlatformTestUtil.waitForFuture(call, 60_000))
+    assertEquals("one\ntwo\nthree\ntyped\n", text())
   }
 
   fun testDisabled() {

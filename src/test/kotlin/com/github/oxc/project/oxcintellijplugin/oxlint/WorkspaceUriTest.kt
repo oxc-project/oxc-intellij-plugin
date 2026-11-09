@@ -17,8 +17,10 @@ class WorkspaceUriTest : OxcFixtureTestCase() {
   fun testConfigurationIsKeyedByTheWorkspaceFolderUri() {
     val descriptor = createDescriptor()
     val workspaceUris = descriptor.initializationOptions().map { it["workspaceUri"] }
+    val folderUris = descriptor.createInitializeParams().workspaceFolders.map { it.uri }
 
-    assertEquals(descriptor.createInitializeParams().workspaceFolders.map { it.uri }, workspaceUris)
+    assertSize(1, folderUris)
+    assertEquals(folderUris, workspaceUris)
   }
 
   fun testWorkspaceUriDoesNotHaveATrailingSlash() {
@@ -47,7 +49,8 @@ class WorkspaceUriTest : OxcFixtureTestCase() {
     return ToolLspClientDescriptor(myFixture.project, OxlintDefinition, ServerLaunch("${myFixture.tempDirPath}/oxlint", listOf("--lsp"), root))
   }
 
+  /** One entry for the descriptor's one root, so a test looping over them can't pass by having none. */
   @Suppress("UNCHECKED_CAST")
-  private fun ToolLspClientDescriptor.initializationOptions() =
-    createInitializationOptions() as List<Map<String, Any?>>
+  private fun ToolLspClientDescriptor.initializationOptions(): List<Map<String, Any?>> =
+    (createInitializationOptions() as List<Map<String, Any?>>).also { assertSize(1, it) }
 }

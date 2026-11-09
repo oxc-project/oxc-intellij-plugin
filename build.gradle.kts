@@ -194,5 +194,15 @@ tasks {
         listOf("OXC_TEST_WSL_DISTRO", "OXC_TEST_WSL_NODE", "OXC_TEST_VITEPLUS_FIXTURE").forEach {
             inputs.property(it, environment(it).orElse(""))
         }
+
+        // The tests read their fixtures from disk, so a change there, such as a Renovate bump in a
+        // fixture's lockfile, must run them again instead of taking a cached result. The installed
+        // packages follow the lockfiles, and `.node-version` picks the Node that runs the servers.
+        inputs.files(fileTree("src/test/testData") { exclude("**/node_modules/**") })
+            .withPropertyName("testData")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+        inputs.file(".node-version")
+            .withPropertyName("nodeVersion")
+            .withPathSensitivity(PathSensitivity.NONE)
     }
 }

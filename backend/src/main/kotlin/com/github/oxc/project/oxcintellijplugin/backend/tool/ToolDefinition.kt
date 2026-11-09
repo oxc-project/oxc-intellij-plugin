@@ -8,6 +8,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -17,7 +18,8 @@ import com.intellij.platform.lsp.api.customization.LspCustomization
 /** What differs between the tools. Everything else in this package is shared. */
 abstract class ToolDefinition(
   val tool: OxcTool,
-  val displayName: String,
+  /** The product's name, which isn't translated. The server's presentable name in the platform's UI. */
+  val displayName: @NlsSafe String,
   val packageName: String,
   /** The start of the tool's message keys. */
   val messagePrefix: String,

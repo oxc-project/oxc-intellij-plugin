@@ -22,6 +22,8 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -97,11 +99,37 @@ class FixAllActionTest : BasePlatformTestCase() {
     assertEquals(NotificationType.WARNING, untrusted.type)
     assertEquals(listOf("Trust Project"), untrusted.actions.map { it.templateText })
 
-    // Trust Project asks the backend, through the frontend, and then Fix All runs again.
+    // Trust Project asks the backend, through the frontend, which shows the platform's dialog. Once
+    // trusted, Fix All runs again.
+    val dialogs = answerTrustDialogs(Messages.YES)
     Notification.fire(untrusted, untrusted.actions.single(), null)
     waitUntil("the project is trusted") { TrustedProjects.isProjectTrusted(project) }
     waitUntil("Fix All has run again") { notifications.size == 2 }
     assertEquals("Oxlint not found", notifications.last().title)
+    assertEquals("The platform's trust dialog was shown once", 1, dialogs.size)
+  }
+
+  fun testDecliningToTrustDoesNotRunAgain() {
+    untrustProject(project, testRootDisposable)
+    val notifications = collectNotifications()
+    action().actionPerformed(event(file("a.js"), Presentation(), ActionPlaces.EDITOR_POPUP, ActionUiKind.POPUP))
+    waitUntil("the notification appears") { notifications.isNotEmpty() }
+    val untrusted = notifications.single()
+
+    val dialogs = answerTrustDialogs(Messages.NO)
+    Notification.fire(untrusted, untrusted.actions.single(), null)
+    waitUntil("the platform's trust dialog was shown") { dialogs.isNotEmpty() }
+    repeat(10) { Thread.sleep(100); PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
+
+    assertFalse(TrustedProjects.isProjectTrusted(project))
+    assertEquals("Fix All didn't run again", 1, notifications.size)
+  }
+
+  /** Answers the platform's dialogs with [answer], and returns their messages as they're shown. */
+  private fun answerTrustDialogs(answer: Int): List<String> {
+    val shown = CopyOnWriteArrayList<String>()
+    TestDialogManager.setTestDialog({ message -> shown += message; answer }, testRootDisposable)
+    return shown
   }
 
   fun testSavingWithNothingToFixStaysQuiet() {

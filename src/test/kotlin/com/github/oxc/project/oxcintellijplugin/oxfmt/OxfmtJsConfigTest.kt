@@ -32,6 +32,8 @@ import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -204,7 +206,8 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     assertEquals(OxfmtImportResult.CONFIG_NOT_LOADED, runImport(file.virtualFile))
     waitUntil("it's shown again, because Import asks") { notifications.size == 2 }
 
-    // Trust Project asks the backend, through the frontend.
+    // Trust Project asks the backend, through the frontend, which shows the platform's dialog.
+    TestDialogManager.setTestDialog({ Messages.YES }, testRootDisposable)
     Notification.fire(untrusted, untrusted.actions.single(), null)
     waitUntil("the project is trusted") { TrustedProjects.isProjectTrusted(project) }
 

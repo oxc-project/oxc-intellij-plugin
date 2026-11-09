@@ -10,6 +10,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.askToTrustProject
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
@@ -23,7 +24,6 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSetti
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.SaveAndSyncHandler
-import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.ide.vfs.VirtualFileId
 import com.intellij.ide.vfs.virtualFile
 import com.intellij.openapi.application.EDT
@@ -91,9 +91,9 @@ private class OxcToolApiImpl : OxcToolApi {
     return OxcFixAll.getInstance(project).fixFile(ToolDefinition.of(tool), virtualFile)
   }
 
-  override suspend fun trustProject(projectId: ProjectId) {
-    val project = projectId.findProjectOrNull() ?: return
-    TrustedProjects.setProjectTrusted(project, true)
+  override suspend fun trustProject(projectId: ProjectId): Boolean {
+    val project = projectId.findProjectOrNull() ?: return false
+    return withContext(Dispatchers.EDT) { askToTrustProject(project) }
   }
 }
 

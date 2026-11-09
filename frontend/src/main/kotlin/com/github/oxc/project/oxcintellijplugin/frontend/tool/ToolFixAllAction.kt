@@ -133,11 +133,13 @@ internal class ToolFixAllRunner(private val project: Project, private val scope:
     notification.notify(project)
   }
 
-  /** The backend holds the project's trust. Fix All runs again, because that's what was asked for. */
+  /**
+   * The backend holds the project's trust, and asks with the platform's dialog. Once trusted, Fix All runs
+   * again, because that's what was asked for.
+   */
   private fun trustAndRun(tool: OxcTool, file: VirtualFile) {
     scope.launch {
-      durable { OxcToolApi.getInstance().trustProject(project.projectId()) }
-      run(tool, file)
+      if (durable { OxcToolApi.getInstance().trustProject(project.projectId()) }) run(tool, file)
     }
   }
 

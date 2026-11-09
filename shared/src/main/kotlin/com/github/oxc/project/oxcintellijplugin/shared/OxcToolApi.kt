@@ -26,8 +26,11 @@ interface OxcToolApi : RemoteApi<Unit> {
   /** Applies the tool's changes to the file, which doesn't have to be open in an editor. */
   suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult
 
-  /** Trusts the project, which running anything from it needs. The backend holds the project's trust. */
-  suspend fun trustProject(projectId: ProjectId)
+  /**
+   * Asks the user to trust the project, which running anything from it needs, with the platform's dialog.
+   * Returns whether it's trusted afterwards. The backend holds the project's trust.
+   */
+  suspend fun trustProject(projectId: ProjectId): Boolean
 
   companion object {
     suspend fun getInstance(): OxcToolApi =

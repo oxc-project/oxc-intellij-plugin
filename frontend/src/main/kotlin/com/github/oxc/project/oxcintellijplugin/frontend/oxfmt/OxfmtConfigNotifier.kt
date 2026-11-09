@@ -59,7 +59,7 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
       OxcFrontendBundle.message("oxfmt.js.config.untrusted.description", notice.configName),
       NotificationType.WARNING,
     ).addAction(NotificationAction.createSimpleExpiring(OxcFrontendBundle.message("trust.project")) {
-      // The backend holds the project's trust.
+      // The backend holds the project's trust, and asks with the platform's dialog. Trust refreshes the overlay.
       scope.launch { durable { OxcToolApi.getInstance().trustProject(project.projectId()) } }
     })
 

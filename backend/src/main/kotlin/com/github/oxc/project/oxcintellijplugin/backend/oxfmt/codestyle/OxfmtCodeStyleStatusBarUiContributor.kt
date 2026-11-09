@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle
 
 import com.github.oxc.project.oxcintellijplugin.backend.OxcBackendBundle
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.OxfmtDefinition
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
@@ -9,6 +10,8 @@ import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -33,7 +36,7 @@ class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
       file.project.service<OxfmtConfigOpener>().open(path)
     },
     DumbAwareAction.create(OxcBackendBundle.message("oxfmt.action.open.settings.label")) {
-      ShowSettingsUtil.getInstance().showSettingsDialog(file.project, "Oxfmt")
+      openOxfmtSettings(file.project)
     },
   )
 
@@ -50,6 +53,14 @@ class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
     }
 
   override fun getActionGroupTitle(): String = OxcBackendBundle.message("oxfmt.code.style.status.bar.action.group.title")
+}
+
+/** By the page's id, because its display name is translated. Public for tests. */
+fun isOxfmtSettingsPage(configurable: Configurable): Boolean =
+  (configurable as? SearchableConfigurable)?.id == OxfmtDefinition.configurableId
+
+private fun openOxfmtSettings(project: Project) {
+  ShowSettingsUtil.getInstance().showSettingsDialog(project, ::isOxfmtSettingsPage, null)
 }
 
 /**

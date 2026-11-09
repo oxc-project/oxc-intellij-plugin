@@ -12,6 +12,7 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
@@ -29,6 +30,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import fleet.rpc.client.durable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -144,7 +146,22 @@ private class BackendFileChooserDialog(
     val modality = ModalityState.stateForComponent(contentPanel).asContextElement()
     loading = project.service<BackendFileChooserScope>().scope.launch(Dispatchers.Default) {
       val projectId = project.takeUnless { it.isDefault }?.projectId()
-      val folder = durable { BackendFilesApi.getInstance().listFolder(projectId, path) }
+      val folder = try {
+        durable { BackendFilesApi.getInstance().listFolder(projectId, path) }
+      }
+      catch (exception: CancellationException) {
+        throw exception
+      }
+      catch (exception: Exception) {
+        // Shown in the dialog, where the lister's own errors go, rather than as a balloon behind it.
+        logger<BackendFileChooserDialog>().warn(exception)
+        BackendFolder(
+          path = path.orEmpty(),
+          parent = null,
+          entries = emptyList(),
+          error = OxcFrontendBundle.message("files.chooser.load.failed", exception.message.orEmpty()),
+        )
+      }
       withContext(Dispatchers.EDT + modality) { show(folder, path) }
     }
   }

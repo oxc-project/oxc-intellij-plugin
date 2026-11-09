@@ -3,6 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
+import com.github.oxc.project.oxcintellijplugin.frontend.callBackendReportingFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
@@ -73,7 +74,7 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
     when (notice.reason) {
       OxfmtJsConfigFailure.NO_NODE, OxfmtJsConfigFailure.OLD_NODE -> notification.addAction(
         NotificationAction.createSimple(OxcFrontendBundle.message("oxfmt.js.config.configure.node")) {
-          backend { showNodeSettings(project.projectId()) }
+          backend("oxfmt.js.config.configure.node.failed") { showNodeSettings(project.projectId()) }
         })
       OxfmtJsConfigFailure.ERROR -> notification.addAction(
         NotificationAction.createSimple(OxcFrontendBundle.message("oxfmt.js.config.show.details")) {
@@ -82,13 +83,15 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
     }
     return notification.addAction(
       NotificationAction.createSimple(OxcFrontendBundle.message("oxfmt.js.config.edit.configuration.file")) {
-        backend { openConfig(project.projectId(), notice.configUrl) }
+        backend("oxfmt.js.config.edit.configuration.file.failed") { openConfig(project.projectId(), notice.configUrl) }
       })
   }
 
   /** The Node.js page and the config are the backend's, so these actions ask it. */
-  private fun backend(call: suspend OxfmtCodeStyleApi.() -> Unit) {
-    scope.launch { durable { OxfmtCodeStyleApi.getInstance().call() } }
+  private fun backend(failureKey: String, call: suspend OxfmtCodeStyleApi.() -> Unit) {
+    scope.launch {
+      callBackendReportingFailure(project, failureKey) { durable { OxfmtCodeStyleApi.getInstance().call() } }
+    }
   }
 
   private fun firstLines(message: String): String {

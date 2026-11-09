@@ -3,6 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
+import com.github.oxc.project.oxcintellijplugin.frontend.callBackendReportingFailure
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCache
 import com.github.oxc.project.oxcintellijplugin.shared.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
@@ -58,7 +59,9 @@ internal class OxfmtCodeStyleImporter(private val project: Project, private val 
     val fileId = file.rpcId()
     val name = file.name
     scope.launch {
-      val result = durable { OxfmtCodeStyleApi.getInstance().importCodeStyle(project.projectId(), fileId) }
+      val result = callBackendReportingFailure(project, "oxfmt.import.code.style.failed") {
+        durable { OxfmtCodeStyleApi.getInstance().importCodeStyle(project.projectId(), fileId) }
+      } ?: return@launch
       val group = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
       when (result) {
         OxfmtImportResult.IMPORTED -> group.createNotification(

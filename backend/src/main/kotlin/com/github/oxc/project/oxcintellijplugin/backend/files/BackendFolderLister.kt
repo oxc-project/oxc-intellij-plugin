@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.files.BACKEND_ROOTS_PATH
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFileEntry
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFolder
 import java.io.IOException
+import java.nio.file.DirectoryIteratorException
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -35,14 +36,20 @@ class BackendFolderLister(private val defaultFolder: String?) {
         error = if (missing) OxcBackendBundle.message("files.path.not.found", requested) else null)
     }
     catch (exception: IOException) {
-      BackendFolder(
-        path = folder.toString(),
-        parent = parentOf(folder),
-        entries = emptyList(),
-        error = OxcBackendBundle.message("files.folder.not.readable", folder, exception.message.orEmpty()),
-      )
+      unreadable(folder, exception)
+    }
+    // Reading the entries, as opposed to opening the folder, wraps its IOException in this.
+    catch (exception: DirectoryIteratorException) {
+      unreadable(folder, exception.cause)
     }
   }
+
+  private fun unreadable(folder: Path, exception: IOException?): BackendFolder = BackendFolder(
+    path = folder.toString(),
+    parent = parentOf(folder),
+    entries = emptyList(),
+    error = OxcBackendBundle.message("files.folder.not.readable", folder, exception?.message.orEmpty()),
+  )
 
   /**
    * A relative setting, such as `configs/team.json`, is relative to the project, as the settings read it,

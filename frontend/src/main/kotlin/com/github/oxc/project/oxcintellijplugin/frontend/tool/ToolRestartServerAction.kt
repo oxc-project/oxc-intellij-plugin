@@ -3,6 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.tool
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
+import com.github.oxc.project.oxcintellijplugin.frontend.callBackendReportingFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
@@ -50,7 +51,9 @@ internal class ToolServerRestarter(
 
   fun restart(tool: OxcTool) {
     coroutineScope.launch {
-      durable { OxcToolApi.getInstance().restart(project.projectId(), tool) }
+      callBackendReportingFailure(project, "${tool.messagePrefix}.language.server.restart.failed") {
+        durable { OxcToolApi.getInstance().restart(project.projectId(), tool) }
+      } ?: return@launch
       NotificationGroupManager.getInstance()
         .getNotificationGroup("Oxc")
         .createNotification(

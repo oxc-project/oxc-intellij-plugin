@@ -138,6 +138,7 @@ class OxfmtRealServerTest : OxcFixtureTestCase() {
     val file = open("index.js")
     waitUntil("the server is running") { runningServers().isNotEmpty() }
     typeSomething()
+    val typed = myFixture.editor.document.text
 
     FileDocumentManager.getInstance().saveAllDocuments()
     repeat(20) {
@@ -145,7 +146,10 @@ class OxfmtRealServerTest : OxcFixtureTestCase() {
       Thread.sleep(100)
     }
 
-    assertTrue("\"Happy" in String(file.contentsToByteArray()))
+    // Exactly what was typed, unformatted, so a save that wrote nothing fails too.
+    assertEquals("// edited\nconst greeting = \"Happy developing ✨\"\n", typed)
+    assertFalse("The document should have been saved", FileDocumentManager.getInstance().isFileModified(file))
+    assertEquals(typed, String(file.contentsToByteArray()))
   }
 
   /** Stands in for checking the server's code: everything it reads is under these two keys. */

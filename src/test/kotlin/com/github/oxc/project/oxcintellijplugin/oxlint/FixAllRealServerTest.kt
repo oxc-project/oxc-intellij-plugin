@@ -105,6 +105,7 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
   fun testSavingLeavesTheFileAloneWhenDisabled() {
     openAndWaitForDiagnostics()
     typeSomething()
+    val typed = myFixture.editor.document.text
 
     FileDocumentManager.getInstance().saveAllDocuments()
     repeat(20) {
@@ -112,7 +113,10 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
       Thread.sleep(100)
     }
 
-    assertTrue("var fixed" in String(file.contentsToByteArray()))
+    // Exactly what was typed, so a save that wrote nothing fails too.
+    assertEquals("// edited\nvar fixed = 1;\nconsole.log(fixed);\ndebugger;\n", typed)
+    assertFalse("The document should have been saved", FileDocumentManager.getInstance().isFileModified(file))
+    assertEquals(typed, String(file.contentsToByteArray()))
   }
 
   private fun typeSomething() {

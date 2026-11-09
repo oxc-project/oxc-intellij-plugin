@@ -53,6 +53,11 @@
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcJsonSchemaProvider"/>
     </extensions>
 
+    <applicationListeners>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolTrustWatcher"
+                  topic="com.intellij.ide.trustedProjects.TrustedProjectsListener"/>
+    </applicationListeners>
+
     <projectListeners>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolEditorWatcher"
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>

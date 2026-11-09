@@ -18,6 +18,8 @@ import com.intellij.platform.lsp.api.lsWidget.LspClientWidgetItem
  *
  * The platform's item opens a page by its class, and adds the settings button only when it has one, but the
  * pages are the frontend's, so the backend can't name the class. This opens the page by its id instead.
+ *
+ * The widget keeps the icon after the plugin's items are gone; [ToolWidgetUnloader] clears it before an unload.
  */
 internal class ToolWidgetItem(
   lspClient: LspClient,

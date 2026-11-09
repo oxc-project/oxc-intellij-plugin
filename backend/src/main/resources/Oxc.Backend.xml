@@ -52,6 +52,8 @@
     <applicationListeners>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolTrustWatcher"
                   topic="com.intellij.ide.trustedProjects.TrustedProjectsListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolWidgetUnloader"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
     <projectListeners>

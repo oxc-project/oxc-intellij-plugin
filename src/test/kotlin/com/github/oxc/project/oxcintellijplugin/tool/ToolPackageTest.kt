@@ -78,6 +78,49 @@ class ToolPackageTest : OxcFixtureTestCase() {
     assertEquals(listOf("--lsp"), launch.parameters)
   }
 
+  /**
+   * A relative manual binary is under the server's root, wherever the server runs. Left relative, a
+   * Docker, SSH or WSL interpreter would look for it in the IDE's own folder.
+   */
+  fun testRelativeManualBinaryIsUnderTheRoot() {
+    myFixture.addFileToProject("tools/oxlint", "")
+
+    for (setting in listOf("tools/oxlint", "./tools/oxlint", "src/../tools/oxlint")) {
+      useOxlintBinary(setting)
+      assertEquals(setting, path("tools/oxlint"), FileUtil.toSystemIndependentName(resolve(OxlintDefinition).executable))
+    }
+  }
+
+  /** Such as `oxlint.exe` beside the project, which Windows would otherwise look for in the IDE's folder. */
+  fun testBareNameOfAFileInTheRootIsUnderTheRoot() {
+    myFixture.addFileToProject("oxlint.exe", "")
+    useOxlintBinary("oxlint.exe")
+
+    assertEquals(path("oxlint.exe"), FileUtil.toSystemIndependentName(resolve(OxlintDefinition).executable))
+  }
+
+  /** A bare name with no such file in the root is a command for the PATH lookup. */
+  fun testBareCommandStaysACommand() {
+    useOxlintBinary("oxlint")
+
+    assertEquals("oxlint", resolve(OxlintDefinition).executable)
+  }
+
+  fun testAbsoluteManualBinaryIsUnchanged() {
+    val binary = myFixture.addFileToProject("tools/oxlint", "").virtualFile
+    useOxlintBinary(FileUtil.toSystemDependentName(binary.path))
+
+    assertEquals(FileUtil.toSystemDependentName(binary.path), resolve(OxlintDefinition).executable)
+  }
+
+  /** The schema comes from the package a relative binary is in, as for an absolute one. */
+  fun testRelativeManualBinaryFindsItsPackagesSchema() {
+    val schema = FakePackages.tool(myFixture, "node_modules/oxlint", "oxlint")
+    useOxlintBinary("node_modules/oxlint/bin/oxlint")
+
+    assertEquals(schema, ToolPackage(project, OxlintDefinition).findSchema(file))
+  }
+
   /** A nested package's own `vite-plus` runs from that package, as a nested `oxlint` would. */
   fun testNearestVitePlusWins() {
     FakePackages.vitePlus(myFixture)
@@ -92,6 +135,13 @@ class ToolPackageTest : OxcFixtureTestCase() {
 
   fun testNothingToRunWithoutAPackage() {
     assertNull(ToolPackage(project, OxlintDefinition).resolve(file))
+  }
+
+  private fun useOxlintBinary(path: String) {
+    OxlintSettings.getInstance(project).state.apply {
+      configurationMode = ConfigurationMode.MANUAL
+      binaryPath = path
+    }
   }
 
   private fun resolve(definition: ToolDefinition): ServerLaunch =

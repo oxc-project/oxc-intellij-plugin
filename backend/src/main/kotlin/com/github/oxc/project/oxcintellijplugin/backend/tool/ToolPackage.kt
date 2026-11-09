@@ -10,6 +10,8 @@ import com.intellij.javascript.nodejs.util.NodePackageDescriptor
 import com.intellij.lang.javascript.buildTools.npm.PackageJsonUtil
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -42,9 +44,9 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     }
 
     val nodePackage = find(file)
-    val executable = manualBinary ?: nodePackage?.let(::executablePath)
-    val root = nodePackage?.let(::serverRoot)
-               ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file).takeIf { manualBinary != null }
+    val root = serverRoot(file, nodePackage, manualBinary != null)
+    val executable = manualBinary?.let { binary -> root?.let { resolveManualBinary(binary, it) } ?: binary }
+                     ?: nodePackage?.let(::executablePath)
     if (executable == null || root == null) {
       thisLogger().debug(
         "Not starting ${definition.displayName} for ${file.path}: package=$nodePackage, executable=$executable, root=$root")
@@ -61,7 +63,10 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
   fun findSchema(file: VirtualFile): VirtualFile? {
     val manualBinary = manualBinary()
     val folder = when {
-      manualBinary != null -> packageContaining(manualBinary)
+      manualBinary != null -> {
+        val root = serverRoot(file, find(file), manual = true)
+        packageContaining(root?.let { resolveManualBinary(manualBinary, it) } ?: manualBinary)
+      }
       else -> findVitePlus(file)?.let { toolUnderVitePlus(it) } ?: find(file)?.let(::packageFolder)
     }
     return folder?.findChild(SCHEMA_FILE_NAME)?.takeIf { !it.isDirectory }
@@ -73,6 +78,14 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
       ?.takeIf { settings.configurationMode == ConfigurationMode.MANUAL && it.isNotEmpty() }
       ?.let { resolveSettingPath(project, it) }
   }
+
+  /**
+   * Where the server runs from: the folder holding the tool's `node_modules`, or for a [manual] binary
+   * without one, the file's content root.
+   */
+  private fun serverRoot(file: VirtualFile, nodePackage: NodePackage?, manual: Boolean): VirtualFile? =
+    nodePackage?.let(::serverRoot)
+    ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file).takeIf { manual }
 
   private class VitePlus(val nodePackage: NodePackage, val launch: ServerLaunch)
 
@@ -159,4 +172,18 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     const val NODE_MODULES = "node_modules"
     const val SCHEMA_FILE_NAME = "configuration_schema.json"
   }
+}
+
+/**
+ * A manual binary written relative to the server's [root], such as `node_modules/.bin/oxlint` or
+ * `tools/oxlint.exe`, as a full path. Left as it is, a Docker, SSH or WSL interpreter would read it from
+ * the IDE's own folder, and Windows would look for a `.exe` there. A bare name with no file of that name
+ * in the root, such as `oxlint`, stays a command for the PATH lookup, and an absolute path is unchanged.
+ */
+internal fun resolveManualBinary(path: String, root: VirtualFile): String {
+  val normalized = FileUtil.toSystemIndependentName(path)
+  if (OSAgnosticPathUtil.isAbsolute(normalized)) return path
+  val inRoot = '/' in normalized || root.findFileByRelativePath(normalized)?.takeIf { !it.isDirectory } != null
+  if (!inRoot) return path
+  return Paths.get(root.path).resolve(normalized).normalize().toString()
 }

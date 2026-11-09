@@ -4,6 +4,10 @@ import com.github.oxc.project.oxcintellijplugin.backend.OxcBackendBundle
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.readAction
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
@@ -11,6 +15,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.modifier.CodeStyleStatusBarUIContributor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** The backend's own notification group, because the `Oxc` group is on the frontend. */
 internal const val CODE_STYLE_NOTIFICATION_GROUP = "Oxc Code Style"
@@ -21,28 +29,13 @@ class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
 
   override fun getActions(file: PsiFile): Array<AnAction> = arrayOf(
     DumbAwareAction.create(OxcBackendBundle.message("oxfmt.action.open.configuration.file.label")) {
-      openConfig(file)
+      val path = file.virtualFile ?: return@create
+      file.project.service<OxfmtConfigOpener>().open(path)
     },
     DumbAwareAction.create(OxcBackendBundle.message("oxfmt.action.open.settings.label")) {
       ShowSettingsUtil.getInstance().showSettingsDialog(file.project, "Oxfmt")
     },
   )
-
-  private fun openConfig(file: PsiFile) {
-    val project = file.project
-    val path = file.virtualFile ?: return
-    val config = findOxfmtConfig(project, path)
-    if (config != null) {
-      OpenFileDescriptor(project, config).navigate(true)
-    }
-    else {
-      NotificationGroupManager.getInstance().getNotificationGroup(CODE_STYLE_NOTIFICATION_GROUP).createNotification(
-        OxcBackendBundle.message("oxfmt.configuration.file.not.found.title"),
-        OxcBackendBundle.message("oxfmt.configuration.file.not.found.description", path.path),
-        NotificationType.INFORMATION,
-      ).notify(project)
-    }
-  }
 
   override fun getTooltip(): String? = null
 
@@ -57,4 +50,30 @@ class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
     }
 
   override fun getActionGroupTitle(): String = OxcBackendBundle.message("oxfmt.code.style.status.bar.action.group.title")
+}
+
+/**
+ * Opens the config that applies to a file. The lookup runs off the EDT, because without a running server
+ * it finds the oxfmt package on disk, which is slow over `\\wsl$` or a remote file system.
+ */
+@Service(Service.Level.PROJECT)
+internal class OxfmtConfigOpener(private val project: Project, private val scope: CoroutineScope) {
+
+  fun open(file: VirtualFile) {
+    scope.launch {
+      val config = readAction { findOxfmtConfig(project, file) }
+      withContext(Dispatchers.EDT) {
+        if (config != null) {
+          OpenFileDescriptor(project, config).navigate(true)
+        }
+        else {
+          NotificationGroupManager.getInstance().getNotificationGroup(CODE_STYLE_NOTIFICATION_GROUP).createNotification(
+            OxcBackendBundle.message("oxfmt.configuration.file.not.found.title"),
+            OxcBackendBundle.message("oxfmt.configuration.file.not.found.description", file.path),
+            NotificationType.INFORMATION,
+          ).notify(project)
+        }
+      }
+    }
+  }
 }

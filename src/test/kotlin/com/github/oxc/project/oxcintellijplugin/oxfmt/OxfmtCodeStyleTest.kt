@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleStatusBarUiContributor
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtOverlayTracker
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtTrailingComma
@@ -17,9 +18,14 @@ import com.intellij.lang.javascript.JavaScriptSupportLoader
 import com.intellij.lang.javascript.JavascriptLanguage
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 import com.intellij.lang.typescript.formatter.TypeScriptCodeStyleSettings
+import com.intellij.openapi.actionSystem.ActionUiKind
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager
@@ -357,6 +363,18 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
       OxfmtCodeStyle.isApplied(CodeStyleSettingsManager.getInstance().mainProjectCodeStyle ?: CodeStyle.getDefaultSettings(), parse(CONFIG)),
     )
     assertEquals(OxfmtImportResult.ALREADY_IMPORTED, runImport(file))
+  }
+
+  /** The lookup can read the disk, so the action leaves it to a coroutine and only navigates on the EDT. */
+  fun testOpenConfigurationFileLooksForTheConfigOffTheEdt() {
+    val config = myFixture.addFileToProject(".oxfmtrc.json", "{}").virtualFile
+    val file = myFixture.addFileToProject("index.js", "")
+    val action = OxfmtCodeStyleStatusBarUiContributor().getActions(file).first()
+
+    action.actionPerformed(AnActionEvent.createEvent(DataContext.EMPTY_CONTEXT, Presentation(), "", ActionUiKind.NONE, null))
+
+    assertFalse("The action should return before the lookup", config in FileEditorManager.getInstance(project).openFiles)
+    waitUntil("the config is open") { config in FileEditorManager.getInstance(project).openFiles }
   }
 
   fun testImportWithoutAConfig() {

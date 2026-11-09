@@ -121,13 +121,21 @@ private fun fallbackRoot(project: Project, file: VirtualFile): VirtualFile? =
  * been resolved, so its Linux paths are found.
  */
 private fun resolveManualConfig(path: String, root: VirtualFile?): VirtualFile? {
-  val normalized = FileUtil.toSystemIndependentName(path)
-  val absolute = when {
-    OSAgnosticPathUtil.isAbsolute(normalized) -> normalized
-    root != null -> FileUtil.toCanonicalPath("${root.path}/$normalized")
-    else -> return null
-  }
+  val absolute = manualConfigPath(path, root?.path) ?: return null
   return LocalFileSystem.getInstance().findFileByPath(absolute)?.takeIf { !it.isDirectory }
+}
+
+/**
+ * The full path of a manual config [path] that has already been through `resolveSettingPath`, as the
+ * lookup reads it from the server's [root]. Null for a relative path without a root.
+ */
+internal fun manualConfigPath(path: String, root: String?): String? {
+  val normalized = FileUtil.toSystemIndependentName(path)
+  return when {
+    OSAgnosticPathUtil.isAbsolute(normalized) -> normalized
+    root != null -> FileUtil.toCanonicalPath("$root/$normalized")
+    else -> null
+  }
 }
 
 /** The server's root search, which doesn't stop at the project's folder. */

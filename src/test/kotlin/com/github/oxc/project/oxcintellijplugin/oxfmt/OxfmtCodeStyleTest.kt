@@ -3,6 +3,7 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtConfig
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtOverlayTracker
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtTrailingComma
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.findOxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
@@ -19,11 +20,13 @@ import com.intellij.lang.typescript.formatter.TypeScriptCodeStyleSettings
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
 import com.intellij.testFramework.PlatformTestUtil
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Files
 
 private const val CONFIG = """{ "singleQuote": true, "semi": false, "tabWidth": 7, "useTabs": true, "printWidth": 77, "trailingComma": "none", "bracketSpacing": false }"""
 
@@ -195,6 +198,58 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     waitForIndent(file, 5)
   }
 
+  fun testChangingAManualConfigWrittenWithADotRefreshesTheOverlay() {
+    useRealCodeStyleLookup()
+    val config = myFixture.addFileToProject("configs/team.json", """{ "tabWidth": 3 }""").virtualFile
+    preferManualConfig("./configs/team.json")
+    val file = myFixture.addFileToProject("index.js", "")
+    myFixture.configureFromExistingVirtualFile(file.virtualFile)
+    waitForIndent(file, 3)
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+
+    waitForIndent(file, 5)
+  }
+
+  fun testChangingAManualConfigAboveTheProjectRefreshesTheOverlay() {
+    useRealCodeStyleLookup()
+    val root = myFixture.tempDirFixture.getFile(".")!!
+    val outside = root.toNioPath().parent.resolve("oxc-team-${System.nanoTime()}.json")
+    Files.writeString(outside, """{ "tabWidth": 3 }""")
+    try {
+      val config = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(outside)!!
+      preferManualConfig("../${outside.fileName}")
+      val file = myFixture.addFileToProject("index.js", "")
+      myFixture.configureFromExistingVirtualFile(file.virtualFile)
+      waitForIndent(file, 3)
+
+      WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+
+      waitForIndent(file, 5)
+    }
+    finally {
+      Files.deleteIfExists(outside)
+    }
+  }
+
+  fun testChangingAFileWithTheManualConfigsNameInAnotherFolderLeavesTheOverlayAlone() {
+    val config = myFixture.addFileToProject("team.json", """{ "tabWidth": 3 }""").virtualFile
+    val other = myFixture.addFileToProject("other/team.json", """{ "tabWidth": 3 }""").virtualFile
+    preferManualConfig("team.json")
+    val tracker = OxfmtOverlayTracker.getInstance(project)
+    // The settings change refreshes too, later on the EDT.
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+
+    val before = tracker.modificationCount
+    WriteAction.runAndWait<Exception> { other.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertEquals("A config the lookup doesn't use should not refresh the overlay", before, tracker.modificationCount)
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertTrue("The manual config should refresh the overlay", tracker.modificationCount > before)
+  }
+
   fun testOverlayAppliesBothTablesWhenPreferred() {
     settings.state.preferOxfmtCodeStyleSettings = true
     myFixture.addFileToProject(".oxfmtrc.json", CONFIG)
@@ -309,6 +364,14 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
       OxfmtImportResult.CONFIG_NOT_FOUND,
       runImport(myFixture.addFileToProject("index.js", "").virtualFile),
     )
+  }
+
+  private fun preferManualConfig(path: String) {
+    settings.update(settings.toData().copy(
+      preferOxfmtCodeStyleSettings = true,
+      configurationMode = ConfigurationMode.MANUAL,
+      configPath = path,
+    ))
   }
 
   private fun useManualConfig(path: String) {

@@ -7,8 +7,14 @@ import com.intellij.testFramework.builders.ModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
 import com.intellij.testFramework.fixtures.ModuleFixture
 
-/** Names in the command of a process that runs a server: Node, the native binaries and WSL. */
-private val SERVER_COMMANDS = listOf("node", "oxlint", "oxfmt", "wsl")
+/**
+ * Names in the command of a process that runs a server: Node and the native binaries. Not WSL's own
+ * `wsl.exe` and `wslhost.exe`: a server in WSL runs through IJent as a Linux process, so it isn't a Windows
+ * child of the test, and the `wsl.exe` chain that IJent starts on first use lives for the whole session.
+ * Waiting for it timed out the first WSL test of a job (CI run 42570445206). Windows hides a process's
+ * arguments, so that chain can't be told apart from anything else by name.
+ */
+private val SERVER_COMMANDS = listOf("node", "oxlint", "oxfmt")
 
 /**
  * Base class for tests that use the project's Node interpreter. When [WslTesting] is enabled, the
@@ -41,7 +47,7 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
         waitUntil("the test's server processes have exited") { serverProcesses().isEmpty() }
       }
       catch (e: AssertionError) {
-        throw AssertionError("${e.message}. Still running: ${serverProcesses().map(::describe)}", e)
+        throw AssertionError("${e.message}. Still running: ${serverProcesses().map(::details)}", e)
       }
     }
     catch (e: Throwable) {
@@ -61,4 +67,11 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
 
   private fun describe(process: ProcessHandle): String =
     process.info().commandLine().or { process.info().command() }.orElse("")
+
+  /** Enough to tell the processes left at a timeout apart in a CI log. */
+  private fun details(process: ProcessHandle): String {
+    val parent = process.parent().map { it.pid().toString() }.orElse("none")
+    val started = process.info().startInstant().map { it.toString() }.orElse("unknown")
+    return "${describe(process)} (pid ${process.pid()}, parent $parent, started $started)"
+  }
 }

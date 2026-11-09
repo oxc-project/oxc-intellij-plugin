@@ -17,8 +17,6 @@ import fleet.rpc.client.durable
 class OxfmtConfigurable(project: Project) :
   ToolConfigurable<OxfmtSettingsData>(project, "OxfmtConfigurable", "oxfmt", OxfmtSettingsData()) {
 
-  override fun getHelpTopic(): String = "reference.settings.oxfmt"
-
   override suspend fun loadSettings(projectId: ProjectId?): OxfmtSettingsData =
     durable { OxfmtSettingsApi.getInstance().load(projectId) }
 

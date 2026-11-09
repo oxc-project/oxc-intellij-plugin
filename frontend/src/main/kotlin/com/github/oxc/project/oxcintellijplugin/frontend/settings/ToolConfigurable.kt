@@ -135,8 +135,6 @@ abstract class ToolConfigurable<T : Any>(
 
   override fun getDisplayName(): String = OxcFrontendBundle.message("$prefix.settings.name")
 
-  override fun getHelpTopic(): String = "reference.settings.oxc"
-
   override fun createComponent(): JComponent {
     val parent = Disposer.newDisposable("$id page").also { disposable = it }
     val dialogPanel = panel { createRows() }.also { panel = it }

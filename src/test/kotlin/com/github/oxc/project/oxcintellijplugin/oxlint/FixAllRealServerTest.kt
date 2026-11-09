@@ -6,11 +6,14 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.runFixAllAction
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.intellij.notification.Notification
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
@@ -49,6 +52,21 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
     assertEquals(OxcFixAllResult.Applied, runFixAll())
 
     assertEquals("const fixed = 1;\nconsole.log(fixed);\ndebugger;\n", String(file.contentsToByteArray()))
+  }
+
+  /** No server runs for a closed file, and the platform can't start one behind the action's modal dialog. */
+  fun testClosedFileIsFixedThroughTheAction() {
+    assertEquals("Fixes applied successfully", runAction().title)
+
+    assertEquals("const fixed = 1;\nconsole.log(fixed);\ndebugger;\n", String(file.contentsToByteArray()))
+  }
+
+  fun testOpenFileIsFixedThroughTheAction() {
+    openAndWaitForDiagnostics()
+
+    assertEquals("Fixes applied successfully", runAction().title)
+
+    assertEquals("const fixed = 1;\nconsole.log(fixed);\ndebugger;\n", myFixture.editor.document.text)
   }
 
   /**
@@ -109,6 +127,12 @@ class FixAllRealServerTest : OxcFixtureTestCase() {
     waitUntil("the server has reported diagnostics") {
       myFixture.doHighlighting().any { "no-var" in it.description.orEmpty() || "`var`" in it.description.orEmpty() }
     }
+  }
+
+  /** The tool's timeout is shorter than the wait for the notification, so a timeout fails the test. */
+  private fun runAction(): Notification {
+    Registry.get("oxc.lint.fix.all.timeout.ms").setValue(10_000, testRootDisposable)
+    return runFixAllAction(project, testRootDisposable, "OxlintApplyFixAllAction", file)
   }
 
   private fun runFixAll(): OxcFixAllResult {

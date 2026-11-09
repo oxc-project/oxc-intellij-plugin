@@ -79,6 +79,12 @@ private class OxcToolApiImpl : OxcToolApi {
     }
   }
 
+  override suspend fun startServerForFixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult? {
+    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.NothingToApply
+    val virtualFile = file.virtualFile() ?: return OxcFixAllResult.NothingToApply
+    return OxcFixAll.getInstance(project).startServerForFile(ToolDefinition.of(tool), virtualFile)
+  }
+
   override suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult {
     val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.NothingToApply
     val virtualFile = file.virtualFile() ?: return OxcFixAllResult.NothingToApply

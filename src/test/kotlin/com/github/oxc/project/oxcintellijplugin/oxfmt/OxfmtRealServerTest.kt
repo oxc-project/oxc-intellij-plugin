@@ -9,6 +9,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.runFixAllAction
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.codeInsight.actions.ReformatCodeProcessor
 import com.intellij.openapi.application.ApplicationManager
@@ -16,6 +17,7 @@ import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerState
@@ -92,6 +94,18 @@ class OxfmtRealServerTest : OxcFixtureTestCase() {
 
     assertEquals(OxcFixAllResult.Applied, runFormat(file))
 
+    assertEquals(ROOT_CONFIG_RESULT, String(file.contentsToByteArray()))
+    waitUntil("the server has stopped") { runningServers().isEmpty() }
+  }
+
+  /** No server runs for a closed file, and the platform can't start one behind the action's modal dialog. */
+  fun testClosedFileIsFormattedThroughTheAction() {
+    val file = myFixture.findFileInTempDir("index.js")
+    Registry.get("oxc.fmt.fix.all.timeout.ms").setValue(10_000, testRootDisposable)
+
+    val notification = runFixAllAction(project, testRootDisposable, "OxfmtApplyFixAllAction", file)
+
+    assertEquals("Fixes applied successfully", notification.title)
     assertEquals(ROOT_CONFIG_RESULT, String(file.contentsToByteArray()))
     waitUntil("the server has stopped") { runningServers().isEmpty() }
   }

@@ -27,6 +27,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.ModalTaskOwner
 import com.intellij.platform.ide.progress.TaskCancellation
+import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.platform.ide.progress.withModalProgress
 import com.intellij.platform.project.projectId
 import fleet.rpc.client.durable
@@ -66,16 +67,17 @@ internal class ToolFixAllRunner(private val project: Project, private val scope:
 
   /**
    * A modal dialog stops the file changing while the server works out edits for it, without blocking
-   * the UI thread while waiting for the backend.
+   * the UI thread while waiting for the backend. The server starts before it, in the background,
+   * because the platform's start waits for a modal dialog to close. A closed file has no server yet.
    */
   fun run(tool: OxcTool, file: VirtualFile) {
     val fileId = file.rpcId()
+    val title = OxcFrontendBundle.message("${tool.messagePrefix}.run.fix.all")
     scope.launch {
-      val result = withModalProgress(
-        ModalTaskOwner.project(project),
-        OxcFrontendBundle.message("${tool.messagePrefix}.run.fix.all"),
-        TaskCancellation.cancellable(),
-      ) {
+      val stop = withBackgroundProgress(project, title, TaskCancellation.cancellable()) {
+        durable { OxcToolApi.getInstance().startServerForFixAll(project.projectId(), tool, fileId) }
+      }
+      val result = stop ?: withModalProgress(ModalTaskOwner.project(project), title, TaskCancellation.cancellable()) {
         durable { OxcToolApi.getInstance().fixAll(project.projectId(), tool, fileId) }
       }
       notify(tool, result, file)

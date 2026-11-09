@@ -17,6 +17,12 @@ interface OxcToolApi : RemoteApi<Unit> {
   /** Stops the tool's servers for the project, and starts the ones that its open files still need. */
   suspend fun restart(projectId: ProjectId, tool: OxcTool)
 
+  /**
+   * Starts the server that [fixAll] needs for the file, and returns why Fix All can't go on, or null once
+   * it runs. Call it without a modal dialog showing, because the platform's start waits for one to close.
+   */
+  suspend fun startServerForFixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult?
+
   /** Applies the tool's changes to the file, which doesn't have to be open in an editor. */
   suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult
 

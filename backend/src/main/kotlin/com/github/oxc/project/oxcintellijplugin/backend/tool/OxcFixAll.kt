@@ -33,45 +33,75 @@ private const val DEFAULT_FIX_ALL_TIMEOUT_MS = 30_000
 @Service(Service.Level.PROJECT)
 class OxcFixAll(private val project: Project) {
 
+  /**
+   * Starts the file's server for [fixFile], and returns why the action can't go on, or null once it runs.
+   * The action fixes the file behind a modal progress dialog, but has to start the server before showing
+   * it: the platform starts a server on the EDT outside any modality, so a start inside that dialog
+   * waits for the dialog to close, and times out.
+   */
+  suspend fun startServerForFile(definition: ToolDefinition, file: VirtualFile): OxcFixAllResult? {
+    refusal(definition, file)?.let { return it }
+    return withFixAllTimeout(definition, file) { startServer(definition, file) }
+  }
+
   /** Fixes a file for the action. A closed file is saved afterwards, because nothing else would save it. */
   suspend fun fixFile(definition: ToolDefinition, file: VirtualFile): OxcFixAllResult {
+    refusal(definition, file)?.let { return it }
+
+    val isOpen = isOpenInAnyClient(file)
+    return withFixAllTimeout(definition, file) {
+      // In the timeout, because a refresh over `\\wsl$` or a remote file system can take any time.
+      if (!isOpen) refreshUnlessModified(file)
+      val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
+                     ?: return@withFixAllTimeout OxcFixAllResult.NothingToApply
+      // The server reads a file that isn't open from disk, so it has to match the document.
+      if (!isOpen) saveDocument(document)
+      // Normally already running, from [startServerForFile] or for an open file.
+      startServer(definition, file)?.let { return@withFixAllTimeout it }
+
+      val applied = fixDocument(definition, file, document)
+      if (!isOpen) {
+        if (applied) saveDocument(document)
+        stopServersThatNoOpenFileNeeds(definition)
+      }
+      if (applied) OxcFixAllResult.Applied else OxcFixAllResult.NothingToApply
+    }
+  }
+
+  /** Why the tool won't run for the file at all, or null if it will. */
+  private fun refusal(definition: ToolDefinition, file: VirtualFile): OxcFixAllResult? {
     val settings = definition.settings(project)
     if (!settings.isSupported(file)) return OxcFixAllResult.UnsupportedFile
     if (!settings.isEnabled) return OxcFixAllResult.NothingToApply
     definition.fixer(project).refusal()?.let { return it }
     // The platform starts no server in an untrusted project, and says nothing, so this has to say it.
     if (!TrustedProjects.isProjectTrusted(project)) return OxcFixAllResult.Untrusted
+    return null
+  }
 
-    val isOpen = isOpenInAnyClient(file)
-    return try {
-      withTimeout(timeoutMs(definition)) {
-        // In the timeout, because a refresh over `\\wsl$` or a remote file system can take any time.
-        if (!isOpen) refreshUnlessModified(file)
-        val document = readAction { FileDocumentManager.getInstance().getDocument(file) }
-                       ?: return@withTimeout OxcFixAllResult.NothingToApply
-        // The server reads a file that isn't open from disk, so it has to match the document.
-        if (!isOpen) saveDocument(document)
-        startServer(definition, file)?.let { return@withTimeout it }
-
-        val applied = fixDocument(definition, file, document)
-        if (!isOpen) {
-          if (applied) saveDocument(document)
-          stopServersThatNoOpenFileNeeds(definition)
-        }
-        if (applied) OxcFixAllResult.Applied else OxcFixAllResult.NothingToApply
-      }
+  /**
+   * Runs [block] in the tool's timeout, turning a timeout or a failure into its result. [T] is the result,
+   * nullable or not, so the casts are safe.
+   */
+  @Suppress("UNCHECKED_CAST")
+  private suspend fun <T : OxcFixAllResult?> withFixAllTimeout(
+    definition: ToolDefinition,
+    file: VirtualFile,
+    block: suspend () -> T,
+  ): T =
+    try {
+      withTimeout(timeoutMs(definition)) { block() }
     }
     catch (_: TimeoutCancellationException) {
-      OxcFixAllResult.TimedOut
+      OxcFixAllResult.TimedOut as T
     }
     catch (exception: CancellationException) {
       throw exception
     }
     catch (exception: Exception) {
       thisLogger().warn("Failed to apply ${definition.displayName} to ${file.path}", exception)
-      OxcFixAllResult.Failed(exception.message ?: exception.toString())
+      OxcFixAllResult.Failed(exception.message ?: exception.toString()) as T
     }
-  }
 
   /**
    * Fixes a document, leaving it unsaved. Returns false if there was nothing to do. The timeout is per

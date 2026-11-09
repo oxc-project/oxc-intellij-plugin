@@ -59,6 +59,10 @@ sealed interface OxcFixAllResult {
   @Serializable
   data object Untrusted : OxcFixAllResult
 
+  /** The backend can't find the project or the file, such as one deleted since, or a project closing. */
+  @Serializable
+  data object FileUnavailable : OxcFixAllResult
+
   /** There's no package or manual path to run for the file. */
   @Serializable
   data object ToolNotFound : OxcFixAllResult

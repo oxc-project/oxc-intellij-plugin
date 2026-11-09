@@ -81,14 +81,14 @@ private class OxcToolApiImpl : OxcToolApi {
   }
 
   override suspend fun startServerForFixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult? {
-    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.NothingToApply
-    val virtualFile = file.virtualFile() ?: return OxcFixAllResult.NothingToApply
+    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.FileUnavailable
+    val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxcFixAllResult.FileUnavailable
     return OxcFixAll.getInstance(project).startServerForFile(ToolDefinition.of(tool), virtualFile)
   }
 
   override suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult {
-    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.NothingToApply
-    val virtualFile = file.virtualFile() ?: return OxcFixAllResult.NothingToApply
+    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.FileUnavailable
+    val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxcFixAllResult.FileUnavailable
     return OxcFixAll.getInstance(project).fixFile(ToolDefinition.of(tool), virtualFile)
   }
 
@@ -143,8 +143,8 @@ private class OxfmtSettingsApiImpl : OxfmtSettingsApi {
 private class OxfmtCodeStyleApiImpl : OxfmtCodeStyleApi {
 
   override suspend fun importCodeStyle(projectId: ProjectId, file: VirtualFileId): OxfmtImportResult {
-    val project = projectId.findProjectOrNull() ?: return OxfmtImportResult.CONFIG_NOT_FOUND
-    val virtualFile = file.virtualFile() ?: return OxfmtImportResult.CONFIG_NOT_FOUND
+    val project = projectId.findProjectOrNull() ?: return OxfmtImportResult.FILE_UNAVAILABLE
+    val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxfmtImportResult.FILE_UNAVAILABLE
     return importOxfmtCodeStyle(project, virtualFile)
   }
 

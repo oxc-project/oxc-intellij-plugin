@@ -77,6 +77,10 @@ internal class OxfmtCodeStyleImporter(private val project: Project, private val 
           OxcFrontendBundle.message("oxfmt.import.code.style.not.readable.description"),
           NotificationType.INFORMATION)
         OxfmtImportResult.CONFIG_NOT_LOADED -> null
+        OxfmtImportResult.FILE_UNAVAILABLE -> group.createNotification(
+          OxcFrontendBundle.message("file.unavailable.title"),
+          OxcFrontendBundle.message("file.unavailable.description", name),
+          NotificationType.WARNING)
       }?.notify(project)
     }
   }

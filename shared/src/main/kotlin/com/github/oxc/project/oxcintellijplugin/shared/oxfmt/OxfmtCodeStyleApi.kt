@@ -50,6 +50,9 @@ enum class OxfmtImportResult {
 
   /** Node couldn't read the JavaScript or TypeScript config, or the project isn't trusted. The backend has said why. */
   CONFIG_NOT_LOADED,
+
+  /** The backend can't find the project or the file, such as one deleted since, or a project closing. */
+  FILE_UNAVAILABLE,
 }
 
 /**

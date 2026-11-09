@@ -124,6 +124,11 @@ internal class ToolFixAllRunner(private val project: Project, private val scope:
       ).addAction(NotificationAction.createSimpleExpiring(OxcFrontendBundle.message("trust.project")) {
         trustAndRun(tool, file)
       })
+      OxcFixAllResult.FileUnavailable -> notification(
+        "file.unavailable.title",
+        OxcFrontendBundle.message("file.unavailable.description", file.name),
+        NotificationType.WARNING,
+      )
       OxcFixAllResult.UnsupportedFile -> notification(
         "$prefix.file.not.supported.title",
         OxcFrontendBundle.message("$prefix.file.not.supported.description", file.name),

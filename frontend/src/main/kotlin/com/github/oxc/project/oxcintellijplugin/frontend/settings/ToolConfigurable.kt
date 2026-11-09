@@ -6,6 +6,7 @@ import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
 import com.github.oxc.project.oxcintellijplugin.frontend.files.chooseBackendFile
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.isValidExtension
+import com.intellij.ide.DataManager
 import com.intellij.ide.actionsOnSave.ActionsOnSaveConfigurable
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -18,6 +19,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.openapi.options.ex.Settings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -44,6 +46,7 @@ import com.intellij.ui.dsl.builder.selected
 import com.intellij.ui.layout.ComponentPredicate
 import com.intellij.ui.layout.not
 import java.awt.BorderLayout
+import java.awt.event.HierarchyEvent
 import javax.swing.JComponent
 import javax.swing.event.HyperlinkEvent
 import kotlinx.coroutines.CancellationException
@@ -278,10 +281,27 @@ abstract class ToolConfigurable<T : Any>(
     }.bottomGap(BottomGap.MEDIUM).enabledIf(enabled)
   }
 
-  /** Fix on save is only edited on the Actions on Save page, because that page is drawn by the backend. */
+  /**
+   * Fix on save is only edited on the Actions on Save page, because that page is drawn by the backend. The
+   * platform's link selects the page in the open settings, which a thin client's settings can't do for a
+   * backend page. There the link would do nothing, so the row says where the page is instead.
+   */
   protected fun Panel.fixOnSaveLinkRow(enabled: ComponentPredicate) {
     row {
-      cell(ActionsOnSaveConfigurable.createGoToActionsOnSavePageLink())
+      val link = cell(ActionsOnSaveConfigurable.createGoToActionsOnSavePageLink()).component
+      val hint = comment(OxcFrontendBundle.message("settings.actions.on.save.hint")).visible(false).component
+      // The settings are only known once the page is in their window.
+      link.addHierarchyListener { event ->
+        if (event.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && link.isShowing) {
+          val canGo = canGoToActionsOnSave(Settings.KEY.getData(DataManager.getInstance().getDataContext(link)))
+          link.isVisible = canGo
+          hint.isVisible = !canGo
+        }
+      }
     }.enabledIf(enabled)
   }
 }
+
+/** Whether the platform's Actions on Save link can select its page in [settings]. Unknown settings keep it. */
+fun canGoToActionsOnSave(settings: Settings?): Boolean =
+  settings == null || settings.find(ActionsOnSaveConfigurable.CONFIGURABLE_ID) != null

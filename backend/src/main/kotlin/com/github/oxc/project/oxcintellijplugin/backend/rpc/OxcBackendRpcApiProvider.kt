@@ -8,11 +8,13 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOx
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixOnSaveFailures
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolServerStarter
 import com.github.oxc.project.oxcintellijplugin.backend.tool.askToTrustProject
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
+import com.github.oxc.project.oxcintellijplugin.shared.OxcFixOnSaveFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
@@ -96,6 +98,11 @@ private class OxcToolApiImpl : OxcToolApi {
   override suspend fun trustProject(projectId: ProjectId): Boolean {
     val project = projectId.findProjectOrNull() ?: return false
     return withContext(Dispatchers.EDT) { askToTrustProject(project) }
+  }
+
+  override suspend fun fixOnSaveFailures(projectId: ProjectId): Flow<OxcFixOnSaveFailure> {
+    val project = projectId.findProjectOrNull() ?: return emptyFlow()
+    return OxcFixOnSaveFailures.getInstance(project).failures
   }
 }
 

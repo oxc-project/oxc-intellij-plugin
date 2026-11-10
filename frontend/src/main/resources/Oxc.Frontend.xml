@@ -9,6 +9,8 @@
                 implementation="com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCacheStarter"/>
         <postStartupActivity
                 implementation="com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtConfigNotifierStarter"/>
+        <postStartupActivity
+                implementation="com.github.oxc.project.oxcintellijplugin.frontend.tool.FixOnSaveFailureNotifierStarter"/>
         <notificationGroup id="Oxc"
                            displayType="BALLOON"
                            bundle="messages.OxcFrontendBundle"

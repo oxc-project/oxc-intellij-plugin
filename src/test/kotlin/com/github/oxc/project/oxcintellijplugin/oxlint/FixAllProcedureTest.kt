@@ -1,17 +1,24 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixAllOnSaveAction
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.frontend.tool.FixOnSaveFailureNotifier
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
@@ -25,6 +32,7 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** Uses a server with scripted answers. Needs Node on PATH. */
 class FixAllProcedureTest : OxcFixtureTestCase() {
@@ -80,6 +88,34 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
 
     assertEquals(OxcFixAllResult.TimedOut, runFixAll())
 
+    assertEquals("original\n", text())
+  }
+
+  /** The save goes on without the fixes, so the user has to be told. */
+  fun testFixOnSaveThatTimesOutTellsTheUser() {
+    val notifications = CopyOnWriteArrayList<Notification>()
+    project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
+      override fun notify(notification: Notification) {
+        if (notification.groupId == "Oxc") notifications += notification
+      }
+    })
+    // The frontend listens once its startup activity runs, which a test project may not have reached yet.
+    project.service<FixOnSaveFailureNotifier>()
+    script("""{ "hang": true }""")
+    Registry.get("oxc.lint.fix.all.timeout.ms").setValue(500, testRootDisposable)
+    myFixture.configureFromExistingVirtualFile(file)
+    waitUntil("the server is running") { runningServers().isNotEmpty() }
+
+    val document = FileDocumentManager.getInstance().getDocument(file)!!
+    val call = ApplicationManager.getApplication().executeOnPooledThread {
+      runBlocking { OxlintFixAllOnSaveAction().updateDocument(project, document) }
+    }
+    PlatformTestUtil.waitForFuture(call, 60_000)
+
+    waitUntil("the failure is shown") { notifications.isNotEmpty() }
+    val notification = notifications.single()
+    assertEquals(NotificationType.ERROR, notification.type)
+    assertTrue(notification.content, "index.js" in notification.content && "oxc.lint.fix.all.timeout.ms" in notification.content)
     assertEquals("original\n", text())
   }
 
@@ -355,7 +391,7 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
   private fun serverRoot(): Path = Path.of(file.parent.path)
 
   private fun text(): String =
-    com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)!!.text
+    FileDocumentManager.getInstance().getDocument(file)!!.text
 
   private fun fakeServerProcesses(): List<ProcessHandle> =
     ProcessHandle.current().descendants().filter { "fake-server.js" in it.info().commandLine().orElse("") }.toList()

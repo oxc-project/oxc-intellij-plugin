@@ -307,11 +307,32 @@ jobs:
         working-directory: src/test/testData/package-managers/pnpm
         run: npx -y pnpm@12.18.0 install --frozen-lockfile
 
+      # Bun links each package before extracting it. On a Windows drive WSL then seems to make a link
+      # that Windows can't open as a folder, so the IDE never finds the package. pnpm creates the folder
+      # first and has no such problem. Linking again, once every folder exists, works around that.
       - name: Setup Bun Workspace Test
         if: ${{ matrix.packagemanagers == '' }}
         shell: wsl-bash {0}
         working-directory: src/test/testData/package-managers/bun
-        run: npx -y bun@1.3.14 install --frozen-lockfile
+        run: |
+          npx -y bun@1.3.14 install --frozen-lockfile
+          find . -type l -path '*node_modules*' -print0 | while IFS= read -r -d '' link; do
+            ln -sfn "$(readlink "$link")" "$link"
+          done
+
+      # Fails here rather than in the tests if Windows still can't follow the links that WSL made.
+      - name: Check Linked Packages from Windows
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: pwsh
+        working-directory: src/test/testData/package-managers
+        run: |
+          $missing = foreach ($manager in 'bun', 'pnpm') {
+            foreach ($package in 'node_modules/oxlint', 'packages/nested/node_modules/oxlint', 'packages/vite/node_modules/vite-plus') {
+              $json = "$manager/$package/package.json"
+              if (-not (Test-Path -LiteralPath $json -PathType Leaf)) { $json }
+            }
+          }
+          if ($missing) { throw "Windows can't read through these links: $($missing -join ', ')" }
 
       # For a project in WSL, the package manager fixtures go in WSL's /var/tmp for the same reasons as the
       # Vite+ fixture. The shell stops at the first install that fails.

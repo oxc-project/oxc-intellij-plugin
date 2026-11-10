@@ -35,6 +35,7 @@ import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.util.PathUtil
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.seconds
 
@@ -75,15 +76,22 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
   private lateinit var root: VirtualFile
   private val originals = mutableMapOf<VirtualFile, String>()
 
+  /**
+   * Checks the fixture on disk rather than through the VFS: until the fixture is a content root, the test
+   * framework only allows the VFS to load files in the build and temp folders, and on Windows those don't
+   * hold the repository's test data.
+   */
   override fun setUp() {
     super.setUp()
     (myFixture as CodeInsightTestFixtureImpl).canChangeDocumentDuringHighlighting(true)
-    root = checkNotNull(LocalFileSystem.getInstance().refreshAndFindFileByNioFile(fixture)) {
+    check(Files.isDirectory(fixture)) {
       "No fixture at $fixture. Install it with `node .yarn/releases/$YARN_RELEASE install --immutable` first."
     }
-    checkNotNull(root.findChild(".pnp.cjs")) { "No .pnp.cjs in $fixture. Install it first." }
-    val yarn = checkNotNull(root.findFileByRelativePath(".yarn/releases/$YARN_RELEASE")) { "No $YARN_RELEASE" }
-    NpmManager.getInstance(project).packageRef = NodePackageRef.create(NpmNodePackage(yarn.toNioPath().toString()))
+    check(Files.isRegularFile(fixture.resolve(PNP_FILE))) { "No $PNP_FILE in $fixture. Install it first." }
+    val yarn = fixture.resolve(".yarn/releases/$YARN_RELEASE")
+    check(Files.isRegularFile(yarn)) { "No $yarn" }
+    NpmManager.getInstance(project).packageRef = NodePackageRef.create(NpmNodePackage(yarn.toString()))
+    root = checkNotNull(LocalFileSystem.getInstance().refreshAndFindFileByNioFile(fixture)) { "No fixture at $fixture" }
     PsiTestUtil.addContentRoot(myFixture.module, root)
   }
 
@@ -188,7 +196,7 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
   private fun open(folderPath: String): VirtualFile {
     val folder = if (folderPath.isEmpty()) root else root.findFileByRelativePath(folderPath)!!
     val file = folder.findChild("index.js")!!
-    waitUntil("Oxlint and Oxfmt resolve for ${file.path} once the PnP tree has loaded", timeout = 120.seconds) {
+    waitForPnp("Oxlint and Oxfmt resolve for ${file.path}") {
       ToolDefinition.all.all { ToolPackage(project, it).resolve(file) != null }
     }
     originals[file] = VfsUtilCore.loadText(file)
@@ -197,8 +205,30 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
   }
 
   private fun waitForPnpTree(packageJson: VirtualFile) {
-    waitUntil("the PnP tree has loaded", timeout = 120.seconds) {
+    waitForPnp("vite-plus is in the tree") {
       YarnPnpManager.getInstance(project).findDependency(packageJson, "vite-plus") != null
+    }
+  }
+
+  /**
+   * Waits until [condition] holds once the platform has loaded the PnP tree. The platform loads it once
+   * when it finds `.pnp.cjs`, takes about a second, and only logs a failure without trying again, so a
+   * failed load throws its error here at once rather than waiting out the timeout.
+   */
+  private fun waitForPnp(description: String, condition: () -> Boolean) {
+    val pnp = root.findChild(PNP_FILE)!!
+    val manager = YarnPnpManager.getInstance(project)
+    try {
+      waitUntil("$description once the PnP tree has loaded", timeout = 60.seconds) {
+        manager.findPnpFile(pnp)?.checkFileRefreshedSuccessfully()
+        condition()
+      }
+    }
+    catch (error: AssertionError) {
+      val state = manager.findPnpFile(pnp)
+        ?.let { if (it.workspaceList == null) "found $PNP_FILE but has no tree" else "loaded the tree" }
+        ?: "never took up $PNP_FILE"
+      throw AssertionError("${error.message}. The platform $state.", error)
     }
   }
 
@@ -303,6 +333,7 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
 
   private companion object {
     const val MANAGER = "yarn-pnp"
+    const val PNP_FILE = ".pnp.cjs"
     const val YARN_RELEASE = "yarn-4.18.1.cjs"
     const val FIXTURES_VARIABLE = "OXC_TEST_PACKAGE_MANAGER_FIXTURES"
     const val DEFAULT_FIXTURES = "src/test/testData/package-managers"

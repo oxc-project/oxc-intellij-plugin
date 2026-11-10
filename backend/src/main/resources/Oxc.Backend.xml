@@ -5,4 +5,9 @@
         <module name="intellij.platform.rpc.backend"/>
         <module name="Oxc.Shared"/>
     </dependencies>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <platform.rpc.backend.remoteApiProvider
+                implementation="com.github.oxc.project.oxcintellijplugin.backend.rpc.OxcBackendRpcApiProvider"/>
+    </extensions>
 </idea-plugin>

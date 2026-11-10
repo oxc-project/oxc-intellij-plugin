@@ -59,6 +59,10 @@ private const val VITE_FORMATTED = "debugger\nconst a = \"b\"\n"
  * The fixtures' `node_modules` are too big to copy for each test, so the fixture's folder is added to the
  * project, and each `index.js` is put back after the test. `OXC_TEST_PACKAGE_MANAGER_FIXTURES` points at
  * another copy of the folder that holds the four fixtures. The WSL job installs one inside WSL.
+ *
+ * The first time `vp` runs for a workspace's `packageManager`, it downloads that manager before it answers,
+ * which can take longer than these tests wait. After installing the fixtures, run
+ * `.github/scripts/download-vite-plus-package-managers.mjs` once, as CI does.
  */
 abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
 

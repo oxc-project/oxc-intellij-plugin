@@ -88,6 +88,11 @@ jobs:
         working-directory: src/test/testData/package-managers/bun
         run: npx -y bun@1.3.14 install --frozen-lockfile
 
+      # vp downloads the workspace's package manager the first time it runs, before it answers, which takes
+      # longer than the tests wait. The script runs each fixture's vp once, so that the download is done.
+      - name: Download Package Managers for Vite+
+        run: node .github/scripts/download-vite-plus-package-managers.mjs
+
       # check also writes Kover's coverage report, which merges the shared, frontend and backend modules.
       - name: Run Tests
         run: ./gradlew check
@@ -173,6 +178,9 @@ jobs:
       - name: Setup Bun Workspace Test
         working-directory: src/test/testData/package-managers/bun
         run: npx -y bun@1.3.14 install --frozen-lockfile
+
+      - name: Download Package Managers for Vite+
+        run: node .github/scripts/download-vite-plus-package-managers.mjs
 
       - name: Run Tests
         shell: bash
@@ -320,6 +328,11 @@ jobs:
           (cd yarn-pnp && node .yarn/releases/yarn-4.18.1.cjs install --immutable)
           (cd pnpm && npx -y pnpm@12.18.0 install --frozen-lockfile)
           (cd bun && npx -y bun@1.3.14 install --frozen-lockfile)
+
+      # In WSL, because that's where the tests' vp runs and keeps its downloads.
+      - name: Download Package Managers for Vite+
+        shell: wsl-bash {0}
+        run: node .github/scripts/download-vite-plus-package-managers.mjs ${{ matrix.packagemanagers != '' && '/var/tmp/oxc-package-managers' || 'src/test/testData/package-managers' }}
 
       - name: Create Project Folder in WSL
         if: ${{ matrix.tmpdir != '' }}

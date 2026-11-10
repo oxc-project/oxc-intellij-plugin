@@ -17,19 +17,31 @@ import kotlinx.coroutines.withContext
  */
 suspend fun importOxfmtCodeStyle(project: Project, file: VirtualFile): OxfmtImportResult {
   val location = readAction { locateOxfmtConfig(project, file) } ?: return OxfmtImportResult.CONFIG_NOT_FOUND
-  val config = when (location.format) {
-    OxfmtConfigFormat.JSON -> readAction { OxfmtConfig.read(project, location.file) } ?: return OxfmtImportResult.CONFIG_NOT_READABLE
-    OxfmtConfigFormat.UNREADABLE -> return OxfmtImportResult.CONFIG_NOT_READABLE
-    OxfmtConfigFormat.JAVASCRIPT, OxfmtConfigFormat.VITE_PLUS -> when (val result = OxfmtJsConfigLoader.getInstance(project).load(location)) {
-      is OxfmtJsConfigResult.Loaded -> result.config
-      OxfmtJsConfigResult.Missing -> return OxfmtImportResult.CONFIG_NOT_FOUND
+  return importOxfmtCodeStyle(project, location, asked = true).result
+}
+
+/** What an import did, and [source], the file whose options it used, which under `vp` can be a fallback. */
+class OxfmtImport(val result: OxfmtImportResult, val source: VirtualFile? = null)
+
+/**
+ * Writes the config at [location] into the project's own code style. An automatic import, which nobody
+ * [asked] for, doesn't repeat a problem reading a JavaScript or TypeScript config that was already shown.
+ */
+suspend fun importOxfmtCodeStyle(project: Project, location: OxfmtConfigLocation, asked: Boolean): OxfmtImport {
+  val (source, config) = when (location.format) {
+    OxfmtConfigFormat.JSON -> location.file to (readAction { OxfmtConfig.read(project, location.file) }
+                                                ?: return OxfmtImport(OxfmtImportResult.CONFIG_NOT_READABLE))
+    OxfmtConfigFormat.UNREADABLE -> return OxfmtImport(OxfmtImportResult.CONFIG_NOT_READABLE)
+    OxfmtConfigFormat.JAVASCRIPT, OxfmtConfigFormat.VITE_PLUS -> when (val result = OxfmtJsConfigLoader.getInstance(project).load(location, asked)) {
+      is OxfmtJsConfigResult.Loaded -> result.file to result.config
+      OxfmtJsConfigResult.Missing -> return OxfmtImport(OxfmtImportResult.CONFIG_NOT_FOUND)
       // The loader has shown why.
-      is OxfmtJsConfigResult.Untrusted, is OxfmtJsConfigResult.Failed -> return OxfmtImportResult.CONFIG_NOT_LOADED
+      is OxfmtJsConfigResult.Untrusted, is OxfmtJsConfigResult.Failed -> return OxfmtImport(OxfmtImportResult.CONFIG_NOT_LOADED)
     }
   }
 
   return withContext(Dispatchers.EDT) {
-    if (OxfmtCodeStyle.isApplied(CodeStyle.getSettings(project), config)) return@withContext OxfmtImportResult.ALREADY_IMPORTED
+    if (OxfmtCodeStyle.isApplied(CodeStyle.getSettings(project), config)) return@withContext OxfmtImport(OxfmtImportResult.ALREADY_IMPORTED, source)
 
     val manager = CodeStyleSettingsManager.getInstance(project)
     if (!manager.USE_PER_PROJECT_SETTINGS) {
@@ -42,6 +54,6 @@ suspend fun importOxfmtCodeStyle(project: Project, file: VirtualFile): OxfmtImpo
     settings.modificationTracker.incModificationCount()
     refreshOxfmtOverlay(project)
     SaveAndSyncHandler.getInstance().scheduleProjectSave(project)
-    OxfmtImportResult.IMPORTED
+    OxfmtImport(OxfmtImportResult.IMPORTED, source)
   }
 }

@@ -86,7 +86,8 @@ sealed interface OxfmtJsConfigResult {
  * after Configure Node.js, which calls [retryNodeFailures]. Import reads a failed config again.
  *
  * A config that can't be read gets one notification until something changes. An untrusted project gets one
- * for the whole session, unless Import asks. The frontend shows them, as [notices] sends them.
+ * for the whole session, unless Import asks. The frontend shows them, as [notices] sends them, along with
+ * what [send] adds.
  */
 @Service(Service.Level.PROJECT)
 class OxfmtJsConfigLoader(private val project: Project, private val scope: CoroutineScope) : Disposable {
@@ -159,11 +160,14 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
    * For Import, which reads a failed config again and shows its problem even if it was shown already,
    * because someone asked. Import gets no second notification for a config that's still being read, because
    * reading it shows one.
+   *
+   * An automatic import, which nobody [asked] for, waits for the config like a file's overlay does, and is
+   * shown no more than the overlay is, so that saving a config that can't be read doesn't repeat a balloon.
    */
-  suspend fun load(location: OxfmtConfigLocation): OxfmtJsConfigResult {
+  suspend fun load(location: OxfmtConfigLocation, asked: Boolean = true): OxfmtJsConfigResult {
     while (true) {
       // The key is made again each time, from the files' current stamps.
-      val (entry, wasRead) = readAction { entry(location, retryFailure = true).let { it to it.result.isCompleted } }
+      val (entry, wasRead) = readAction { entry(location, retryFailure = asked).let { it to it.result.isCompleted } }
       val result = try {
         entry.result.await()
       }
@@ -172,9 +176,16 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
         currentCoroutineContext().ensureActive()
         continue
       }
-      if (wasRead) display(result) else show(entry, result, always = true)
+      if (asked) {
+        if (wasRead) display(result) else show(entry, result, always = true)
+      }
       return result
     }
+  }
+
+  /** Sends [notice] to the frontend with the problems, so that it waits for the frontend in the same way. */
+  fun send(notice: OxfmtConfigNotice) {
+    pending.trySend(notice)
   }
 
   private fun entry(location: OxfmtConfigLocation, retryFailure: Boolean = false): Entry {

@@ -14,6 +14,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
@@ -21,8 +22,9 @@ import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.util.PathUtil
 
 /**
- * Makes files pick up the overlay again. A config change only refreshes it, and never changes the
- * project's own code style, which only the Import action does.
+ * With the code style preference on, makes files pick up the overlay again when a config changes, and hands
+ * the change to [OxfmtCodeStyleAutoImporter], which imports the project folder's config into the project's
+ * own code style.
  */
 class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, OxcSettingsListener {
 
@@ -31,7 +33,13 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
     if (!settings.preferOxfmtCodeStyleSettings) return
     val roots = roots()
     val manual = manualConfigPaths(settings, roots)
-    if (events.any { touchesConfig(it, roots, manual) }) refresh()
+    val touched = events.filter { touchesConfig(it, roots, manual) }
+    if (touched.isEmpty()) return
+    refresh()
+    OxfmtCodeStyleAutoImporter.getInstance(project).configsChanged(
+      touched.flatMap(::paths).distinct(),
+      moved = touched.any { it is VFileDeleteEvent || it is VFileMoveEvent || (it as? VFilePropertyChangeEvent)?.isRename == true },
+    )
   }
 
   override fun settingsChanged(tool: OxcTool, affectsServers: Boolean) {
@@ -43,20 +51,21 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
    * config's name, because a TypeScript config can hide a JSON one. Under `vp`, the configs are
    * `vite.config.*`. The manual config can have any name.
    */
-  private fun touchesConfig(event: VFileEvent, roots: List<String>, manual: List<String>): Boolean {
-    val paths = listOfNotNull(
-      event.path,
-      (event as? VFilePropertyChangeEvent)?.takeIf { it.isRename }?.newPath,
-      (event as? VFileMoveEvent)?.newPath,
-    )
-    return paths.any { path ->
+  private fun touchesConfig(event: VFileEvent, roots: List<String>, manual: List<String>): Boolean =
+    paths(event).any { path ->
       // FileUtil is obsolete, but nothing public replaces pathsEqual for path strings.
       manual.any { FileUtil.pathsEqual(path, it) } ||
       (PathUtil.getFileName(path).let { it in OXFMT_CONFIG_NAMES || it in VITE_CONFIG_NAMES } && roots.any { root ->
         OSAgnosticPathUtil.startsWith(path, root) || OSAgnosticPathUtil.startsWith(root, PathUtil.getParentPath(path))
       })
     }
-  }
+
+  /** The file's path, and its new path after a rename or move. */
+  private fun paths(event: VFileEvent): List<String> = listOfNotNull(
+    event.path,
+    (event as? VFilePropertyChangeEvent)?.takeIf { it.isRename }?.newPath,
+    (event as? VFileMoveEvent)?.newPath,
+  )
 
   /** Where a server could run from: the project's folders, and the roots of the servers that do run. */
   private fun roots(): List<String> =

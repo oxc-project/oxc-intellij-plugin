@@ -6,6 +6,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.process.isNodeScript
 import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ServerLaunch
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspClientDescriptor
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolPackage
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -103,13 +104,20 @@ fun locateOxfmtConfig(project: Project, file: VirtualFile): OxfmtConfigLocation?
   return rootConfig?.let(::locate)
 }
 
-/** What runs for [file]: a running server's launch, then the package lookup. */
-fun oxfmtLaunch(project: Project, file: VirtualFile): ServerLaunch? =
-  LspClientManager.getInstance(project).getClients(OxfmtDefinition.providerClass)
-    .firstNotNullOfOrNull { client ->
-      (client.descriptor as? ToolLspClientDescriptor)?.takeIf { it.isSupportedFile(file) }?.launch
-    }
-  ?: OxfmtDefinition.createDescriptor(project, file)?.launch
+/**
+ * What runs for [file]: a running server's launch, then the package lookup. A folder isn't a file that the
+ * server formats, so it gets what the package lookup gives for the files in it.
+ */
+fun oxfmtLaunch(project: Project, file: VirtualFile): ServerLaunch? {
+  if (file.isDirectory) {
+    return if (OxfmtSettings.getInstance(project).isEnabled) ToolPackage(project, OxfmtDefinition).resolve(file) else null
+  }
+  return LspClientManager.getInstance(project).getClients(OxfmtDefinition.providerClass)
+           .firstNotNullOfOrNull { client ->
+             (client.descriptor as? ToolLspClientDescriptor)?.takeIf { it.isSupportedFile(file) }?.launch
+           }
+         ?: OxfmtDefinition.createDescriptor(project, file)?.launch
+}
 
 /** Where the root config search starts when nothing would run: the folder the plugin used to search up to. */
 private fun fallbackRoot(project: Project, file: VirtualFile): VirtualFile? =

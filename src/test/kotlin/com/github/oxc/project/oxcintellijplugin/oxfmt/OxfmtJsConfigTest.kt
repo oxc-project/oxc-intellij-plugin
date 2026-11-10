@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleAutoImporter
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtConfigFormat
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtConfigLocation
@@ -66,6 +67,8 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     // The JavaScript plugin only looks in node_modules next to a package.json.
     myFixture.addFileToProject("package.json", """{ "name": "app" }""")
     settings.state.preferOxfmtCodeStyleSettings = true
+    // Creating a config would import it, which races with what Import's own tests check.
+    OxfmtCodeStyleAutoImporter.getInstance(project).setEnabledForTests(false, testRootDisposable)
     project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
       override fun notify(notification: Notification) {
         if (notification.groupId == NOTIFICATION_GROUP) notifications += notification
@@ -104,6 +107,44 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     assertEquals(OxfmtImportResult.IMPORTED, runImport(file))
 
     assertEquals(9, CodeStyle.getSettings(project).getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
+  }
+
+  fun testChangingATypeScriptConfigImportsIt() {
+    useAutoImport()
+    val config = myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 3 };\n").virtualFile
+    waitForProjectIndent(3)
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("export default { tabWidth: 5 };\n".toByteArray()) }
+
+    waitForProjectIndent(5)
+    waitUntil("both imports are shown") { notifications.size == 2 }
+    assertEquals("Imported the Oxfmt code style from \"oxfmt.config.ts\" into this project.", notifications.last().content)
+  }
+
+  fun testChangingTheViteConfigImportsItsFmt() {
+    FakePackages.vitePlus(myFixture)
+    useAutoImport()
+    val config = myFixture.addFileToProject("vite.config.ts", "export default { fmt: { tabWidth: 7 } };\n").virtualFile
+    waitForProjectIndent(7)
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("export default { fmt: { tabWidth: 3 } };\n".toByteArray()) }
+
+    waitForProjectIndent(3)
+  }
+
+  /** Nobody asked for an automatic import, so it shows a config's failure only as the overlay would. */
+  fun testAutomaticImportShowsAFailureOnce() {
+    useAutoImport()
+    val config = myFixture.addFileToProject("oxfmt.config.ts", "throw new Error('broken config');\n").virtualFile
+    waitUntil("a failure is shown", timeout = 60.seconds) { notifications.isNotEmpty() }
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("throw new Error('broken config');\n".toByteArray()) }
+    awaitAutoImports()
+    // The overlay doesn't ask here, so this is the only read.
+    repeat(5) { Thread.sleep(200); PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
+
+    assertEquals(notifications.map { it.content }.toString(), 2, notifications.size)
+    assertTrue(notifications.all { "broken config" in it.content })
   }
 
   /** Through the platform, so this covers the refresh that comes once Node has read the config. */
@@ -375,6 +416,25 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     waitUntil("the failure is shown") { notifications.isNotEmpty() }
     assertEquals("Expected a `fmt` field in the default export of vite.shared.mjs.", notifications.single().content)
+  }
+
+  /** Through the platform's settings, because the test framework's fixed ones would hide what was written. */
+  private fun useAutoImport() {
+    CodeStyle.dropTemporarySettings(project)
+    OxfmtCodeStyleAutoImporter.getInstance(project).setEnabledForTests(true, testRootDisposable)
+  }
+
+  private fun waitForProjectIndent(expected: Int) {
+    waitUntil("the project's indent is $expected", timeout = 60.seconds) {
+      CodeStyle.getSettings(project).getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE == expected
+    }
+  }
+
+  private fun awaitAutoImports() {
+    val call = ApplicationManager.getApplication().executeOnPooledThread {
+      runBlocking { OxfmtCodeStyleAutoImporter.getInstance(project).awaitImports() }
+    }
+    PlatformTestUtil.waitForFuture(call, 60_000)
   }
 
   private fun locate(file: VirtualFile): OxfmtConfigLocation =

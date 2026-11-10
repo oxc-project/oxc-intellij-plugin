@@ -33,8 +33,9 @@ import javax.swing.JComponent
 private const val MAX_MESSAGE_LINES = 5
 
 /**
- * Shows what the backend sends when it can't read a JavaScript or TypeScript config. The backend decides
- * when to send one, so this shows each.
+ * Shows what the backend sends when it can't read a JavaScript or TypeScript config, or when a config change
+ * made it import the config into the project's code style. The backend decides when to send one, so this
+ * shows each.
  */
 @Service(Service.Level.PROJECT)
 class OxfmtConfigNotifier(private val project: Project, private val scope: CoroutineScope) {
@@ -51,8 +52,15 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
     when (notice) {
       is OxfmtConfigNotice.Untrusted -> untrusted(notice)
       is OxfmtConfigNotice.Failed -> failed(notice)
+      is OxfmtConfigNotice.Imported -> imported(notice)
     }.notify(project)
   }
+
+  private fun imported(notice: OxfmtConfigNotice.Imported): Notification =
+    group().createNotification(
+      OxcFrontendBundle.message("oxfmt.import.code.style.automatic", notice.configName),
+      NotificationType.INFORMATION,
+    ).addAction(editConfig(notice))
 
   private fun untrusted(notice: OxfmtConfigNotice.Untrusted): Notification =
     group().createNotification(
@@ -81,11 +89,13 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
           OxfmtConfigDetailsDialog(project, title, notice.details).show()
         })
     }
-    return notification.addAction(
-      NotificationAction.createSimple(OxcFrontendBundle.message("oxfmt.js.config.edit.configuration.file")) {
-        backend("oxfmt.js.config.edit.configuration.file.failed") { openConfig(project.projectId(), notice.configUrl) }
-      })
+    return notification.addAction(editConfig(notice))
   }
+
+  private fun editConfig(notice: OxfmtConfigNotice): NotificationAction =
+    NotificationAction.createSimple(OxcFrontendBundle.message("oxfmt.js.config.edit.configuration.file")) {
+      backend("oxfmt.js.config.edit.configuration.file.failed") { openConfig(project.projectId(), notice.configUrl) }
+    }
 
   /** The Node.js page and the config are the backend's, so these actions ask it. */
   private fun backend(failureKey: String, call: suspend OxfmtCodeStyleApi.() -> Unit) {

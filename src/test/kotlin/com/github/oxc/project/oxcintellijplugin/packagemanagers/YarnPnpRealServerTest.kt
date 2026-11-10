@@ -13,6 +13,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspClientDescriptor
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolPackage
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.library.yarn.pnp.YarnPnpManager
@@ -64,6 +65,11 @@ private const val UNPLUGGED = "/yarn-pnp/\\.yarn/unplugged/[^/]+"
  * resolves it again when the tree arrives, so a file opened that early gets no server. Each test waits for
  * the tree before opening its file, so that the race doesn't decide the result.
  *
+ * The platform keeps a `YarnPnpNodePackage` as a path relative to the project's folder, and finds no
+ * package when there isn't one, such as for a project folder on another Windows drive than the fixture.
+ * The test framework puts the project in the temp folder, so on Windows that has to be on the same drive
+ * as the checkout: CI sets `OXC_TEST_TMPDIR` to the runner's temp folder.
+ *
  * `OXC_TEST_PACKAGE_MANAGER_FIXTURES` points at another copy of the folder that holds the fixtures, as for
  * [PackageManagerRealServerTest].
  */
@@ -90,7 +96,9 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
     check(Files.isRegularFile(fixture.resolve(PNP_FILE))) { "No $PNP_FILE in $fixture. Install it first." }
     val yarn = fixture.resolve(".yarn/releases/$YARN_RELEASE")
     check(Files.isRegularFile(yarn)) { "No $yarn" }
-    NpmManager.getInstance(project).packageRef = NodePackageRef.create(NpmNodePackage(yarn.toString()))
+    // A WSL interpreter only takes a Linux path, or a WSL one such as `\\wsl.localhost\…`, for the package.
+    val yarnPath = if (WslTesting.enabled) WslTesting.toWslPath(yarn.toString()) else yarn.toString()
+    NpmManager.getInstance(project).packageRef = NodePackageRef.create(NpmNodePackage(yarnPath))
     root = checkNotNull(LocalFileSystem.getInstance().refreshAndFindFileByNioFile(fixture)) { "No fixture at $fixture" }
     PsiTestUtil.addContentRoot(myFixture.module, root)
   }
@@ -228,9 +236,18 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
       val state = manager.findPnpFile(pnp)
         ?.let { if (it.workspaceList == null) "found $PNP_FILE but has no tree" else "loaded the tree" }
         ?: "never took up $PNP_FILE"
-      throw AssertionError("${error.message}. The platform $state.", error)
+      throw AssertionError("${error.message}. The platform $state.${pnpLoaderStacks()}", error)
     }
   }
+
+  /**
+   * Where the platform's PnP loading threads are, for a load that neither finished nor failed. Its own
+   * process run times out after 30 seconds, so a load that never ends is stuck before or around it.
+   */
+  private fun pnpLoaderStacks(): String =
+    Thread.getAllStackTraces().filterValues { stack -> stack.any { ".yarn.pnp." in it.className } }.entries.joinToString("") { (thread, stack) ->
+      "\n\n${thread.name} (${thread.state}):" + stack.take(60).joinToString("") { "\n  at $it" }
+    }
 
   private fun launch(definition: ToolDefinition, file: VirtualFile): ServerLaunch =
     checkNotNull(ToolPackage(project, definition).resolve(file)) { "Nothing to run for ${definition.displayName}" }

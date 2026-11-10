@@ -182,8 +182,12 @@ jobs:
       - name: Download Package Managers for Vite+
         run: node .github/scripts/download-vite-plus-package-managers.mjs
 
+      # The test projects go in the temp folder, which is on C: by default, while the checkout is on D:.
+      # The platform finds no Yarn PnP package for a project folder on another drive than the package.
       - name: Run Tests
         shell: bash
+        env:
+          OXC_TEST_TMPDIR: ${{ runner.temp }}
         run: ./gradlew test
 
       - name: Collect Tests Result
@@ -361,8 +365,11 @@ jobs:
         run: mkdir -p /tmp/oxc-tests
 
       # Using Git Bash rewrites OXC_TEST_WSL_NODE into a Windows path which we want to avoid.
+      # For a project on the Windows side, the temp folder moves to the checkout's drive, as in Test (Windows).
       - name: Run Tests
         shell: pwsh
+        env:
+          OXC_TEST_TMPDIR: ${{ matrix.tmpdir != '' && matrix.tmpdir || runner.temp }}
         run: .\gradlew.bat test
 
       - name: Collect Tests Result

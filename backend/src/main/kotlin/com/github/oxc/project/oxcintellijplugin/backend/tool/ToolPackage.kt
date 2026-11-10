@@ -11,9 +11,11 @@ import com.intellij.javascript.nodejs.util.NodePackageDescriptor
 import com.intellij.lang.javascript.buildTools.npm.PackageJsonUtil
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.PathUtil
 import java.nio.file.Paths
@@ -82,11 +84,16 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
 
   /**
    * Where the server runs from: the folder holding the tool's `node_modules`, or for a [manual] binary
-   * without one, the file's content root.
+   * without one, the file's content root. A file outside the content falls back to the project's folder,
+   * because a project opened in Safe Mode has no content until it's reopened, even once trusted.
    */
   private fun serverRoot(file: VirtualFile, nodePackage: NodePackage?, manual: Boolean): VirtualFile? =
     nodePackage?.let(::serverRoot)
-    ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file).takeIf { manual }
+    ?: if (manual) contentRootOrProjectFolder(file) else null
+
+  private fun contentRootOrProjectFolder(file: VirtualFile): VirtualFile? =
+    ProjectFileIndex.getInstance(project).getContentRootForFile(file)
+    ?: project.guessProjectDir()?.takeIf { VfsUtilCore.isAncestor(it, file, false) }
 
   private class VitePlus(val nodePackage: NodePackage, val launch: ServerLaunch)
 

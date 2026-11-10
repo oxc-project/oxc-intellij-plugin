@@ -19,12 +19,14 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerState
 import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.testFramework.PsiTestUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,6 +81,21 @@ class FixAllProcedureTest : OxcFixtureTestCase() {
     assertEquals(OxcFixAllResult.NothingToApply, runFixAll())
 
     assertEquals("original\n", text())
+  }
+
+  /**
+   * A project opened in Safe Mode has no content until it's reopened, even once trusted, and the
+   * platform's code action won't edit a file outside the content. An excluded folder is outside it too.
+   */
+  fun testFileOutsideTheProjectContentIsFixed() {
+    script("""{ "cached": [${action("fixed\n", preferred = true)}] }""")
+    val outside = myFixture.addFileToProject("excluded/outside.js", "original\n").virtualFile
+    PsiTestUtil.addExcludedRoot(myFixture.module, outside.parent)
+    assertFalse(ProjectFileIndex.getInstance(project).isInContent(outside))
+
+    assertEquals(OxcFixAllResult.Applied, runFixAll(outside))
+
+    assertEquals("fixed\noriginal\n", String(outside.contentsToByteArray()))
   }
 
   fun testServerThatNeverAnswersTimesOut() {

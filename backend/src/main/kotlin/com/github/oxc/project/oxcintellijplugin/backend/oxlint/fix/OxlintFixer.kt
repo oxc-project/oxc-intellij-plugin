@@ -14,6 +14,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.customization.LspIntentionAction
+import com.intellij.platform.lsp.util.applyTextEdits
 import com.intellij.platform.lsp.util.getLsp4jRange
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeout
@@ -23,6 +24,7 @@ import org.eclipse.lsp4j.CodeActionParams
 import org.eclipse.lsp4j.CodeActionTriggerKind
 import org.eclipse.lsp4j.Command
 import org.eclipse.lsp4j.DocumentDiagnosticParams
+import org.eclipse.lsp4j.TextEdit
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 
 /** Asks the server for its `source.fixAll` code action and applies the result. */
@@ -46,8 +48,8 @@ class OxlintFixer(private val project: Project) : ToolFixer {
       client.sendRequest { it.textDocumentService.codeAction(params) }
     }
 
-    val actions = preferredActions(client, results)
-    if (actions.isEmpty()) return false
+    val fixes = preferredFixes(client, file, document, results)
+    if (fixes.isEmpty()) return false
 
     // Suspends instead of blocking a thread, so a cancel stops it rather than being swallowed.
     return WriteCommandAction.writeCommandAction(project)
@@ -59,7 +61,7 @@ class OxlintFixer(private val project: Project) : ToolFixer {
           thisLogger().info("Not fixing ${file.path}, because it changed while waiting for the server")
           return@execute false
         }
-        actions.forEach { it.invoke(file) }
+        fixes.forEach { it() }
         document.modificationStamp != stamp
       }
   }
@@ -91,13 +93,39 @@ class OxlintFixer(private val project: Project) : ToolFixer {
     }
   }
 
-  private suspend fun preferredActions(
+  private suspend fun preferredFixes(
     client: LspClient,
+    file: VirtualFile,
+    document: Document,
     results: List<Either<Command, CodeAction>>?,
-  ): List<LspIntentionAction> = results.orEmpty()
+  ): List<() -> Unit> = results.orEmpty()
     .filter { it.isRight && it.right.isPreferred == true }
-    .map { LspIntentionAction(client, it.right) }
-    .filter { readAction { it.isAvailable() } }
+    .mapNotNull { fixFor(client, file, document, it.right) }
+
+  /** What applies the action in a write action, or null if it can't be applied. */
+  private suspend fun fixFor(client: LspClient, file: VirtualFile, document: Document, codeAction: CodeAction): (() -> Unit)? {
+    val edits = readAction { editsForOnlyThisFile(client, file, codeAction) }
+    if (edits != null) return { applyTextEdits(document, edits) }
+
+    val action = LspIntentionAction(client, codeAction)
+    return if (readAction { action.isAvailable() }) { { action.invoke(file) } } else null
+  }
+
+  /**
+   * The edits of an action that only edits [file], which Oxlint's always does, or null for anything else.
+   * The platform's action refuses to edit a file outside the project's content, and a project opened in
+   * Safe Mode has no content until it's reopened, even once trusted. Fix All only ever asks about the file
+   * it was run on, so the edits are applied here, the same way Oxfmt applies its own.
+   */
+  private fun editsForOnlyThisFile(client: LspClient, file: VirtualFile, action: CodeAction): List<TextEdit>? {
+    if (action.disabled != null || action.command != null) return null
+    val edit = action.edit ?: return null
+    if (!edit.documentChanges.isNullOrEmpty()) return null
+    val changes = edit.changes
+    if (changes.isNullOrEmpty()) return null
+    if (changes.keys.any { client.descriptor.findFileByUri(it) != file }) return null
+    return changes.values.flatten()
+  }
 }
 
 private val OxlintFixKind.isDangerous: Boolean

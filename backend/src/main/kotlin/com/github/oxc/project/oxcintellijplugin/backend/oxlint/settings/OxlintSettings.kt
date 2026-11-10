@@ -41,7 +41,7 @@ class OxlintSettings(project: Project) :
     isOxlintSupportedExtension(state.supportedExtensions, file.extension)
 
   override fun migrate(state: OxlintSettingsState) {
-    state.migrateLegacyFlags()
+    state.mergeLegacyFlags()
   }
 
   override fun toData(): OxlintSettingsData = OxlintSettingsData(
@@ -64,6 +64,7 @@ class OxlintSettings(project: Project) :
     state.typeAware = data.typeAware
     state.disableNestedConfig = data.disableNestedConfig
     state.fixKind = data.fixKind
+    state.syncLegacyFlags()
   }
 
   companion object {

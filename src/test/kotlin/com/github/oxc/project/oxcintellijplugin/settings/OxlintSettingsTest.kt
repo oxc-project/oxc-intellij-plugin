@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
@@ -57,16 +58,15 @@ class OxlintSettingsTest : BasePlatformTestCase() {
     assertEquals("/project/custom-oxlint.jsonc", settings.state.configPath)
   }
 
-  fun testLegacyFlagsMoveToTheirOwnFields() {
+  /** The layout main writes, from `@get:XMap` on its `flags` field. */
+  fun testFlagsFromMainFillTheTypedFields() {
     load("""
       <component name="OxcSettings">
         <option name="fixAllOnSave" value="true" />
-        <option name="flags">
-          <map>
-            <entry key="fix_kind" value="DANGEROUS_FIX" />
-            <entry key="disable_nested_config" value="true" />
-          </map>
-        </option>
+        <flags>
+          <entry key="fix_kind" value="DANGEROUS_FIX" />
+          <entry key="disable_nested_config" value="true" />
+        </flags>
         <option name="typeAware" value="true" />
         <option name="unusedDisableDirectives" value="WARN" />
       </component>
@@ -78,20 +78,88 @@ class OxlintSettingsTest : BasePlatformTestCase() {
     assertTrue(settings.state.typeAware)
     assertEquals(OxlintUnusedDisableDirectives.WARN, settings.state.unusedDisableDirectives)
 
-    val saved = JDOMUtil.write(XmlSerializer.serialize(settings.state))
-    assertFalse(saved, "flags" in saved)
+    val saved = saved()
     assertTrue(saved, """<option name="fixKind" value="DANGEROUS_FIX" />""" in saved)
     assertTrue(saved, """<option name="disableNestedConfig" value="true" />""" in saved)
+    assertTrue(saved, "<flags>" in saved)
+    assertFalse(saved, """<option name="flags">""" in saved)
+    assertTrue(saved, """<entry key="fix_kind" value="DANGEROUS_FIX" />""" in saved)
+    assertTrue(saved, """<entry key="disable_nested_config" value="true" />""" in saved)
+  }
+
+  fun testTypedValuesWinOverFlags() {
+    load("""
+      <component name="OxcSettings">
+        <option name="disableNestedConfig" value="true" />
+        <option name="fixKind" value="ALL" />
+        <flags>
+          <entry key="fix_kind" value="DANGEROUS_FIX" />
+          <entry key="disable_nested_config" value="false" />
+        </flags>
+      </component>
+    """)
+
+    assertEquals(OxlintFixKind.ALL, settings.state.fixKind)
+    assertTrue(settings.state.disableNestedConfig)
+    assertEquals(mapOf("fix_kind" to "ALL", "disable_nested_config" to "true"), settings.state.flags)
+  }
+
+  fun testLowercaseLegacyFixKindIsRead() {
+    load("""
+      <component name="OxcSettings">
+        <flags><entry key="fix_kind" value="safe_fix_or_suggestion" /></flags>
+      </component>
+    """)
+
+    assertEquals(OxlintFixKind.SAFE_FIX_OR_SUGGESTION, settings.state.fixKind)
+    assertEquals(mapOf("fix_kind" to "SAFE_FIX_OR_SUGGESTION"), settings.state.flags)
   }
 
   fun testUnknownLegacyFixKindFallsBackToTheDefault() {
     load("""
       <component name="OxcSettings">
-        <option name="flags"><map><entry key="fix_kind" value="NOT_A_KIND" /></map></option>
+        <flags><entry key="fix_kind" value="NOT_A_KIND" /></flags>
       </component>
     """)
 
     assertEquals(OxlintFixKind.SAFE_FIX, settings.state.fixKind)
+    assertEquals(emptyMap<String, String>(), settings.state.flags)
+  }
+
+  fun testOtherFlagsAreKept() {
+    load("""
+      <component name="OxcSettings">
+        <flags><entry key="something_else" value="1" /></flags>
+      </component>
+    """)
+
+    settings.update(settings.toData().copy(fixKind = OxlintFixKind.NONE))
+
+    assertEquals(mapOf("something_else" to "1", "fix_kind" to "NONE"), settings.state.flags)
+  }
+
+  fun testUpdateKeepsFlagsInStepWithTheTypedFields() {
+    settings.update(settings.toData().copy(disableNestedConfig = true, fixKind = OxlintFixKind.ALL))
+
+    assertEquals(mapOf("disable_nested_config" to "true", "fix_kind" to "ALL"), settings.state.flags)
+
+    settings.update(settings.toData().copy(disableNestedConfig = false, fixKind = OxlintFixKind.SAFE_FIX))
+
+    assertEquals(emptyMap<String, String>(), settings.state.flags)
+    assertFalse(saved(), "flags" in saved())
+  }
+
+  fun testOnlyTypedValuesReachTheServer() {
+    load("""
+      <component name="OxcSettings">
+        <flags><entry key="fix_kind" value="DANGEROUS_FIX" /></flags>
+      </component>
+    """)
+
+    val config = OxlintDefinition.workspaceConfig(project, null)
+
+    assertFalse(config.toString(), "flags" in config)
+    assertEquals("dangerous_fix", config["fixKind"])
   }
 
   fun testSavedSettingsLoadBack() {
@@ -162,6 +230,8 @@ class OxlintSettingsTest : BasePlatformTestCase() {
 
     assertTrue(settings.state.fixAllOnSave)
   }
+
+  private fun saved(): String = JDOMUtil.write(XmlSerializer.serialize(settings.state))
 
   private fun load(xml: String) {
     settings.loadState(XmlSerializer.deserialize(JDOMUtil.load(xml), OxlintSettingsState::class.java))

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Rewrite the plugin to run in split mode.
+
 ## [0.0.45] - 2026-10-15
 
 ### Added

@@ -13,6 +13,7 @@ abstract class ToolDefinition(
   /** The product's name, which isn't translated. The server's presentable name in the platform's UI. */
   val displayName: @NlsSafe String,
   val packageName: String,
+  val configurableId: String,
 ) {
   /** The platform tells servers apart by their provider's class, so each tool needs its own. */
   abstract val providerClass: Class<out ToolLspIntegrationProvider>

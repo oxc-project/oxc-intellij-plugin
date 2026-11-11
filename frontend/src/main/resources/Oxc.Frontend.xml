@@ -3,4 +3,17 @@
         <module name="intellij.platform.frontend"/>
         <module name="Oxc.Shared"/>
     </dependencies>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="Oxc"
+                           displayType="BALLOON"
+                           bundle="messages.OxcFrontendBundle"
+                           key="notification.group.oxc"/>
+        <projectConfigurable parentId="tools"
+                             instance="com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable"
+                             id="OxlintConfigurable"
+                             bundle="messages.OxcFrontendBundle"
+                             key="oxlint.settings.name"
+                             nonDefaultProject="false"/>
+    </extensions>
 </idea-plugin>

@@ -28,5 +28,7 @@
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolSettingsWatcher"
                   topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.OutsideConfigWatcher$Listener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
 </idea-plugin>

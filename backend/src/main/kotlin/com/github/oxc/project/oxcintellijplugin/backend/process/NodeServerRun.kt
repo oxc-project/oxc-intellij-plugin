@@ -7,6 +7,7 @@ import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.execution.NodeTargetRunOptions
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.openapi.project.Project
+import com.intellij.platform.eel.provider.getEelDescriptor
 
 /**
  * Launches a language server through the project's Node interpreter, and converts paths between the
@@ -27,7 +28,7 @@ class NodeServerRun(
   override fun startProcess(): OSProcessHandler = startWithoutProgress {
     run.envData = run.envData.with(logEnvironment(run.envData.envs.keys))
     val processHandler = run.startProcessEx().processHandler
-    pathMapper = TargetRunPathMapper(run)
+    pathMapper = nodePathMapper(run.interpreter, project.getEelDescriptor(), TargetRunPathMapper(run))
     processHandler
   }
 

@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.backend.tool
 
+import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage
@@ -44,6 +45,7 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     val settings = definition.settings(project)
     return settings.binaryPath?.trim()
       ?.takeIf { settings.configurationMode == ConfigurationMode.MANUAL && it.isNotEmpty() }
+      ?.let { resolveSettingPath(project, it) }
   }
 
   /**

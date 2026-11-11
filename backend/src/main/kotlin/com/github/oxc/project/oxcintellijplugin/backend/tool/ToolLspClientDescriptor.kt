@@ -1,10 +1,13 @@
 package com.github.oxc.project.oxcintellijplugin.backend.tool
 
 import com.github.oxc.project.oxcintellijplugin.backend.lsp.pathToFileUri
+import com.github.oxc.project.oxcintellijplugin.backend.process.EelServerPathMapper
 import com.github.oxc.project.oxcintellijplugin.backend.process.NativeServerRun
 import com.github.oxc.project.oxcintellijplugin.backend.process.NodeServerRun
+import com.github.oxc.project.oxcintellijplugin.backend.process.ServerPathMapper
 import com.github.oxc.project.oxcintellijplugin.backend.process.ServerRun
 import com.github.oxc.project.oxcintellijplugin.backend.process.isNodeScript
+import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -17,6 +20,8 @@ import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.platform.eel.provider.LocalEelDescriptor
+import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.lsp.api.LspClientDescriptor
 import com.intellij.platform.lsp.api.customization.LspCustomization
 import com.intellij.psi.util.CachedValue
@@ -98,7 +103,8 @@ class ToolLspClientDescriptor(
   /**
    * Returns paths that work on the target machine based on the configured interpreter. The default
    * implementation only looks at where the project is running, ignoring the interpreter, so it's only
-   * used when the server can't map a path or hasn't started.
+   * used when the server can't map a path or hasn't started. It converts a path in WSL or a container
+   * through Eel.
    *
    * This runs on the UI thread, so it cannot perform any blocking tasks.
    */
@@ -125,12 +131,23 @@ class ToolLspClientDescriptor(
   private fun configPath(): ToolConfigPath? {
     if (settings.configurationMode != ConfigurationMode.MANUAL) return null
 
-    return ToolConfigPath.of(settings.configPath?.trim(), roots.single().path, ::toServerPath, ::toLocalPath)
+    val configured = settings.configPath?.trim()?.let { resolveSettingPath(project, it) }
+    return ToolConfigPath.of(configured, roots.single().path, ::toServerPath, ::toLocalPath)
   }
 
-  private fun toServerPath(localPath: String): String? = serverRun?.toServerPath(localPath)
+  /**
+   * The project's environment, when it's WSL or a container. A Node interpreter there, such as a Dev
+   * Container's, only maps the folders it was given, so the rest of its paths fall back to this.
+   */
+  private val projectPaths: ServerPathMapper? by lazy {
+    project.getEelDescriptor().takeIf { it !is LocalEelDescriptor }?.let(::EelServerPathMapper)
+  }
 
-  private fun toLocalPath(serverPath: String): String? = serverRun?.toLocalPath(serverPath)
+  private fun toServerPath(localPath: String): String? =
+    serverRun?.let { it.toServerPath(localPath) ?: projectPaths?.toServerPath(localPath) }
+
+  private fun toLocalPath(serverPath: String): String? =
+    serverRun?.let { it.toLocalPath(serverPath) ?: projectPaths?.toLocalPath(serverPath) }
 
   override val lspCustomization: LspCustomization = definition.lspCustomization(project)
 

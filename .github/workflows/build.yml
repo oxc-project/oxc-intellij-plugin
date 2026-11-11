@@ -44,6 +44,16 @@ jobs:
           cache-read-only: ${{ env.CACHE_READ_ONLY }}
           gradle-home-cache-excludes: ${{ env.GRADLE_CACHE_EXCLUDES }}
 
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      # The highlighting tests start the real language server from the fixture's node_modules.
+      - name: Setup Oxlint Highlighting No Config Test
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
       - name: Run Tests
         run: ./gradlew check
 
@@ -57,6 +67,7 @@ jobs:
             ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/failed-tests
 
   build:
     name: Build and verify

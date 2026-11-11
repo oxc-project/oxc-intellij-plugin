@@ -41,7 +41,7 @@ class PluginLoadingTest : BasePlatformTestCase() {
   }
 
   fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {
-    for (name in listOf("messages.OxcFrontendBundle")) {
+    for (name in listOf("messages.OxcFrontendBundle", "messages.OxcBackendBundle")) {
       val bundle = ResourceBundle.getBundle(name, Locale.ROOT, bundleLoader(name))
       for (key in bundle.keySet()) {
         val value = bundle.getString(key)

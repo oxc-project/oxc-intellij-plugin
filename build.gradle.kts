@@ -3,6 +3,7 @@ import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask
+import org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask
 import org.jetbrains.intellij.platform.gradle.tasks.aware.SplitModeAware
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
@@ -170,6 +171,17 @@ changelog {
 tasks {
   publishPlugin {
     dependsOn(patchChangelog)
+  }
+
+  // The IDE's launcher passes these to JetBrains Client, but the Gradle plugin drops them.
+  // These are used to provide correct file system support for thin clients.
+  val clientTasks = setOf("runIdeFrontend", "runIdeSplitMode")
+  withType<RunIdeTask>().matching { it.name in clientTasks }.configureEach {
+    jvmArgs(
+      "-Xbootclasspath/a:${intellijPlatform.platformPath.resolve("lib/nio-fs.jar")}",
+      "-Djava.nio.file.spi.DefaultFileSystemProvider=" +
+        "com.intellij.platform.core.nio.fs.MultiRoutingFileSystemProvider",
+    )
   }
 
   test {

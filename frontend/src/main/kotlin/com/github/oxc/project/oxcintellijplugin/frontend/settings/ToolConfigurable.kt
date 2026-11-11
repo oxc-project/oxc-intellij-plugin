@@ -3,6 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.settings
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
+import com.github.oxc.project.oxcintellijplugin.frontend.files.chooseBackendFile
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.isValidExtension
 import com.intellij.notification.NotificationGroupManager
@@ -18,6 +19,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.project.ProjectId
@@ -224,11 +226,16 @@ abstract class ToolConfigurable<T : Any>(
     return disabled.selected.not()
   }
 
+  /** [labelKey] names the row's label, and with `.chooser.title` the file chooser's title. */
   private fun Panel.pathRow(labelKey: String, property: MutableProperty<String>): Row =
     row(OxcFrontendBundle.message(labelKey)) {
-      textField()
+      val field = TextFieldWithBrowseButton()
+      field.addActionListener {
+        chooseBackendFile(project, OxcFrontendBundle.message("$labelKey.chooser.title"), field.text)?.let { field.text = it }
+      }
+      cell(field)
         .align(AlignX.FILL)
-        .bindText(property)
+        .bind({ it.text }, { component, value -> component.text = value }, property)
     }
 
   /** An empty list of extensions means [defaults], and is what's stored when the text matches them. */

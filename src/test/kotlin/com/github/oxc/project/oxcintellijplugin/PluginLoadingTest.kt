@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
@@ -63,5 +64,14 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
     assertEquals(OxlintSettings.getInstance(project).toData(),
       PlatformTestUtil.waitForFuture(call, 30_000))
+  }
+
+  fun testBackendReportsProjectPathOverRpc() {
+    val projectId = project.projectId()
+    val call = ApplicationManager.getApplication().executeOnPooledThread<String?> {
+      runBlocking { OxcToolApi.getInstance().projectPath(projectId) }
+    }
+
+    assertEquals(project.basePath, PlatformTestUtil.waitForFuture(call, 30_000))
   }
 }

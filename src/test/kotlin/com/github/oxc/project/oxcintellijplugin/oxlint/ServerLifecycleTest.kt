@@ -188,6 +188,16 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
     waitUntil("the server has stopped") { runningServers().isEmpty() }
   }
 
+  fun testManualModeRunsTheConfiguredScript() {
+    val packageFolder = myFixture.findFileInTempDir("node_modules/oxlint/bin/oxlint")
+    settings.state.configurationMode = ConfigurationMode.MANUAL
+    settings.state.binaryPath = packageFolder.path
+
+    myFixture.configureFromTempProjectFile("index.js")
+
+    runningServer()
+  }
+
   private val settings: OxlintSettings
     get() = OxlintSettings.getInstance(project)
 

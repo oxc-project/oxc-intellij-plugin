@@ -1,8 +1,11 @@
 package com.github.oxc.project.oxcintellijplugin.backend.tool
 
 import com.github.oxc.project.oxcintellijplugin.backend.lsp.pathToFileUri
+import com.github.oxc.project.oxcintellijplugin.backend.process.NativeServerRun
 import com.github.oxc.project.oxcintellijplugin.backend.process.NodeServerRun
 import com.github.oxc.project.oxcintellijplugin.backend.process.ServerRun
+import com.github.oxc.project.oxcintellijplugin.backend.process.isNodeScript
+import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.javascript.nodejs.packageJson.PackageJsonFileManager
@@ -73,9 +76,20 @@ class ToolLspClientDescriptor(
     "Not expected to be called because startServerProcess() is overridden")
 
   override fun startServerProcess(): OSProcessHandler {
-    val run = NodeServerRun(project, launch.executable, launch.parameters, launch.root.path)
+    val run = createServerRun()
     serverRun = run
     return run.startProcess()
+  }
+
+  /** Automatic resolutions are always scripts, and a manual path is a native binary unless it's one too. */
+  private fun createServerRun(): ServerRun {
+    val rootPath = launch.root.path
+    return if (settings.configurationMode == ConfigurationMode.MANUAL && !isNodeScript(launch.executable, rootPath)) {
+      NativeServerRun(launch.executable, launch.parameters, rootPath)
+    }
+    else {
+      NodeServerRun(project, launch.executable, launch.parameters, rootPath)
+    }
   }
 
   /**

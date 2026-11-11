@@ -2,11 +2,13 @@ package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
+import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.options.Configurable
@@ -34,6 +36,10 @@ class PluginLoadingTest : BasePlatformTestCase() {
       PluginId.getId("com.github.oxc.project.oxcintellijplugin"))
 
     assertTrue(pluginIsLoaded)
+  }
+
+  fun testFrontendModuleIsLoaded() {
+    assertNotNull(ActionManager.getInstance().getAction("OxlintRestartServerAction"))
   }
 
   fun testSettingsPageIsRegistered() {
@@ -73,5 +79,14 @@ class PluginLoadingTest : BasePlatformTestCase() {
     }
 
     assertEquals(project.basePath, PlatformTestUtil.waitForFuture(call, 30_000))
+  }
+
+  fun testBackendAnswersOverRpc() {
+    val projectId = project.projectId()
+    val call = ApplicationManager.getApplication().executeOnPooledThread {
+      runBlocking { OxcToolApi.getInstance().restart(projectId, OxcTool.OXLINT) }
+    }
+
+    PlatformTestUtil.waitForFuture(call, 30_000)
   }
 }

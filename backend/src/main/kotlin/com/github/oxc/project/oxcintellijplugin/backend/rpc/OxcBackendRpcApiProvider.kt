@@ -4,11 +4,15 @@ package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolServerStarter
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.SaveAndSyncHandler
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
@@ -16,6 +20,7 @@ import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProjectOrNull
 import com.intellij.platform.rpc.backend.RemoteApiProvider
 import fleet.rpc.remoteApiDescriptor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -23,6 +28,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 internal class OxcBackendRpcApiProvider : RemoteApiProvider {
   override fun RemoteApiProvider.Sink.remoteApis() {
@@ -36,6 +42,13 @@ internal class OxcBackendRpcApiProvider : RemoteApiProvider {
 }
 
 private class OxcToolApiImpl : OxcToolApi {
+
+  override suspend fun restart(projectId: ProjectId, tool: OxcTool) {
+    val project = projectId.findProjectOrNull() ?: return
+    withContext(Dispatchers.EDT) {
+      project.service<ToolServerStarter>().restart(ToolDefinition.of(tool))
+    }
+  }
 
   override suspend fun projectPath(projectId: ProjectId): String? =
     projectId.findProjectOrNull()?.basePath

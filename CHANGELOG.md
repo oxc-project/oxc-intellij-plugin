@@ -14,6 +14,10 @@
 - **Breaking:** Minimum IntelliJ version updated to 2026.3+.
 - Remove the upper limit on supported IntelliJ versions.
 
+### Fixed
+
+- With more than one client connected, Oxlint's language server now keeps running while any client has a supported file open.
+
 ## [0.0.45] - 2026-10-15
 
 ### Added

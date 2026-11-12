@@ -62,6 +62,3 @@ internal class ToolServerRestarter(
     }
   }
 }
-
-internal val OxcTool.messagePrefix: String
-  get() = name.lowercase()

@@ -191,6 +191,22 @@ tasks {
       "#com.github.oxc.project.oxcintellijplugin,#com.intellij.platform.lsp",
     )
 
+    // The test framework creates its projects here, so this can put them inside WSL.
+    environment("OXC_TEST_TMPDIR").orNull?.takeIf { it.isNotBlank() }?.let {
+      systemProperty("java.io.tmpdir", it)
+      // IJent loads Netty while connecting to WSL, so Netty's temp folder can't be inside WSL.
+      systemProperty(
+        "io.grpc.netty.shaded.io.netty.tmpdir",
+        layout.buildDirectory.dir("tmp/netty").get().asFile.absolutePath,
+      )
+    }
+
+    // The tests read these themselves, so they must be inputs. Otherwise, a WSL job in CI can take
+    // the cached result of the Windows job, which restores the same cache, and skip its tests.
+    listOf("OXC_TEST_WSL_DISTRO", "OXC_TEST_WSL_NODE").forEach {
+      inputs.property(it, environment(it).orElse(""))
+    }
+
     // The tests read their fixtures from disk, so a change there, such as a Renovate bump in a
     // fixture's lockfile, must run them again instead of taking a cached result. The installed
     // packages follow the lockfiles, and `.node-version` picks the Node that runs the servers.

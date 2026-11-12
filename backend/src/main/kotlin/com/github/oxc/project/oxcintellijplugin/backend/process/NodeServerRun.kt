@@ -6,6 +6,7 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.execution.NodeTargetRunOptions
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
+import com.intellij.javascript.nodejs.interpreter.wsl.WslNodeInterpreter
 import com.intellij.openapi.project.Project
 import com.intellij.platform.eel.provider.getEelDescriptor
 
@@ -26,9 +27,11 @@ class NodeServerRun(
   private var pathMapper: ServerPathMapper? = null
 
   override fun startProcess(): OSProcessHandler = startWithoutProgress {
+    val wslPathMapper = (run.interpreter as? WslNodeInterpreter)?.distribution
+      ?.let { createWslPathMapper(it, workingDirectory) }
     run.envData = run.envData.with(logEnvironment(run.envData.envs.keys))
     val processHandler = run.startProcessEx().processHandler
-    pathMapper = nodePathMapper(run.interpreter, project.getEelDescriptor(), TargetRunPathMapper(run))
+    pathMapper = wslPathMapper ?: nodePathMapper(run.interpreter, project.getEelDescriptor(), TargetRunPathMapper(run))
     processHandler
   }
 

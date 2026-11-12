@@ -1,5 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.backend.process
 
+import com.intellij.execution.wsl.WSLDistribution
+import com.intellij.execution.wsl.WslPath
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
@@ -25,6 +27,48 @@ interface ServerPathMapper {
 
   /** Returns the local path of a file named by the server, or null if it has no local path. */
   fun toLocalPath(serverPath: String): String?
+}
+
+/**
+ * Maps paths for a server in WSL. The [mountRoot] is passed in because reading
+ * [WSLDistribution.getMntRoot] runs `wsl.exe` the first time, and giving the conversions a fixed value
+ * means they can't do that. [workingDirectory] decides how the `\\wsl.localhost` or `\\wsl$` root of
+ * a converted path is spelled, so that it finds the files that the project opened.
+ */
+class WslServerPathMapper(
+  private val distribution: WSLDistribution,
+  private val mountRoot: String,
+  workingDirectory: String,
+) : ServerPathMapper {
+
+  private val workingDirectoryWslPath = WslPath.parseWindowsUncPath(workingDirectory)
+
+  override fun toServerPath(localPath: String): String? =
+    try {
+      distribution.getWslPath(Path.of(localPath)) { mountRoot }
+    }
+    catch (_: InvalidPathException) {
+      null
+    }
+    // Thrown when the path is in another distribution.
+    catch (_: IllegalArgumentException) {
+      null
+    }
+
+  override fun toLocalPath(serverPath: String): String? {
+    // A path that starts with two slashes is a UNC path on the IDE's side, not one from the server.
+    if (!serverPath.startsWith("/") || serverPath.startsWith("//")) return null
+
+    val localPath = distribution.getWindowsPath(serverPath) { mountRoot }
+    val wslPath = WslPath.parseWindowsUncPath(localPath) ?: return localPath
+    val projectWslPath = workingDirectoryWslPath ?: return localPath
+    return if (wslPath.distributionId.equals(projectWslPath.distributionId, ignoreCase = true)) {
+      projectWslPath.wslRoot + localPath.removePrefix(wslPath.wslRoot)
+    }
+    else {
+      localPath
+    }
+  }
 }
 
 /**

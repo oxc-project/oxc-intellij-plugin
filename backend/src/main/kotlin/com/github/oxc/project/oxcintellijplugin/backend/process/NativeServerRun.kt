@@ -2,6 +2,9 @@ package com.github.oxc.project.oxcintellijplugin.backend.process
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.wsl.WSLCommandLineOptions
+import com.intellij.execution.wsl.WSLDistribution
+import com.intellij.execution.wsl.WslPath
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.platform.eel.EelDescriptor
@@ -19,8 +22,9 @@ private val LOG = Logger.getInstance(NativeServerRun::class.java)
 
 /**
  * Runs a language server's executable directly, and the project's Node interpreter isn't involved. It runs
- * on the backend's machine, or in the container or other environment that [executable] or [workingDirectory]
- * is in, which `GeneralCommandLine` reaches through Eel.
+ * on the backend's machine, inside WSL if [executable] is a path into a distribution, or in the container or
+ * other environment that [executable] or [workingDirectory] is in, which `GeneralCommandLine` reaches
+ * through Eel.
  */
 class NativeServerRun(
   private val executable: String,
@@ -32,7 +36,8 @@ class NativeServerRun(
   private var pathMapper: ServerPathMapper? = null
 
   override fun startProcess(): OSProcessHandler = startWithoutProgress {
-    val (commandLine, mapper) = environmentCommandLine()
+    val distribution = WslPath.getDistributionByWindowsUncPath(executable)
+    val (commandLine, mapper) = if (distribution != null) wslCommandLine(distribution) else environmentCommandLine()
     val processHandler = NativeProcessHandler(commandLine)
     pathMapper = mapper
     processHandler
@@ -43,6 +48,21 @@ class NativeServerRun(
 
   override fun toLocalPath(serverPath: String): String? =
     pathMapper?.toLocalPath(serverPath)
+
+  /**
+   * WSL keeps its own command line, because its paths map a project on the Windows side to `/mnt/c`,
+   * which Eel can't do. The platform runs the patched command line through Eel where it can.
+   */
+  private fun wslCommandLine(distribution: WSLDistribution): Pair<GeneralCommandLine, ServerPathMapper> {
+    val commandLine = nativeCommandLine(executable, parameters, workingDirectory, isWindows = false)
+    val mapper = createWslPathMapper(distribution, workingDirectory)
+    commandLine.withExePath(checkNotNull(mapper.toServerPath(executable)))
+    val options = WSLCommandLineOptions()
+      .setPassEnvVarsUsingInterop(true)
+      .setRemoteWorkingDirectory(mapper.toServerPath(workingDirectory))
+    distribution.patchCommandLine(commandLine, null, options)
+    return commandLine to mapper
+  }
 
   /** The IDE's machine or another environment, which `GeneralCommandLine` picks the same way. */
   private fun environmentCommandLine(): Pair<GeneralCommandLine, ServerPathMapper> {

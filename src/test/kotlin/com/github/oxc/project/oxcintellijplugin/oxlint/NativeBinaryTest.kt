@@ -5,6 +5,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSe
 import com.github.oxc.project.oxcintellijplugin.extensions.configureByFileAndCheckLanguageServerHighlighting
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.platform.lsp.api.LspClientManager
@@ -19,10 +20,12 @@ import java.nio.file.Files
  * Runs a real Oxlint server from an executable that wraps the Node script, so that it's portable. Node
  * can't run the wrapper, so diagnostics only appear if it was started directly. The project has no
  * `node_modules`, as with most uses of a native binary. Needs Node on PATH and `npm ci` run in the
- * fixture folder.
+ * fixture folder. [com.github.oxc.project.oxcintellijplugin.windows.WslNativeBinaryTest] covers WSL.
  */
 @TestDataPath("\$CONTENT_ROOT/testData/oxlint/highlighting")
 class NativeBinaryTest : OxcFixtureTestCase() {
+
+  override fun shouldRunTest(): Boolean = !WslTesting.enabled && super.shouldRunTest()
 
   override fun setUp() {
     super.setUp()

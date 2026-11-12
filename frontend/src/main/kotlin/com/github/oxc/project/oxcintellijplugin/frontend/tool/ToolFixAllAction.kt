@@ -3,6 +3,7 @@
 package com.github.oxc.project.oxcintellijplugin.frontend.tool
 
 import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
+import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.settings.OxfmtConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCache
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
@@ -176,4 +177,5 @@ internal val OxcTool.messagePrefix: String
 private val OxcTool.configurableClass: Class<out Configurable>
   get() = when (this) {
     OxcTool.OXLINT -> OxlintConfigurable::class.java
+    OxcTool.OXFMT -> OxfmtConfigurable::class.java
   }

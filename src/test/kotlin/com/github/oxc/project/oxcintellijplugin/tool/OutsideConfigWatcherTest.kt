@@ -46,6 +46,7 @@ class OutsideConfigWatcherTest : BasePlatformTestCase() {
 
     assertTrue(watcher.isWatched(OxcTool.OXLINT, file))
     assertFalse(watcher.isWatched(OxcTool.OXLINT, folder.resolve("b.json").toString()))
+    assertFalse(watcher.isWatched(OxcTool.OXFMT, file))
   }
 
   fun testUnwatchingForgetsTheFile() {

@@ -14,6 +14,7 @@ import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.EDT
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.util.ui.UIUtil
@@ -105,6 +106,25 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
     }
     finally {
       configurable.disposeUIResources()
+    }
+  }
+
+  fun testFixOnSaveIsOnlyEditedOnTheActionsOnSavePage() {
+    openPage { _, panel ->
+      assertEmpty(UIUtil.findComponentsOfType(panel, JBCheckBox::class.java).filter { "Fix All" in it.text })
+      assertSize(1, UIUtil.findComponentsOfType(panel, ActionLink::class.java).filter { "actions on save" in it.text.lowercase() })
+    }
+  }
+
+  fun testAPageOpenedBeforeFixOnSaveChangedDoesNotUndoIt() {
+    openPage { configurable, panel ->
+      settings.updateFixAllOnSave(true)
+
+      combo(panel, OxlintFixKind.SAFE_FIX).selectedItem = OxlintFixKind.ALL
+      configurable.apply()
+
+      waitUntil("the backend has the settings") { settings.state.fixKind == OxlintFixKind.ALL }
+      assertTrue(settings.state.fixAllOnSave)
     }
   }
 

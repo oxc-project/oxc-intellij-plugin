@@ -68,6 +68,11 @@ class PluginLoadingTest : BasePlatformTestCase() {
     if (format >= 0) assertTrue(names.toString(), fix < format)
   }
 
+  fun testOnSaveRowIsRegistered() {
+    val names = ExtensionPointName<Any>("com.intellij.actionOnSaveInfoProvider").extensionList.map { it.javaClass.simpleName }
+    assertContainsElements(names, "OxcOnSaveInfoProvider")
+  }
+
   fun testRegistryKeyIsDefined() {
     assertEquals(30000, Registry.intValue("oxc.lint.fix.all.timeout.ms"))
   }

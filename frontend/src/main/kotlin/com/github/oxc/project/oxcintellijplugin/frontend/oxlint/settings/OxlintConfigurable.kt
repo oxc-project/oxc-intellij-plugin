@@ -54,6 +54,8 @@ class OxlintConfigurable(project: Project) :
         .bindSelected({ model.typeAware }, { model = model.copy(typeAware = it) })
     }.enabledIf(enabled)
 
+    fixOnSaveLinkRow(enabled)
+
     row {
       checkBox(OxcFrontendBundle.message("oxlint.settings.disable.nested.config"))
         .bindSelected({ model.disableNestedConfig }, { model = model.copy(disableNestedConfig = it) })

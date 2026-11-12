@@ -1,6 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.tool
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.untrustProject
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
@@ -11,6 +13,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerState
 import com.intellij.testFramework.PlatformTestUtil
+import java.io.File
 import java.nio.file.Path
 
 /** The platform starts no server in an untrusted project, and doesn't look at open files again on trust. */
@@ -18,8 +21,9 @@ class ToolTrustWatcherTest : OxcFixtureTestCase() {
 
   override fun setUp() {
     super.setUp()
-    myFixture.testDataPath = "src/test/testData/oxlint/highlighting"
-    myFixture.copyDirectoryToProject("no-config", "")
+    val settings = OxlintSettings.getInstance(project)
+    settings.state.configurationMode = ConfigurationMode.MANUAL
+    settings.state.binaryPath = File("src/test/testData/oxlint/fix-all/fake-server.js").absolutePath
   }
 
   fun testTrustingTheProjectStartsServersForOpenFiles() {
@@ -45,7 +49,8 @@ class ToolTrustWatcherTest : OxcFixtureTestCase() {
 
   private fun openFileWhileUntrusted() {
     untrustProject(project, testRootDisposable)
-    myFixture.configureFromTempProjectFile("index.js")
+    val file = myFixture.addFileToProject("index.js", "original\n").virtualFile
+    myFixture.configureFromExistingVirtualFile(file)
     repeat(10) { Thread.sleep(100); PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
     assertEmpty("No server starts while the project is untrusted", allServers())
   }

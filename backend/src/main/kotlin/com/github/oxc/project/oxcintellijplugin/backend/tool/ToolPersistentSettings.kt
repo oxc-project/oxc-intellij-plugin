@@ -19,6 +19,8 @@ abstract class ToolPersistentSettings<S : BaseState, D : Any>(
 
   override val modificationTracker: SimpleModificationTracker = SimpleModificationTracker()
 
+  protected abstract var storedFixAllOnSave: Boolean
+
   abstract fun toData(): D
 
   /** Changes the state in place, because that's how the store notices that it needs to be saved. */
@@ -28,6 +30,9 @@ abstract class ToolPersistentSettings<S : BaseState, D : Any>(
   protected open fun migrate(state: S) {}
 
   protected open fun affectsServers(previous: D, current: D): Boolean = previous != current
+
+  override val isFixAllOnSaveEnabled: Boolean
+    get() = isEnabled && storedFixAllOnSave
 
   /** Called when the file is read, including when something outside the IDE changes it. */
   override fun loadState(state: S) {
@@ -51,9 +56,21 @@ abstract class ToolPersistentSettings<S : BaseState, D : Any>(
     notifyChanged(previous)
   }
 
+  /** Fix on save happens in the plugin, so the servers don't need to know that it changed. */
+  override fun updateFixAllOnSave(enabled: Boolean) {
+    if (storedFixAllOnSave == enabled) return
+
+    storedFixAllOnSave = enabled
+    publish(false)
+  }
+
   private fun notifyChanged(previous: D) {
+    publish(affectsServers(previous, toData()))
+  }
+
+  private fun publish(affectsServers: Boolean) {
     modificationTracker.incModificationCount()
     project.messageBus.syncPublisher(OxcSettingsListener.TOPIC)
-      .settingsChanged(tool, affectsServers(previous, toData()))
+      .settingsChanged(tool, affectsServers)
   }
 }

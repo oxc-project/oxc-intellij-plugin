@@ -13,7 +13,10 @@ abstract class ToolDefinition(
   /** The product's name, which isn't translated. The server's presentable name in the platform's UI. */
   val displayName: @NlsSafe String,
   val packageName: String,
+  /** The start of the tool's message keys. */
+  val messagePrefix: String,
   val configurableId: String,
+  val fixAllTimeoutRegistryKey: String,
 ) {
   /** The platform tells servers apart by their provider's class, so each tool needs its own. */
   abstract val providerClass: Class<out ToolLspIntegrationProvider>
@@ -24,6 +27,8 @@ abstract class ToolDefinition(
   abstract fun workspaceConfig(project: Project, configPath: String?): Map<String, Any?>
 
   abstract fun lspCustomization(project: Project): LspCustomization
+
+  abstract fun fixer(project: Project): ToolFixer
 
   /** Returns null if the tool shouldn't run for the file, or there's nothing to run. */
   fun createDescriptor(project: Project, file: VirtualFile): ToolLspClientDescriptor? {

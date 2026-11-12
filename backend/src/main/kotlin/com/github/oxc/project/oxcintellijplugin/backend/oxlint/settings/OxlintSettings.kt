@@ -31,6 +31,12 @@ class OxlintSettings(project: Project) :
   override val configPath: String?
     get() = state.configPath
 
+  override var storedFixAllOnSave: Boolean
+    get() = state.fixAllOnSave
+    set(value) {
+      state.fixAllOnSave = value
+    }
+
   override fun isSupported(file: VirtualFile): Boolean =
     isOxlintSupportedExtension(state.supportedExtensions, file.extension)
 

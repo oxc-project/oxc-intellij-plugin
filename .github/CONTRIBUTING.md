@@ -1,16 +1,39 @@
-### Running Tests
+# Contributing
 
-Tests can be executed with `./gradlew check`. Prior to running tests, you'll need to execute `npm install` within each
-of the test directories found at `src/test/testData`.
+## Running the plugin
 
-If you fail to execute `npm install` within a test directory, you'll typically receive an exception like the below.
+Start an IDE with the plugin installed, running the backend and frontend as separate processes in split mode:
 
+```bash
+./gradlew :runIdeSplitMode
 ```
-Caused by: java.io.FileNotFoundException: /private/var/folders/y9/7_0wzf515vsdjc62stxjngnc0000gn/T/unitTest_rootFileHighlighting_2yF2NjR6MfHBbuoM6d9V6JBZdFT/unitTest13365413598591665525/node_modules/oxlint/bin/oxc_language_server (No such file or directory)
-	at java.base/java.io.FileInputStream.open0(Native Method)
-	at java.base/java.io.FileInputStream.open(FileInputStream.java:213)
-	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:152)
-	at com.github.oxc.project.oxcintellijplugin.OxcTargetRunBuilder.getBuilder(OxcTargetRun.kt:99)
-	at com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerDescriptor.<init>(OxcLspServerDescriptor.kt:24)
-	at com.github.oxc.project.oxcintellijplugin.lsp.OxcLspServerSupportProvider.fileOpened(OxcLspServerSupportProvider.kt:41)
+
+In IntelliJ IDEA, the **Run IDE with Plugin (Split Mode)** run configuration runs the same Gradle task.
+
+Start an IDE with the plugin installed, running as a single process without split mode:
+
+```bash
+./gradlew :runIdeMonolith
 ```
+
+In IntelliJ IDEA, the **Run IDE with Plugin (Monolith)** run configuration runs the same Gradle task.
+
+## Running the tests
+
+The highlighting tests start a real language server from their fixture's `node_modules`, so they need Node on your
+`PATH` and the fixture's dependencies installed:
+
+```bash
+npm ci --prefix src/test/testData/oxlint/highlighting/no-config
+```
+
+```bash
+./gradlew check
+```
+
+To run the tests on Windows with Node in WSL, set `OXC_TEST_WSL_DISTRO` to an installed distribution. It needs Node at
+`OXC_TEST_WSL_NODE` (default `/usr/local/bin/node`), and `npm ci` run inside WSL in the fixture folder. CI does this in
+its `Test (WSL)` jobs. New tests that use Node should extend `OxcFixtureTestCase` so that they run there too.
+
+Test projects are created on the Windows side by default. To store them inside WSL, set `OXC_TEST_TMPDIR` to an existing
+folder in the distribution, such as `\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests`.

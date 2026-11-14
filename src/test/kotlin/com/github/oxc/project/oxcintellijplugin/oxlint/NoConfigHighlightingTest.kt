@@ -1,26 +1,23 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.extensions.configureByFileAndCheckLanguageServerHighlighting
-import com.github.oxc.project.oxcintellijplugin.oxlint.lsp.OxlintLspServerDescriptor
+import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.intellij.testFramework.TestDataPath
-import com.intellij.testFramework.builders.ModuleFixtureBuilder
-import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
-import com.intellij.testFramework.fixtures.ModuleFixture
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 
+/** Starts a real Oxlint server. Needs Node on PATH and `npm ci` run in the fixture folder. */
 @TestDataPath("\$CONTENT_ROOT/testData/oxlint/highlighting")
-class NoConfigHighlightingTest :
-    CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleFixture>>() {
+class NoConfigHighlightingTest : OxcFixtureTestCase() {
 
-    override fun setUp() {
-        super.setUp()
-        (myFixture as CodeInsightTestFixtureImpl).canChangeDocumentDuringHighlighting(true)
-        myFixture.testDataPath = "src/test/testData/oxlint/highlighting"
-    }
+  override fun setUp() {
+    super.setUp()
+    (myFixture as CodeInsightTestFixtureImpl).canChangeDocumentDuringHighlighting(true)
+    myFixture.testDataPath = "src/test/testData/oxlint/highlighting"
+  }
 
-    fun testRootFileHighlighting() {
-        myFixture.copyDirectoryToProject("no-config", "")
+  fun testRootFileHighlighting() {
+    myFixture.copyDirectoryToProject("no-config", "")
 
-        myFixture.configureByFileAndCheckLanguageServerHighlighting(OxlintLspServerDescriptor::class.java, "index.expected.js")
-    }
+    myFixture.configureByFileAndCheckLanguageServerHighlighting("index.expected.js")
+  }
 }

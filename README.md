@@ -14,30 +14,9 @@ The Oxidation Compiler is creating a suite of high-performance tools for JavaScr
 
 A high-performance JavaScript/TypeScript linter.
 
-- Inline diagnostics with highlighting for warnings and errors.
-- Quick fixes to resolve issues when available.
-- Command to apply all auto-fixable issues in the current editor.
-- Automatically apply fixes on save.
-  - Timeout for this is 30 seconds, but can be configured with an IntelliJ registry setting
-    `oxc.lint.fix.all.timeout.ms`.
-- Type-aware rules support for enhanced linting.
-- Custom icons for Oxlint configuration files.
-- JSON schema validation for `.oxlintrc.json` configuration files.
-- Configurable file extensions (.js, .jsx, .ts, .tsx, .cjs, .mjs, .cts, .mts, .vue, .svelte, .astro).
-- Vite+ Support
-
 ## Oxfmt
 
 A high-performance JavaScript/TypeScript formatter.
-
-- Format code via right-click context menu.
-- Format code with the built-in actions and their shortcuts (<kbd>Code</kbd> > <kbd>Reformat Code</kbd>, <kbd>
-  Code</kbd> > <kbd>Reformat File...</kbd>)
-- Automatically format on save.
-- JSON schema validation for `.oxfmtrc.json` configuration files.
-- Configurable file formats JavaScript, TypeScript, JSON, HMYL, Markdown, MDX, CSS, SCSS, GrapghQL, TOML, YAML and
-  more. [See the full list](https://github.com/oxc-project/oxc-intellij-plugin/blob/main/src/main/kotlin/com/github/oxc/project/oxcintellijplugin/oxfmt/settings/OxfmtSettingsState.kt).
-- Vite+ Support
 
 <!-- Plugin description end -->
 
@@ -54,6 +33,16 @@ A high-performance JavaScript/TypeScript formatter.
   manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
+## Remote Node.js interpreters
+
+Oxlint and Oxfmt run with the project's Node.js interpreter, so they also run in WSL, Docker and over SSH.
+
+With an SSH interpreter, the project has to be on the remote host, with its local folder mapped to the remote one, as
+described in [Node.js via SSH](https://www.jetbrains.com/help/webstorm/node-via-ssh.html). Use a Deployment
+configuration's mappings for that host, or the interpreter's path mappings. Without a mapping, the IDE uploads a copy
+of the project when each server starts, and it doesn't update that copy. Config changes and fixes to files that aren't
+open then use the old copy until the server is restarted.
+
 ## Troubleshooting
 
 IntelliJ provides log files for standard logs as well as the LSP integration. The plugin uses the regular log
@@ -64,11 +53,7 @@ All LSP logs are output to `language-services/Oxfmt*` or `language-services/Oxli
 
 The log level can be configured with the information available
 here https://youtrack.jetbrains.com/articles/SUPPORT-A-43/How-to-enable-debug-logging-in-IntelliJ-IDEA.
-`com.github.oxc.project.oxcintellijplugin:all` - Enable debug logging for the plugin.
 `com.intellij.platform.lsp:all` - Enable debug logging for LSP integrations.
-
-Enabling both debug logging for the plugin and debug logging for LSP integrations will typically provide useful
-information for investigating problems.
 
 ---
 

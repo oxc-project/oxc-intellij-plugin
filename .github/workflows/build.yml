@@ -2,62 +2,404 @@ permissions: { }
 
 name: Build
 on:
-  # Trigger the workflow on pushes to only the 'main' branch (this avoids duplicate checks being run e.g., for dependabot pull requests)
   push:
     branches: [ main ]
-  # Trigger the workflow on any pull request
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  # TODO: Remove the check for nrayburn-tech.
+  CACHE_READ_ONLY: >-
+    ${{ !((github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main')
+    || (github.event.pull_request.head.repo.full_name || github.repository) == 'nrayburn-tech/oxc-intellij-plugin') }}
+  # IntelliJ's archive is 1.5 GB and is just as easily downloaded fresh each time.
+  GRADLE_CACHE_EXCLUDES: caches/modules-2/files-2.1/com.jetbrains.intellij.idea
+  # Keep in sync with the project's Java toolchains.
+  JAVA_TOOLCHAIN_DISTRO: jetbrains
+  JAVA_TOOLCHAIN_VERSION: 25
+
 jobs:
 
-  cleanup-disk:
-    name: Cleanup Disk
+  test:
+    name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      # Free GitHub Actions Environment Disk Space
-      - name: Maximize Build Space
-        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
-        with:
-          tool-cache: false
-
-  # Prepare environment and build the plugin
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.properties.outputs.version }}
-      changelog: ${{ steps.properties.outputs.changelog }}
-      pluginVerifierHomeDir: ${{ steps.properties.outputs.pluginVerifierHomeDir }}
-      pluginArtifactId: ${{ steps.artifact.outputs.artifact-id }}
-    steps:
-
-      # Check out current repository
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
-      # Validate wrapper
-      - name: Gradle Wrapper Validation
-        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-
-      # Set up Java environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: zulu
-          java-version: 21
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
 
-      # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
-          # Read only cache when not executing on the main branch.
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+          gradle-home-cache-excludes: ${{ env.GRADLE_CACHE_EXCLUDES }}
 
-      # Set environment variables
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      # The highlighting tests start the real language server from the fixture's node_modules.
+      - name: Setup Oxlint Highlighting No Config Test
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Oxfmt Formatting Test
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
+      - name: Setup Vite+ Test
+        working-directory: src/test/testData/viteplus/project
+        run: npm ci
+
+      # The package manager tests read each manager's own install layout in a workspace. Yarn's
+      # release is committed in the fixture, and npx fetches pnpm and Bun, so each needs only Node.
+      - name: Setup npm Workspace Test
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup Yarn PnP Workspace Test
+        working-directory: src/test/testData/package-managers/yarn-pnp
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      - name: Setup Bun Workspace Test
+        working-directory: src/test/testData/package-managers/bun
+        run: npx -y bun@1.3.14 install --frozen-lockfile
+
+      # vp downloads the workspace's package manager the first time it runs, before it answers, which takes
+      # longer than the tests wait. The script runs each fixture's vp once, so that the download is done.
+      - name: Download Package Managers for Vite+
+        run: node .github/scripts/download-vite-plus-package-managers.mjs
+
+      - name: Run Tests
+        run: ./gradlew check
+
+      - name: Summarize Coverage
+        run: python3 .github/scripts/coverage-summary.py build/reports/kover/report.xml >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: ${{ github.workspace }}/build/reports/kover
+
+      - name: Collect Tests Result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tests-result
+          include-hidden-files: true
+          path: |
+            ${{ github.workspace }}/build/test-results/test
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+
+  # Runs the test suite as most Windows users run the plugin: without WSL. The WSL-only tests are skipped,
+  # because no distribution is configured.
+  test-windows:
+    name: Test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+          gradle-home-cache-excludes: ${{ env.GRADLE_CACHE_EXCLUDES }}
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Oxlint Highlighting No Config Test
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Oxfmt Formatting Test
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
+      - name: Setup Vite+ Test
+        working-directory: src/test/testData/viteplus/project
+        run: npm ci
+
+      - name: Setup npm Workspace Test
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup Yarn PnP Workspace Test
+        working-directory: src/test/testData/package-managers/yarn-pnp
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      - name: Setup Bun Workspace Test
+        working-directory: src/test/testData/package-managers/bun
+        run: npx -y bun@1.3.14 install --frozen-lockfile
+
+      - name: Download Package Managers for Vite+
+        run: node .github/scripts/download-vite-plus-package-managers.mjs
+
+      # The test projects go in the temp folder, which is on C: by default, while the checkout is on D:.
+      # The platform finds no Yarn PnP package for a project folder on another drive than the package.
+      - name: Run Tests
+        shell: bash
+        env:
+          OXC_TEST_TMPDIR: ${{ runner.temp }}
+        run: ./gradlew test
+
+      - name: Collect Tests Result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tests-result-windows
+          include-hidden-files: true
+          path: |
+            ${{ github.workspace }}/build/test-results/test
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+
+  # Runs the test suite with Node.js in WSL, for a project on the Windows side and for one stored inside
+  # WSL. Kept apart from the Windows job so that installing WSL neither changes nor slows down that run.
+  test-wsl:
+    name: Test (WSL, ${{ matrix.project }} project)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: Windows
+            tmpdir: ''
+            viteplus: ''
+            packagemanagers: ''
+          - project: WSL
+            tmpdir: '\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests'
+            viteplus: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-viteplus'
+            packagemanagers: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-package-managers'
+    env:
+      OXC_TEST_WSL_DISTRO: Ubuntu-24.04
+      OXC_TEST_WSL_NODE: /usr/local/bin/node
+      OXC_TEST_TMPDIR: ${{ matrix.tmpdir }}
+      OXC_TEST_VITEPLUS_FIXTURE: ${{ matrix.viteplus }}
+      OXC_TEST_PACKAGE_MANAGER_FIXTURES: ${{ matrix.packagemanagers }}
+    steps:
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
+
+      # Restores the cache that the `test-windows` job writes.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+
+      - name: Setup WSL
+        uses: Vampire/setup-wsl@4c48163d9f981914dd8caa0fc335fe19cca5bff4 # v7.2.0
+        with:
+          distribution: ${{ env.OXC_TEST_WSL_DISTRO }}
+          # The Node.js binary from nodejs.org needs libatomic1, which the distribution doesn't include.
+          additional-packages: curl libatomic1 xz-utils
+          use-cache: ${{ env.CACHE_READ_ONLY != 'true' }}
+
+      # The distribution's own package is too old for Oxlint.
+      - name: Setup Node in WSL
+        shell: wsl-bash {0}
+        run: |
+          version="$(tr -d '\r' < .node-version)"
+          curl -fsSL "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.xz" \
+            | tar -xJ -C /usr/local --strip-components=1
+
+      # Run inside WSL so that the Linux binaries are installed.
+      - name: Setup Oxlint Highlighting No Config Test
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Oxfmt Formatting Test
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
+      - name: Setup Vite+ Test
+        if: ${{ matrix.viteplus == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/viteplus/project
+        run: npm ci
+
+      # The Vite+ test adds the fixture's folder to the project, so for a project in WSL it has to be in
+      # WSL too. The platform didn't report a change to a file on the Windows drive in that setup. It goes
+      # in /var/tmp because WSL can stop the idle distribution while Gradle compiles, and /tmp is
+      # cleared when it starts again.
+      - name: Setup Vite+ Test in WSL
+        if: ${{ matrix.viteplus != '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/viteplus/project
+        run: |
+          mkdir -p /var/tmp/oxc-viteplus
+          cp package.json package-lock.json vite.config.ts index.js /var/tmp/oxc-viteplus/
+          cd /var/tmp/oxc-viteplus && npm ci
+
+      - name: Setup npm Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup Yarn PnP Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/yarn-pnp
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      # Bun links each package before extracting it. On a Windows drive WSL then seems to make a link
+      # that Windows can't open as a folder, so the IDE never finds the package. pnpm creates the folder
+      # first and has no such problem. Linking again, once every folder exists, works around that.
+      - name: Setup Bun Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/bun
+        run: |
+          npx -y bun@1.3.14 install --frozen-lockfile
+          find . -type l -path '*node_modules*' -print0 | while IFS= read -r -d '' link; do
+            ln -sfn "$(readlink "$link")" "$link"
+          done
+
+      # Fails here rather than in the tests if Windows still can't follow the links that WSL made.
+      - name: Check Linked Packages from Windows
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: pwsh
+        working-directory: src/test/testData/package-managers
+        run: |
+          $missing = foreach ($manager in 'bun', 'pnpm') {
+            foreach ($package in 'node_modules/oxlint', 'packages/nested/node_modules/oxlint', 'packages/vite/node_modules/vite-plus') {
+              $json = "$manager/$package/package.json"
+              if (-not (Test-Path -LiteralPath $json -PathType Leaf)) { $json }
+            }
+          }
+          if ($missing) { throw "Windows can't read through these links: $($missing -join ', ')" }
+
+      # For a project in WSL, the package manager fixtures go in WSL's /var/tmp for the same reasons as the
+      # Vite+ fixture. The shell stops at the first install that fails.
+      - name: Setup Package Manager Tests in WSL
+        if: ${{ matrix.packagemanagers != '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers
+        run: |
+          mkdir -p /var/tmp/oxc-package-managers
+          tar --exclude=node_modules -cf - npm yarn yarn-pnp pnpm bun | tar -xf - -C /var/tmp/oxc-package-managers
+          cd /var/tmp/oxc-package-managers
+          (cd npm && npm ci)
+          (cd yarn && node .yarn/releases/yarn-4.18.1.cjs install --immutable)
+          (cd yarn-pnp && node .yarn/releases/yarn-4.18.1.cjs install --immutable)
+          (cd pnpm && npx -y pnpm@12.18.0 install --frozen-lockfile)
+          (cd bun && npx -y bun@1.3.14 install --frozen-lockfile)
+
+      # In WSL, because that's where the tests' vp runs and keeps its downloads.
+      - name: Download Package Managers for Vite+
+        shell: wsl-bash {0}
+        run: node .github/scripts/download-vite-plus-package-managers.mjs ${{ matrix.packagemanagers != '' && '/var/tmp/oxc-package-managers' || 'src/test/testData/package-managers' }}
+
+      - name: Create Project Folder in WSL
+        if: ${{ matrix.tmpdir != '' }}
+        shell: wsl-bash {0}
+        run: mkdir -p /tmp/oxc-tests
+
+      # Using Git Bash rewrites OXC_TEST_WSL_NODE into a Windows path which we want to avoid.
+      # For a project on the Windows side, the temp folder moves to the checkout's drive, as in Test (Windows).
+      - name: Run Tests
+        shell: pwsh
+        env:
+          OXC_TEST_TMPDIR: ${{ matrix.tmpdir != '' && matrix.tmpdir || runner.temp }}
+        run: .\gradlew.bat test
+
+      - name: Collect Tests Result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tests-result-wsl-${{ matrix.project }}-project
+          include-hidden-files: true
+          path: |
+            ${{ github.workspace }}/build/test-results/test
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.properties.outputs.version }}
+      changelog: ${{ steps.properties.outputs.changelog }}
+      pluginArtifactId: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
+
+      # Restores the cache that the `test` job writes.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+
+      # The version and the unreleased changelog become the release draft's tag and notes.
       - name: Export Properties
         id: properties
         shell: bash
@@ -67,159 +409,28 @@ jobs:
           CHANGELOG="$(./gradlew getChangelog --unreleased --no-header --console=plain -q)"
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "pluginVerifierHomeDir=~/.pluginVerifier" >> $GITHUB_OUTPUT
-          
+
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # Build plugin
-      - name: Build and Sign plugin
-        # Secrets are not available to PRs. In those cases, the plugin will still be built unsigned.
+      - name: Build and Sign Plugin
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew signPlugin
 
-      # Prepare plugin archive content for creating artifact
-      - name: Prepare Plugin Artifact
-        id: artifact
-        shell: bash
-        run: |
-          cd ${{ github.workspace }}/build/distributions
-          FILENAME="$(shopt -s nullglob; echo *signed.zip)"
-          if test -z "$FILENAME"
-          then
-            FILENAME=$(ls *.zip)
-          fi
-          unzip "$FILENAME" -d content
-
-          echo "filename=${FILENAME:0:-4}" >> $GITHUB_OUTPUT
-
-      # Store already-built plugin as an artifact for downloading
-      - name: Upload artifact
+      - name: Upload Plugin Artifact
+        id: upload
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ steps.artifact.outputs.filename }}
-          path: ./build/distributions/content/*/*
+          name: plugin
+          path: ./build/distributions/*.zip
 
-  # Run tests and upload a code coverage report
-  test:
-    name: Test
-    needs: [ build ]
-    runs-on: ubuntu-latest
-    steps:
+      - name: Run Plugin Verification
+        run: ./gradlew verifyPlugin
 
-      # Check out current repository
-      - name: Fetch Sources
-        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
-
-      # Set up Java environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-        with:
-          distribution: zulu
-          java-version: 21
-
-      # Setup Gradle
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-        with:
-          cache-read-only: 'true'
-
-      # Setup Node and install dependencies
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .node-version
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Get NPM cache directory
-        id: npm_cache_dir
-        shell: bash
-        run: |
-          echo "NPM_CACHE_DIR=$(npm config get cache)" >> $GITHUB_OUTPUT
-
-      - name: Save and restore NPM cache on main
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: ${{ github.ref == 'refs/heads/main' }}
-        with:
-          path: ${{ steps.npm_cache_dir.outputs.NPM_CACHE_DIR }}
-          key: ${{ runner.os }}-npm-cache-dir-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-cache-dir
-
-      - name: Restore NPM cache on PR
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: ${{ github.ref != 'refs/heads/main' }}
-        with:
-          path: ${{ steps.npm_cache_dir.outputs.NPM_CACHE_DIR }}
-          key: |
-            ${{ runner.os }}-npm-cache-dir
-
-      - name: Setup Oxfmt Formatting Nested Config Test
-        working-directory: src/test/testData/oxfmt/formatting/nested-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting Custom Config Test
-        working-directory: src/test/testData/oxlint/highlighting/custom-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting Nested Config Test
-        working-directory: src/test/testData/oxlint/highlighting/nested-config
-        run: npm ci
-
-      - name: Setup Oxlint Highlighting No Config Test
-        working-directory: src/test/testData/oxlint/highlighting/no-config
-        run: npm ci
-
-      # Run tests
-      - name: Run Tests
-        run: ./gradlew check
-
-      # Collect Tests Result of failed tests
-      - name: Collect Tests Result
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: tests-result
-          path: ${{ github.workspace }}/build/reports/tests
-
-  # Run plugin structure verification along with IntelliJ Plugin Verifier
-  verify:
-    name: Verify plugin
-    needs: [ build, cleanup-disk ]
-    runs-on: ubuntu-latest
-    steps:
-      # Check out current repository
-      - name: Fetch Sources
-        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
-
-      # Set up Java environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-        with:
-          distribution: zulu
-          java-version: 21
-
-      # Setup Gradle
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-        with:
-          cache-read-only: 'true'
-
-      # Cache Plugin Verifier IDEs
-      - name: Setup Plugin Verifier IDEs Cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ needs.build.outputs.pluginVerifierHomeDir }}/ides
-          key: plugin-verifier-${{ hashFiles('build/listProductsReleases.txt') }}
-
-      # Run Verify Plugin task and IntelliJ Plugin Verifier tool
-      - name: Run Plugin Verification tasks
-        run: ./gradlew verifyPlugin -Dplugin.verifier.home.dir=${{ needs.build.outputs.pluginVerifierHomeDir }}
-
-      # Collect Plugin Verifier Result
       - name: Collect Plugin Verifier Result
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -231,8 +442,8 @@ jobs:
   # If accepted and published, release workflow would be triggered
   releaseDraft:
     name: Release draft
-    if: github.event_name != 'pull_request'
-    needs: [ build, test, verify ]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [ test, test-windows, test-wsl, build ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -251,13 +462,15 @@ jobs:
             --jq '.[] | select(.draft == true) | .id' \
             | xargs -I '{}' gh api -X DELETE repos/{owner}/{repo}/releases/{}
 
+      # The plugin artifact holds the unsigned and the signed zip. merge-multiple puts them straight in
+      # the path, without a folder named after the artifact.
       - name: Download Plugin Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         id: artifact-download
         with:
           artifact-ids: ${{ needs.build.outputs.pluginArtifactId }}
           path: plugin-artifact
-          skip-decompress: true
+          merge-multiple: true
 
       # Create a new release draft which is not publicly visible and requires manual acceptance
       - name: Create Release Draft
@@ -271,4 +484,4 @@ jobs:
           ${{ needs.build.outputs.changelog }}
           EOM
           )" \
-          ${{ steps.artifact-download.outputs.download-path }}/*/*signed.zip
+          ${{ steps.artifact-download.outputs.download-path }}/*signed.zip

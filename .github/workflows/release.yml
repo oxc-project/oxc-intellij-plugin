@@ -35,12 +35,12 @@ jobs:
           ref: ${{ github.event.release.tag_name }}
           token: ${{ steps.app-token.outputs.token }}
 
-      # Set up Java environment for the next steps
+      # Gradle runs on this JetBrains Runtime, which meets the build's toolchain without a download.
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: zulu
-          java-version: 21
+          distribution: jetbrains
+          java-version: 25
 
       # Setup Gradle
       - name: Setup Gradle

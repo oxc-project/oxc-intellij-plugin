@@ -1,0 +1,2 @@
+# Test fixtures are compared with what Oxlint produces, so keep them in LF on Windows checkouts too.
+src/test/testData/** text=auto eol=lf

@@ -1,0 +1,209 @@
+@file:Suppress("UnstableApiUsage")
+
+package com.github.oxc.project.oxcintellijplugin.backend.rpc
+
+import com.github.oxc.project.oxcintellijplugin.backend.files.BackendFolderLister
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigLoader
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixOnSaveFailures
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolServerStarter
+import com.github.oxc.project.oxcintellijplugin.backend.tool.askToTrustProject
+import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
+import com.github.oxc.project.oxcintellijplugin.shared.OxcFixOnSaveFailure
+import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
+import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
+import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFolder
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsData
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
+import com.intellij.ide.SaveAndSyncHandler
+import com.intellij.ide.vfs.VirtualFileId
+import com.intellij.ide.vfs.virtualFile
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.asContextElement
+import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.platform.project.ProjectId
+import com.intellij.platform.project.findProjectOrNull
+import com.intellij.platform.rpc.backend.RemoteApiProvider
+import fleet.rpc.remoteApiDescriptor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+
+internal class OxcBackendRpcApiProvider : RemoteApiProvider {
+  override fun RemoteApiProvider.Sink.remoteApis() {
+    remoteApi(remoteApiDescriptor<OxcToolApi>()) {
+      OxcToolApiImpl()
+    }
+    remoteApi(remoteApiDescriptor<BackendFilesApi>()) {
+      BackendFilesApiImpl()
+    }
+    remoteApi(remoteApiDescriptor<OxlintSettingsApi>()) {
+      OxlintSettingsApiImpl()
+    }
+    remoteApi(remoteApiDescriptor<OxfmtSettingsApi>()) {
+      OxfmtSettingsApiImpl()
+    }
+    remoteApi(remoteApiDescriptor<OxfmtCodeStyleApi>()) {
+      OxfmtCodeStyleApiImpl()
+    }
+  }
+}
+
+private class OxcToolApiImpl : OxcToolApi {
+
+  override suspend fun restart(projectId: ProjectId, tool: OxcTool) {
+    val project = projectId.findProjectOrNull() ?: return
+    withContext(Dispatchers.EDT) {
+      project.service<ToolServerStarter>().restart(ToolDefinition.of(tool))
+    }
+  }
+
+  override suspend fun startServerForFixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult? {
+    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.FileUnavailable
+    val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxcFixAllResult.FileUnavailable
+    return OxcFixAll.getInstance(project).startServerForFile(ToolDefinition.of(tool), virtualFile)
+  }
+
+  override suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult {
+    val project = projectId.findProjectOrNull() ?: return OxcFixAllResult.FileUnavailable
+    val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxcFixAllResult.FileUnavailable
+    return OxcFixAll.getInstance(project).fixFile(ToolDefinition.of(tool), virtualFile)
+  }
+
+  override suspend fun trustProject(projectId: ProjectId): Boolean {
+    val project = projectId.findProjectOrNull() ?: return false
+    return withContext(Dispatchers.EDT) { askToTrustProject(project) }
+  }
+
+  override suspend fun fixOnSaveFailures(projectId: ProjectId): Flow<OxcFixOnSaveFailure> {
+    val project = projectId.findProjectOrNull() ?: return emptyFlow()
+    return OxcFixOnSaveFailures.getInstance(project).failures
+  }
+}
+
+private class BackendFilesApiImpl : BackendFilesApi {
+
+  override suspend fun listFolder(projectId: ProjectId?, path: String?): BackendFolder =
+    withContext(Dispatchers.IO) {
+      BackendFolderLister(projectId?.findProjectOrNull()?.basePath).list(path)
+    }
+}
+
+private class OxlintSettingsApiImpl : OxlintSettingsApi {
+
+  override suspend fun load(projectId: ProjectId?): OxlintSettingsData =
+    settingsProject(projectId)?.let { OxlintSettings.getInstance(it).toData() } ?: OxlintSettingsData()
+
+  override suspend fun apply(projectId: ProjectId?, settings: OxlintSettingsData) {
+    val project = settingsProject(projectId) ?: return
+    OxlintSettings.getInstance(project).update(settings)
+    scheduleSave(project)
+  }
+
+  override suspend fun updates(projectId: ProjectId): Flow<OxlintSettingsData> {
+    val project = projectId.findProjectOrNull() ?: return emptyFlow()
+    return settingsUpdates(project, OxcTool.OXLINT) { OxlintSettings.getInstance(project).toData() }
+  }
+}
+
+private class OxfmtSettingsApiImpl : OxfmtSettingsApi {
+
+  override suspend fun load(projectId: ProjectId?): OxfmtSettingsData =
+    settingsProject(projectId)?.let { OxfmtSettings.getInstance(it).toData() } ?: OxfmtSettingsData()
+
+  override suspend fun apply(projectId: ProjectId?, settings: OxfmtSettingsData) {
+    val project = settingsProject(projectId) ?: return
+    OxfmtSettings.getInstance(project).update(settings)
+    scheduleSave(project)
+  }
+
+  override suspend fun updates(projectId: ProjectId): Flow<OxfmtSettingsData> {
+    val project = projectId.findProjectOrNull() ?: return emptyFlow()
+    return settingsUpdates(project, OxcTool.OXFMT) { OxfmtSettings.getInstance(project).toData() }
+  }
+}
+
+private class OxfmtCodeStyleApiImpl : OxfmtCodeStyleApi {
+
+  override suspend fun importCodeStyle(projectId: ProjectId, file: VirtualFileId): OxfmtImportResult {
+    val project = projectId.findProjectOrNull() ?: return OxfmtImportResult.FILE_UNAVAILABLE
+    val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxfmtImportResult.FILE_UNAVAILABLE
+    return importOxfmtCodeStyle(project, virtualFile)
+  }
+
+  override suspend fun configNotices(projectId: ProjectId): Flow<OxfmtConfigNotice> {
+    val project = projectId.findProjectOrNull() ?: return emptyFlow()
+    return OxfmtJsConfigLoader.getInstance(project).notices
+  }
+
+  override suspend fun openConfig(projectId: ProjectId, configUrl: String) {
+    val project = projectId.findProjectOrNull() ?: return
+    val file = VirtualFileManager.getInstance().findFileByUrl(configUrl)?.takeIf { it.isValid } ?: return
+    withContext(Dispatchers.EDT) { OpenFileDescriptor(project, file).navigate(true) }
+  }
+
+  override suspend fun showNodeSettings(projectId: ProjectId) {
+    val project = projectId.findProjectOrNull() ?: return
+    // Not over another dialog. An RPC call has no modality of its own.
+    withContext(Dispatchers.EDT + ModalityState.nonModal().asContextElement()) {
+      ShowSettingsUtil.getInstance().showSettingsDialog(project, { (it as? SearchableConfigurable)?.id in NODE_SETTINGS_IDS }, null)
+    }
+    // Nothing else says when the interpreter changes. In a local IDE this is after the page closes. A thin
+    // client's page doesn't hold the call, so this is at once there, and a fix shows on reopen or Import.
+    OxfmtJsConfigLoader.getInstance(project).retryNodeFailures()
+  }
+}
+
+/**
+ * The interpreter's page. In 2026.3 it's JavaScript Runtime, and the older Node.js page only shows when
+ * that one doesn't, so either can be there.
+ */
+private val NODE_SETTINGS_IDS = setOf("settings.javascript.runtime", "settings.nodejs")
+
+private fun settingsProject(projectId: ProjectId?): Project? =
+  if (projectId == null) ProjectManager.getInstance().defaultProject else projectId.findProjectOrNull()
+
+private fun scheduleSave(project: Project) {
+  if (!project.isDefault) SaveAndSyncHandler.getInstance().scheduleProjectSave(project)
+}
+
+/**
+ * Reads the settings when emitting, so that a value read earlier can't replace a newer change. Ends when
+ * the plugin unloads or the project closes, rather than waiting for the collector, which can be a thin
+ * client, to cancel.
+ */
+private fun <D : Any> settingsUpdates(project: Project, tool: OxcTool, read: () -> D): Flow<D> =
+  callbackFlow {
+    val lifetime = Disposer.newDisposable(OxcProjectDisposable.getInstance(project), "Oxc ${tool.name} settings updates")
+    Disposer.register(lifetime) { close() }
+    project.messageBus.connect(lifetime).subscribe(OxcSettingsListener.TOPIC, OxcSettingsListener { changedTool, _ ->
+      if (changedTool == tool) trySend(Unit)
+    })
+    send(Unit)
+    awaitClose { Disposer.dispose(lifetime) }
+  }.conflate().map { read() }.distinctUntilChanged()

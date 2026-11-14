@@ -1,0 +1,11 @@
+<idea-plugin>
+    <id>com.github.oxc.project.oxcintellijplugin</id>
+    <name>Oxc</name>
+    <vendor email="boshenc@gmail.com" url="https://oxc.rs">Oxc</vendor>
+
+    <content>
+        <module name="Oxc.Shared" loading="required"/>
+        <module name="Oxc.Backend" required-if-available="intellij.platform.backend"/>
+        <module name="Oxc.Frontend" required-if-available="intellij.platform.frontend"/>
+    </content>
+</idea-plugin>

@@ -4,9 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add support for IntelliJ split mode (Remote Development).
+
 ### Changed
 
 - **Breaking:** Rewrite the plugin to run in split mode.
+- **Breaking:** Minimum IntelliJ version updated to 2026.3+.
+- Remove the upper limit on supported IntelliJ versions.
 
 ## [0.0.45] - 2026-10-15
 

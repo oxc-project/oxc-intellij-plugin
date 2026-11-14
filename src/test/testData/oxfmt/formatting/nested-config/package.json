@@ -1,8 +1,0 @@
-{
-  "name": "oxc-fmt",
-  "version": "1.0.0",
-  "private": true,
-  "devDependencies": {
-    "oxfmt": "0.73.0"
-  }
-}

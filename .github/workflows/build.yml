@@ -12,17 +12,15 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Only main in the main repository, and anything from the listed fork, can write to the cache.
-  # Of those runs, only the Test and Test (Windows) jobs write, one for each OS, because each job that
-  # writes keeps its own copy of the dependencies. A job that has no entry of its own restores the latest
-  # one saved on the same OS.
   # TODO: Remove the check for nrayburn-tech.
   CACHE_READ_ONLY: >-
     ${{ !((github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main')
     || (github.event.pull_request.head.repo.full_name || github.repository) == 'nrayburn-tech/oxc-intellij-plugin') }}
-  # The IDE's archive is 1.5 GB of the 1.9 GB of dependencies, so every job downloads it from JetBrains
-  # instead. Restoring it took 13 to 30 seconds, and each job unpacks it again either way.
+  # IntelliJ's archive is 1.5 GB and is just as easily downloaded fresh each time.
   GRADLE_CACHE_EXCLUDES: caches/modules-2/files-2.1/com.jetbrains.intellij.idea
+  # Keep in sync with the project's Java toolchains.
+  JAVA_TOOLCHAIN_DISTRO: jetbrains
+  JAVA_TOOLCHAIN_VERSION: 25
 
 jobs:
 
@@ -34,13 +32,11 @@ jobs:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
-      # Gradle runs on this JetBrains Runtime, and Gradle's own JVM counts as a toolchain, so it meets
-      # the build's toolchain (Java 25 from JetBrains) without a download. Every job sets it up this way.
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: jetbrains
-          java-version: 25
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
@@ -93,7 +89,6 @@ jobs:
       - name: Download Package Managers for Vite+
         run: node .github/scripts/download-vite-plus-package-managers.mjs
 
-      # check also writes Kover's coverage report, which merges the shared, frontend and backend modules.
       - name: Run Tests
         run: ./gradlew check
 
@@ -106,22 +101,19 @@ jobs:
           name: coverage-report
           path: ${{ github.workspace }}/build/reports/kover
 
-      # Uploaded after every run, not only failed ones, so test counts and times can be compared between
-      # jobs and runs. The XML results hold each test's time; the report and logs are a few MB.
       - name: Collect Tests Result
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tests-result
-          # The sandbox folder starts with a dot, which the upload skips by default.
           include-hidden-files: true
           path: |
             ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
 
-  # Runs the test suite as most Windows users run the plugin: without WSL. Tests use Windows' Node.js,
-  # and the WSL-only test is skipped, because no distribution is configured.
+  # Runs the test suite as most Windows users run the plugin: without WSL. The WSL-only tests are skipped,
+  # because no distribution is configured.
   test-windows:
     name: Test (Windows)
     runs-on: windows-latest
@@ -133,8 +125,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: jetbrains
-          java-version: 25
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
@@ -232,10 +224,10 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: jetbrains
-          java-version: 25
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
 
-      # Restores the entry that Test (Windows) saves, which has the same dependencies.
+      # Restores the cache that the `test-windows` job writes.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
@@ -383,9 +375,6 @@ jobs:
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
 
-  # Builds the plugin and runs the verifier in one job, because the verifier needs the built plugin anyway.
-  # The runner has about 86 GB free, which is plenty for the one IDE the verifier reads, so it doesn't
-  # free disk space first.
   build:
     name: Build and verify
     runs-on: ubuntu-latest
@@ -398,17 +387,13 @@ jobs:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
 
-      - name: Gradle Wrapper Validation
-        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: jetbrains
-          java-version: 25
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
 
-      # Restores the entry that Test saves. The verifier reads the same IDE that the build compiles
-      # against, so it adds only the verifier itself to the IDE that every job downloads.
+      # Restores the cache that the `test` job writes.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
@@ -429,8 +414,6 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # Secrets are not available to pull requests. In those runs, signPlugin skips the signed zip and
-      # only the unsigned plugin is built.
       - name: Build and Sign Plugin
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}

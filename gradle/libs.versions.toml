@@ -1,6 +1,6 @@
 [versions]
-# The rpc plugin is a Kotlin compiler plugin, so its version must match the Kotlin version.
-# See https://plugins.jetbrains.com/docs/intellij/configuring-split-mode.html
+# The rpc plugin is a Kotlin compiler plugin that is only compatible with specific Kotlin serialization versions.
+# See https://plugins.jetbrains.com/docs/intellij/configuring-split-mode.html#required-gradle-plugin-and-library-versions
 kotlin = "2.4.0"
 rpc = "2.4.0-RC-0.1"
 changelog = "2.5.0"

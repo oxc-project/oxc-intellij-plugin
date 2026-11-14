@@ -16,6 +16,8 @@ Start an IDE with the plugin installed, running as a single process without spli
 ./gradlew :runIdeMonolith
 ```
 
+In IntelliJ IDEA, the **Run IDE with Plugin (Monolith)** run configuration runs the same Gradle task.
+
 ## Running the tests
 
 The highlighting tests start a real language server from their fixture's `node_modules`, so they need Node on your
@@ -35,6 +37,3 @@ its `Test (WSL)` jobs. New tests that use Node should extend `OxcFixtureTestCase
 
 Test projects are created on the Windows side by default. To store them inside WSL, set `OXC_TEST_TMPDIR` to an existing
 folder in the distribution, such as `\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests`.
-
-Passing tests and Plugin Verifier runs don't show that a content module can load the classes it needs, so also check
-new features in one of the IDEs above.

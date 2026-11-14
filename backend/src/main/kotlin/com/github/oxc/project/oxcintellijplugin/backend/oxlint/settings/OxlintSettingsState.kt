@@ -5,11 +5,16 @@ import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFix
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintUnusedDisableDirectives
 import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.util.xmlb.annotations.Transient
 import com.intellij.util.xmlb.annotations.XMap
 
-private const val LEGACY_DISABLE_NESTED_CONFIG_KEY = "disable_nested_config"
-private const val LEGACY_FIX_KIND_KEY = "fix_kind"
+private const val DISABLE_NESTED_CONFIG_KEY = "disable_nested_config"
+private const val FIX_KIND_KEY = "fix_kind"
 
+/**
+ * Stored in the same layout as older versions of the plugin, so that a project file shared with one reads
+ * the same in both.
+ */
 class OxlintSettingsState : BaseState() {
 
   var configurationMode by enum(ConfigurationMode.AUTOMATIC)
@@ -22,59 +27,44 @@ class OxlintSettingsState : BaseState() {
   var typeAware by property(false)
 
   var fixAllOnSave by property(false)
-  var disableNestedConfig by property(false)
-  var fixKind by enum(OxlintFixKind.SAFE_FIX)
 
   /**
-   * Where older versions of the plugin keep [disableNestedConfig] and [fixKind], as
-   * `<flags><entry key="fix_kind" value="DANGEROUS_FIX" /></flags>`. It's kept in step with those
-   * fields, so that a project file shared with an older version reads the same in both. A missing
-   * key means the default, in both versions. Other keys are left alone.
+   * Holds [disableNestedConfig] and [fixKind], as `<flags><entry key="fix_kind" value="DANGEROUS_FIX" /></flags>`.
+   * A missing key means the default. Other keys are left alone.
    */
   @get:XMap
   var flags by map<String, String>()
 
-  /**
-   * Called when the file is read. A typed field that the file leaves at its default takes the
-   * value from [flags]; one that the file sets wins over [flags].
-   */
-  fun mergeLegacyFlags() {
-    val legacy = flags
-    if (!disableNestedConfig) {
-      legacy[LEGACY_DISABLE_NESTED_CONFIG_KEY]?.let { disableNestedConfig = it.toBoolean() }
+  @get:Transient
+  var disableNestedConfig: Boolean
+    get() = flags[DISABLE_NESTED_CONFIG_KEY]?.toBoolean() ?: false
+    set(value) = setFlag(DISABLE_NESTED_CONFIG_KEY, value.toString().takeIf { value })
+
+  @get:Transient
+  var fixKind: OxlintFixKind
+    get() = storedFixKind() ?: OxlintFixKind.SAFE_FIX
+    set(value) = setFlag(FIX_KIND_KEY, value.name.takeIf { value != OxlintFixKind.SAFE_FIX })
+
+  /** Called when the file is read. Rewrites the fix kind in upper case, and drops one that isn't known. */
+  fun normalizeFlags() {
+    val value = flags[FIX_KIND_KEY] ?: return
+    val kind = storedFixKind()
+    if (kind == null) {
+      logger<OxlintSettingsState>().warn("Ignoring unknown Oxlint fix kind: $value")
     }
-    if (fixKind == OxlintFixKind.SAFE_FIX) {
-      legacy[LEGACY_FIX_KIND_KEY]?.let { value ->
-        val legacyFixKind = OxlintFixKind.entries.find { it.name == value.uppercase() }
-        if (legacyFixKind == null) {
-          logger<OxlintSettingsState>().warn("Ignoring unknown Oxlint fix kind: $value")
-        }
-        else {
-          fixKind = legacyFixKind
-        }
-      }
-    }
-    syncLegacyFlags()
+    setFlag(FIX_KIND_KEY, kind?.name)
   }
 
-  /** Writes [disableNestedConfig] and [fixKind] into [flags], in the form older versions read. */
-  fun syncLegacyFlags() {
-    val synced = LinkedHashMap(flags)
-    if (disableNestedConfig) {
-      synced[LEGACY_DISABLE_NESTED_CONFIG_KEY] = true.toString()
-    }
-    else {
-      synced.remove(LEGACY_DISABLE_NESTED_CONFIG_KEY)
-    }
-    if (fixKind != OxlintFixKind.SAFE_FIX) {
-      synced[LEGACY_FIX_KIND_KEY] = fixKind.name
-    }
-    else {
-      synced.remove(LEGACY_FIX_KIND_KEY)
-    }
+  /** Older versions wrote the name in either case. */
+  private fun storedFixKind(): OxlintFixKind? =
+    flags[FIX_KIND_KEY]?.let { value -> OxlintFixKind.entries.find { it.name == value.uppercase() } }
+
+  private fun setFlag(key: String, value: String?) {
+    val updated = LinkedHashMap(flags)
+    if (value == null) updated.remove(key) else updated[key] = value
     // Assigned only on a change, because assigning counts as a modification.
-    if (synced != flags) {
-      flags = synced
+    if (updated != flags) {
+      flags = updated
     }
   }
 }

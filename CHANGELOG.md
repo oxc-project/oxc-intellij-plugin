@@ -18,7 +18,6 @@
 - **Breaking:** Minimum IntelliJ version updated to 2026.3+.
 - Remove the upper limit on supported IntelliJ versions.
 - Oxlint now reloads changed config files itself, instead of the plugin restarting its language server.
-- **Breaking:** The Oxlint fix kind and nested config settings move out of `flags` in `.idea/OxcSettings.xml`. Existing values are read, but older plugin versions can't read the new fields.
 - Oxlint's manual config path is watched when it's outside the workspace, and changing it restarts the language server.
 - Oxfmt also reloads changed config files itself. A manual config path outside the workspace is watched, and changing it restarts the language server.
 - "Apply Oxfmt Quick Fixes" now says when a file is already formatted, shows cancellable progress without blocking the IDE, and can format a closed file. Its timeout is per file, 30 seconds by default, and set by the Registry key `oxc.fmt.fix.all.timeout.ms`.

@@ -59,7 +59,7 @@ class OxlintSettingsTest : BasePlatformTestCase() {
   }
 
   /** The layout main writes, from `@get:XMap` on its `flags` field. */
-  fun testFlagsFromMainFillTheTypedFields() {
+  fun testMainsFileIsReadAndSavedTheSameWay() {
     load("""
       <component name="OxcSettings">
         <option name="fixAllOnSave" value="true" />
@@ -79,29 +79,11 @@ class OxlintSettingsTest : BasePlatformTestCase() {
     assertEquals(OxlintUnusedDisableDirectives.WARN, settings.state.unusedDisableDirectives)
 
     val saved = saved()
-    assertTrue(saved, """<option name="fixKind" value="DANGEROUS_FIX" />""" in saved)
-    assertTrue(saved, """<option name="disableNestedConfig" value="true" />""" in saved)
+    assertFalse(saved, "fixKind" in saved || "disableNestedConfig" in saved)
     assertTrue(saved, "<flags>" in saved)
     assertFalse(saved, """<option name="flags">""" in saved)
     assertTrue(saved, """<entry key="fix_kind" value="DANGEROUS_FIX" />""" in saved)
     assertTrue(saved, """<entry key="disable_nested_config" value="true" />""" in saved)
-  }
-
-  fun testTypedValuesWinOverFlags() {
-    load("""
-      <component name="OxcSettings">
-        <option name="disableNestedConfig" value="true" />
-        <option name="fixKind" value="ALL" />
-        <flags>
-          <entry key="fix_kind" value="DANGEROUS_FIX" />
-          <entry key="disable_nested_config" value="false" />
-        </flags>
-      </component>
-    """)
-
-    assertEquals(OxlintFixKind.ALL, settings.state.fixKind)
-    assertTrue(settings.state.disableNestedConfig)
-    assertEquals(mapOf("fix_kind" to "ALL", "disable_nested_config" to "true"), settings.state.flags)
   }
 
   fun testLowercaseLegacyFixKindIsRead() {
@@ -138,7 +120,7 @@ class OxlintSettingsTest : BasePlatformTestCase() {
     assertEquals(mapOf("something_else" to "1", "fix_kind" to "NONE"), settings.state.flags)
   }
 
-  fun testUpdateKeepsFlagsInStepWithTheTypedFields() {
+  fun testUpdateWritesTheFlags() {
     settings.update(settings.toData().copy(disableNestedConfig = true, fixKind = OxlintFixKind.ALL))
 
     assertEquals(mapOf("disable_nested_config" to "true", "fix_kind" to "ALL"), settings.state.flags)

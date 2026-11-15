@@ -2,192 +2,107 @@
 
 package com.github.oxc.project.oxcintellijplugin.frontend.files
 
-import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
-import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFileEntry
-import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
-import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFolder
-import com.intellij.icons.AllIcons
-import com.intellij.openapi.application.EDT
-import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.application.asContextElement
-import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileChooser.FileChooser
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.platform.eel.EelDescriptor
+import com.intellij.platform.eel.EelPathBoundDescriptor
+import com.intellij.platform.eel.path.EelPath
+import com.intellij.platform.eel.path.EelPathException
+import com.intellij.platform.eel.provider.asEelPath
+import com.intellij.platform.eel.provider.asNioPath
+import com.intellij.platform.eel.provider.getEelDescriptor
 import com.intellij.platform.ide.productMode.IdeProductMode
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.platform.project.projectId
-import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.DoubleClickListener
-import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBList
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextField
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
 import fleet.rpc.client.durable
+import java.nio.file.Path
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.awt.BorderLayout
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import java.awt.event.MouseEvent
-import javax.swing.DefaultListModel
-import javax.swing.JComponent
-import javax.swing.JList
-import javax.swing.JPanel
-import javax.swing.ListSelectionModel
 
 /**
- * Asks for a file on the machine that runs the language servers. A monolith uses the platform's file
- * chooser. A thin client's chooser shows its own machine, and its Host tab had no roots when connected
- * to a Linux backend in 2026.3, so a thin client browses over RPC instead.
+ * Asks for a file on the machine that runs the language servers. A thin client's chooser is limited
+ * to the backend's files, and the path it returns is the backend's.
  */
 fun chooseBackendFile(project: Project, title: String, currentPath: String): String? {
-  if (IdeProductMode.isFrontend) {
-    val dialog = BackendFileChooserDialog(project, title, currentPath)
-    return if (dialog.showAndGet()) dialog.selectedPath else null
+  val descriptor = FileChooserDescriptorFactory.singleFile().withTitle(title)
+  if (!IdeProductMode.isFrontend) {
+    val current = currentPath.takeIf { it.isNotBlank() }
+      ?.let(LocalFileSystem.getInstance()::findFileByPath)
+    return FileChooser.chooseFile(descriptor, project, current)?.path
   }
 
-  val descriptor = FileChooserDescriptorFactory.singleFile().withTitle(title)
-  val current = currentPath.takeIf { it.isNotBlank() }?.let(LocalFileSystem.getInstance()::findFileByPath)
-  return FileChooser.chooseFile(descriptor, project, current)?.path
+  val backend = runWithModalProgressBlocking(project, title) {
+    val projectPath = backendProjectPath(project)
+    withContext(Dispatchers.IO) { BackendLocation.find(project, projectPath, currentPath) }
+  }
+  val chosen = FileChooser.chooseFile(backend.restrict(descriptor), project, backend.current)
+  return chosen?.toNioPath()?.asEelPath()?.toString()
 }
 
-@Service(Service.Level.PROJECT)
-private class BackendFileChooserScope(val scope: CoroutineScope)
-
-private class BackendFileChooserDialog(
-  private val project: Project,
-  title: String,
-  private val initialPath: String,
-) : DialogWrapper(project, true) {
-
-  private val pathField = JBTextField()
-  private val entries = DefaultListModel<BackendFileEntry>()
-  private val list = JBList(entries)
-  private val errorLabel = JBLabel().apply {
-    foreground = UIUtil.getErrorForeground()
-    isVisible = false
+/** The frontend's own project folder is on the client's machine. */
+private suspend fun backendProjectPath(project: Project): String? {
+  if (project.isDefault) return null
+  val projectId = project.projectId()
+  return try {
+    withContext(Dispatchers.Default) { durable { OxcToolApi.getInstance().projectPath(projectId) } }
+  } catch (exception: CancellationException) {
+    throw exception
+  } catch (exception: Exception) {
+    logger<BackendLocation>().warn(exception)
+    null
   }
-  private var loading: Job? = null
+}
 
-  var selectedPath: String? = null
-    private set
+private class BackendLocation(val root: VirtualFile?, val current: VirtualFile?) {
 
-  init {
-    this.title = title
-    isOKActionEnabled = false
-    init()
-    load(initialPath)
-  }
+  /** Without the backend's root, only the project's environment is shown. */
+  fun restrict(descriptor: FileChooserDescriptor): FileChooserDescriptor =
+    root?.let(descriptor::withRoots) ?: descriptor.withEnvironmentRestricted(true)
 
-  override fun getPreferredFocusedComponent(): JComponent = list
+  companion object {
 
-  override fun createCenterPanel(): JComponent {
-    list.selectionMode = ListSelectionModel.SINGLE_SELECTION
-    list.cellRenderer = EntryRenderer()
-    list.addListSelectionListener { isOKActionEnabled = list.selectedValue?.isDirectory == false }
-    object : DoubleClickListener() {
-      override fun onDoubleClick(event: MouseEvent): Boolean {
-        openSelection()
-        return true
+    fun find(project: Project, projectPath: String?, currentPath: String): BackendLocation {
+      val backend = project.getEelDescriptor()
+      val root = (backend as? EelPathBoundDescriptor)?.rootPath?.let(::findFile)
+      val current = clientPath(backend, projectPath, currentPath)?.let { path ->
+        generateSequence(path) { it.parent }.firstNotNullOfOrNull(::findFile)
       }
-    }.installOn(list)
-    list.addKeyListener(object : KeyAdapter() {
-      override fun keyPressed(event: KeyEvent) {
-        if (event.keyCode == KeyEvent.VK_ENTER) {
-          event.consume()
-          openSelection()
-        }
-      }
-    })
-    pathField.addKeyListener(object : KeyAdapter() {
-      override fun keyPressed(event: KeyEvent) {
-        if (event.keyCode == KeyEvent.VK_ENTER) {
-          event.consume()
-          load(pathField.text)
-        }
-      }
-    })
-
-    return JPanel(BorderLayout(0, JBUI.scale(8))).apply {
-      add(pathField, BorderLayout.NORTH)
-      add(JBScrollPane(list).apply { preferredSize = JBUI.size(560, 360) }, BorderLayout.CENTER)
-      add(errorLabel, BorderLayout.SOUTH)
+      return BackendLocation(root, current)
     }
-  }
 
-  override fun doOKAction() {
-    selectedPath = list.selectedValue?.takeUnless { it.isDirectory }?.path ?: return
-    super.doOKAction()
-  }
-
-  override fun dispose() {
-    loading?.cancel()
-    super.dispose()
-  }
-
-  private fun openSelection() {
-    val entry = list.selectedValue ?: return
-    if (entry.isDirectory) load(entry.path) else doOKAction()
-  }
-
-  private fun load(path: String?) {
-    loading?.cancel()
-    val modality = ModalityState.stateForComponent(contentPanel).asContextElement()
-    loading = project.service<BackendFileChooserScope>().scope.launch(Dispatchers.Default) {
-      val projectId = project.takeUnless { it.isDefault }?.projectId()
-      val folder = try {
-        durable { BackendFilesApi.getInstance().listFolder(projectId, path) }
+    /** A blank path means the project's folder, and a relative path is relative to it. */
+    private fun clientPath(backend: EelDescriptor, projectPath: String?, path: String): Path? {
+      val project = projectPath?.let { parse(it, backend) }
+      val eelPath = when {
+        path.isBlank() -> project
+        else -> parse(path, backend) ?: project?.let { resolve(it, path) }
       }
-      catch (exception: CancellationException) {
-        throw exception
-      }
-      catch (exception: Exception) {
-        // Shown in the dialog, where the lister's own errors go, rather than as a balloon behind it.
-        logger<BackendFileChooserDialog>().warn(exception)
-        BackendFolder(
-          path = path.orEmpty(),
-          parent = null,
-          entries = emptyList(),
-          error = OxcFrontendBundle.message("files.chooser.load.failed", exception.message.orEmpty()),
-        )
-      }
-      withContext(Dispatchers.EDT + modality) { show(folder, path) }
+      return eelPath?.let { runCatching { it.asNioPath() }.getOrNull() }
     }
-  }
 
-  private fun show(folder: BackendFolder, requestedPath: String?) {
-    pathField.text = folder.path
-    entries.clear()
-    folder.parent?.let {
-      entries.addElement(BackendFileEntry(OxcFrontendBundle.message("files.chooser.parent"), it, true))
-    }
-    folder.entries.forEach(entries::addElement)
-    errorLabel.text = folder.error.orEmpty()
-    errorLabel.isVisible = folder.error != null
-    list.setSelectedValue(folder.entries.firstOrNull { it.path == requestedPath }, true)
-  }
+    private fun parse(path: String, backend: EelDescriptor): EelPath? =
+      try {
+        EelPath.parse(path, backend)
+      } catch (_: EelPathException) {
+        null
+      }
 
-  private class EntryRenderer : ColoredListCellRenderer<BackendFileEntry>() {
-    override fun customizeCellRenderer(
-      list: JList<out BackendFileEntry>,
-      value: BackendFileEntry,
-      index: Int,
-      selected: Boolean,
-      hasFocus: Boolean,
-    ) {
-      icon = if (value.isDirectory) AllIcons.Nodes.Folder else AllIcons.FileTypes.Any_type
-      append(value.name, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-    }
+    private fun resolve(base: EelPath, relative: String): EelPath? =
+      try {
+        base.resolve(relative)
+      } catch (_: EelPathException) {
+        null
+      }
+
+    private fun findFile(path: Path): VirtualFile? =
+      VirtualFileManager.getInstance().refreshAndFindFileByNioPath(path)
   }
 }

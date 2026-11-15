@@ -3,7 +3,6 @@ package com.github.oxc.project.oxcintellijplugin
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
-import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
@@ -150,13 +149,13 @@ class PluginLoadingTest : BasePlatformTestCase() {
         assertEquals(OxlintSettings.getInstance(project).toData(), PlatformTestUtil.waitForFuture(call, 30_000))
     }
 
-    fun testBackendListsFoldersOverRpc() {
+    fun testBackendReportsProjectPathOverRpc() {
         val projectId = project.projectId()
-        val call = ApplicationManager.getApplication().executeOnPooledThread<String> {
-            runBlocking { BackendFilesApi.getInstance().listFolder(projectId, "/").path }
+        val call = ApplicationManager.getApplication().executeOnPooledThread<String?> {
+            runBlocking { OxcToolApi.getInstance().projectPath(projectId) }
         }
 
-        assertNotNull(PlatformTestUtil.waitForFuture(call, 30_000))
+        assertEquals(project.basePath, PlatformTestUtil.waitForFuture(call, 30_000))
     }
 
     fun testBackendAnswersOverRpc() {

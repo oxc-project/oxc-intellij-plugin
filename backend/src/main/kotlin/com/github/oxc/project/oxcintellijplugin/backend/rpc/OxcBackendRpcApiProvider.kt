@@ -2,7 +2,6 @@
 
 package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
-import com.github.oxc.project.oxcintellijplugin.backend.files.BackendFolderLister
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigLoader
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
@@ -17,8 +16,6 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixOnSaveFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
-import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFilesApi
-import com.github.oxc.project.oxcintellijplugin.shared.files.BackendFolder
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
@@ -58,9 +55,6 @@ internal class OxcBackendRpcApiProvider : RemoteApiProvider {
   override fun RemoteApiProvider.Sink.remoteApis() {
     remoteApi(remoteApiDescriptor<OxcToolApi>()) {
       OxcToolApiImpl()
-    }
-    remoteApi(remoteApiDescriptor<BackendFilesApi>()) {
-      BackendFilesApiImpl()
     }
     remoteApi(remoteApiDescriptor<OxlintSettingsApi>()) {
       OxlintSettingsApiImpl()
@@ -104,14 +98,9 @@ private class OxcToolApiImpl : OxcToolApi {
     val project = projectId.findProjectOrNull() ?: return emptyFlow()
     return OxcFixOnSaveFailures.getInstance(project).failures
   }
-}
 
-private class BackendFilesApiImpl : BackendFilesApi {
-
-  override suspend fun listFolder(projectId: ProjectId?, path: String?): BackendFolder =
-    withContext(Dispatchers.IO) {
-      BackendFolderLister(projectId?.findProjectOrNull()?.basePath).list(path)
-    }
+  override suspend fun projectPath(projectId: ProjectId): String? =
+    projectId.findProjectOrNull()?.basePath
 }
 
 private class OxlintSettingsApiImpl : OxlintSettingsApi {

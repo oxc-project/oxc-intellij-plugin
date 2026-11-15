@@ -39,6 +39,9 @@ interface OxcToolApi : RemoteApi<Unit> {
    */
   suspend fun fixOnSaveFailures(projectId: ProjectId): Flow<OxcFixOnSaveFailure>
 
+  /** The project's folder as the backend sees it, or null if it cannot be found. */
+  suspend fun projectPath(projectId: ProjectId): String?
+
   companion object {
     suspend fun getInstance(): OxcToolApi =
       RemoteApiProviderService.resolve(remoteApiDescriptor<OxcToolApi>())

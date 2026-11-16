@@ -8,15 +8,14 @@ import com.intellij.execution.wsl.WslPath
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.platform.eel.EelDescriptor
-import com.intellij.platform.eel.EelUnavailableException
 import com.intellij.platform.eel.EelExecApi
+import com.intellij.platform.eel.EelUnavailableException
 import com.intellij.platform.eel.environmentVariables
 import com.intellij.platform.eel.isWindows
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
-import com.intellij.util.system.OS
 import java.nio.file.Path
 
 private val LOG = Logger.getInstance(NativeServerRun::class.java)
@@ -69,7 +68,7 @@ class NativeServerRun(
   private fun environmentCommandLine(): Pair<GeneralCommandLine, ServerPathMapper> {
     val environment = launchEnvironment(executable, workingDirectory)
     if (environment is LocalEelDescriptor) {
-      return nativeCommandLine(executable, parameters, workingDirectory) to UnchangedPathMapper
+      return nativeCommandLine(executable, parameters, workingDirectory, isWindows = environment.osFamily.isWindows) to UnchangedPathMapper
     }
 
     val commandLine = nativeCommandLine(
@@ -111,7 +110,7 @@ fun nativeCommandLine(
   executable: String,
   parameters: List<String>,
   workingDirectory: String,
-  isWindows: Boolean = OS.CURRENT == OS.Windows,
+  isWindows: Boolean,
   commandInterpreter: String? = System.getenv("ComSpec"),
   existingVariables: Set<String>? = null,
 ): GeneralCommandLine {

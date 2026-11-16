@@ -111,6 +111,7 @@ jobs:
             ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/failed-tests
 
   # Runs the test suite as most Windows users run the plugin: without WSL. The WSL-only tests are skipped,
   # because no distribution is configured.
@@ -192,6 +193,7 @@ jobs:
             ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/failed-tests
 
   # Runs the test suite with Node.js in WSL, for a project on the Windows side and for one stored inside
   # WSL. Kept apart from the Windows job so that installing WSL neither changes nor slows down that run.
@@ -374,6 +376,7 @@ jobs:
             ${{ github.workspace }}/build/test-results/test
             ${{ github.workspace }}/build/reports/tests
             ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/failed-tests
 
   build:
     name: Build and verify

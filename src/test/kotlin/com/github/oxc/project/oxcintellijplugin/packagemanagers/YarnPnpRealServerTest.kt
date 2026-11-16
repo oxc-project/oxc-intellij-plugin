@@ -25,6 +25,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -35,10 +36,10 @@ import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.util.PathUtil
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.runBlocking
 
 private const val ROOT_FORMATTED = "debugger;\nconst a = 'b';\n"
 private const val NESTED_FORMATTED = "debugger;\nconst a = \"b\";\n"
@@ -81,6 +82,23 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
 
   private lateinit var root: VirtualFile
   private val originals = mutableMapOf<VirtualFile, String>()
+
+  /**
+   * With a WSL interpreter the platform never loads the PnP tree, so only the test that doesn't need it
+   * runs. It loads the tree with `yarn node` from a pooled thread that has no job, and starting a process
+   * in WSL needs one: `WslTargetEnvironment.createProcess` throws "There is no ProgressIndicator or Job in
+   * this thread" (CI run 43795586963). The platform logs that and doesn't try again.
+   *
+   * On Windows `vp lint --lsp` exits before its server starts. vite-plus 1.5.0 and 1.6.0 resolve
+   * `oxlint-tsgolint` for every lint run, type-aware or not, and on Windows only take a `tsgolint.exe` or
+   * `tsgolint.cmd` from a `node_modules/.bin` folder, which Yarn PnP doesn't create: "Unable to resolve
+   * oxlint-tsgolint executable".
+   */
+  override fun shouldRunTest(): Boolean = when {
+    WslTesting.enabled -> name == "testYarnIsTheFixturesRelease"
+    SystemInfo.isWindows -> name != "testVitePlusFolder"
+    else -> true
+  } && super.shouldRunTest()
 
   /**
    * Checks the fixture on disk rather than through the VFS: until the fixture is a content root, the test

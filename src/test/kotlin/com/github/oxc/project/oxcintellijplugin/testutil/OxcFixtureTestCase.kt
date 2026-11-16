@@ -2,10 +2,16 @@ package com.github.oxc.project.oxcintellijplugin.testutil
 
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
+import com.intellij.openapi.application.PathManager
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.testFramework.builders.ModuleFixtureBuilder
 import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase
 import com.intellij.testFramework.fixtures.ModuleFixture
+import com.intellij.util.ThrowableRunnable
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.time.Instant
 
 /**
  * Names in the command of a process that runs a server: Node and the native binaries. Not WSL's own
@@ -23,8 +29,11 @@ private val SERVER_COMMANDS = listOf("node", "oxlint", "oxfmt")
 abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleFixture>>() {
 
   private var processesBefore: Set<Long> = emptySet()
+  private var started: Instant = Instant.now()
+  private var failed = false
 
   override fun setUp() {
+    started = Instant.now()
     super.setUp()
     processesBefore = ProcessHandle.current().descendants().map { it.pid() }.toList().toSet()
     if (WslTesting.enabled) {
@@ -54,7 +63,43 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
       addSuppressedException(e)
     }
     finally {
-      super.tearDown()
+      try {
+        if (failed) keepServerLogs()
+      }
+      catch (e: Throwable) {
+        addSuppressedException(e)
+      }
+      finally {
+        super.tearDown()
+      }
+    }
+  }
+
+  override fun runTestRunnable(testRunnable: ThrowableRunnable<Throwable>) {
+    try {
+      super.runTestRunnable(testRunnable)
+    }
+    catch (e: Throwable) {
+      failed = true
+      throw e
+    }
+  }
+
+  /**
+   * Copies the server logs that a failed test wrote to `failed-tests` beside them, which CI uploads. The
+   * platform keeps only the newest 10 in `language-services`, so a whole run's later tests delete them.
+   * Runs after the servers have stopped, so a log ends with how its server exited.
+   */
+  private fun keepServerLogs() {
+    val logs = Path.of(PathManager.getLogPath())
+    val source = logs.resolve("language-services")
+    if (!Files.isDirectory(source)) return
+    val target = logs.resolve("failed-tests").resolve("${javaClass.simpleName}.$name")
+    Files.list(source).use { files ->
+      files.filter { Files.getLastModifiedTime(it).toInstant() >= started }.forEach { log ->
+        Files.createDirectories(target)
+        Files.copy(log, target.resolve(log.fileName), StandardCopyOption.REPLACE_EXISTING)
+      }
     }
   }
 

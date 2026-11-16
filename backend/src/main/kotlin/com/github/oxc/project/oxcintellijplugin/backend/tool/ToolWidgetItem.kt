@@ -13,11 +13,11 @@ import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.lsWidget.LspClientWidgetItem
 
 /**
- * The tool's item in the language services status bar widget (FR-LSP-6), with the Oxc icon, opening the
- * tool's settings page, and a settings button beside it as v0.0.45 had.
+ * The tool's item in the language services status bar widget.
  *
  * The platform's item opens a page by its class, and adds the settings button only when it has one, but the
- * pages are the frontend's, so the backend can't name the class. This opens the page by its id instead.
+ * page classes are in the frontend module, so the backend module can't access the class. This opens
+ * the page by its id instead.
  *
  * The widget keeps the icon after the plugin's items are gone; [ToolWidgetUnloader] clears it before an unload.
  */

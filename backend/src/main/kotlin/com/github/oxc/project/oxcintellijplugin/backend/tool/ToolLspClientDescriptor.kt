@@ -27,10 +27,10 @@ import com.intellij.platform.lsp.api.customization.LspCustomization
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import org.eclipse.lsp4j.ConfigurationItem
-import org.eclipse.lsp4j.InitializeParams
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import org.eclipse.lsp4j.ConfigurationItem
+import org.eclipse.lsp4j.InitializeParams
 
 class ToolLspClientDescriptor(
   project: Project,
@@ -45,10 +45,12 @@ class ToolLspClientDescriptor(
   private var serverRun: ServerRun? = null
 
   /**
-   * FR-LIFE-6: a supported file under the root that also resolves to this server's launch. Otherwise the
-   * first server would take its whole folder, and a nested package or a Vite+ folder in it would never
-   * start its own server. The platform calls this in read actions, mostly on background threads but on
-   * the UI thread when formatting, and again on every document change, so the answer is kept per folder.
+   * A supported file under the root that also resolves to this [launch]. Otherwise, the first
+   * server would take its whole folder, and a nested package or a Vite+ folder in it would never
+   * start its own server.
+   *
+   * The platform calls this in read actions, mostly on background threads but on the UI thread when
+   * formatting, and again on every document change, so the answer is kept per folder.
    */
   override fun isSupportedFile(file: VirtualFile): Boolean =
     settings.isSupported(file) && roots.any { VfsUtilCore.isAncestor(it, file, false) } && resolvesHere(file)

@@ -21,7 +21,7 @@ interface ServerRun : ServerPathMapper {
 
   /**
    * Starts the server. This runs on a background thread before the LSP client sends the server
-   * anything, so it's where the work that can block is done on behalf of the path conversions.
+   * anything.
    */
   fun startProcess(): OSProcessHandler
 }
@@ -66,9 +66,9 @@ fun logEnvironment(existingVariables: Set<String>): Map<String, String> {
 }
 
 /**
- * Runs [start] with a progress indicator, which starting a process through a Node interpreter's target
- * expects, without showing any progress. The platform calls the server start on a background thread
- * that may have no job, so this blocks the way the platform's own server start does.
+ * Runs [start] with a progress indicator, without showing any progress. The platform calls the
+ * server start on a background thread that may have no job, so this blocks the way the platform's
+ * own server start does.
  */
 internal fun startWithoutProgress(start: () -> OSProcessHandler): OSProcessHandler =
   runBlockingMaybeCancellable { coroutineToIndicator { start() } }

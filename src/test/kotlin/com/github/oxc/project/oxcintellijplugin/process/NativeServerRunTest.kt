@@ -3,6 +3,8 @@ package com.github.oxc.project.oxcintellijplugin.process
 import com.github.oxc.project.oxcintellijplugin.backend.process.isNodeScript
 import com.github.oxc.project.oxcintellijplugin.backend.process.logEnvironment
 import com.github.oxc.project.oxcintellijplugin.backend.process.nativeCommandLine
+import com.intellij.execution.process.CapturingProcessHandler
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import junit.framework.TestCase
 import java.nio.file.Files
@@ -86,6 +88,18 @@ class NativeServerRunTest : TestCase() {
       assertTrue(commandLine.parametersList.list[2], commandLine.parametersList.list[2].contains("C:/my tools/$name"))
       assertEquals("--lsp", commandLine.parametersList.list[3])
     }
+  }
+
+  fun testWindowsScriptInAFolderWithASpaceStarts() {
+    if (!SystemInfo.isWindows) return
+    val spacedFolder = FileUtil.createTempDirectory("oxc native", null, true).toPath()
+    val script = Files.writeString(spacedFolder.resolve("echo.cmd"), "@echo %*\r\n").toString()
+    val commandLine = nativeCommandLine(script, listOf("--lsp"), spacedFolder.toString(), isWindows = true)
+
+    val output = CapturingProcessHandler(commandLine).runProcess(30_000)
+
+    assertEquals(output.stderr, 0, output.exitCode)
+    assertEquals("--lsp", output.stdout.trim())
   }
 
   fun testCommandInterpreterDefaultsToCmd() {

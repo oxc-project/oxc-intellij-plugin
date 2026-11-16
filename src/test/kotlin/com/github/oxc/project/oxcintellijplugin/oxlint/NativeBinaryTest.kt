@@ -58,9 +58,8 @@ class NativeBinaryTest : OxcFixtureTestCase() {
     settings.state.binaryPath = path
   }
 
-  /** The folder name has a space, because a wrapper on Windows runs through `cmd.exe`. */
   private fun createWrapper(): String {
-    val folder = FileUtil.createTempDirectory("oxc native", null, true).toPath()
+    val folder = FileUtil.createTempDirectory("oxc-native", null, true).toPath()
     val script = File("src/test/testData/oxlint/highlighting/no-config/node_modules/oxlint/bin/oxlint").absolutePath
     if (SystemInfo.isWindows) {
       return Files.writeString(folder.resolve("oxlint.cmd"), "@node \"$script\" %*\r\n").toString()

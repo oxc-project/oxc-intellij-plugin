@@ -13,7 +13,7 @@ import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VirtualFile
 
-/** What runs for a file (spec section 5), including Vite+. Nothing is started. */
+/** What runs for a file, including Vite+. Nothing is started. */
 class ToolPackageTest : OxcFixtureTestCase() {
 
   private lateinit var file: VirtualFile

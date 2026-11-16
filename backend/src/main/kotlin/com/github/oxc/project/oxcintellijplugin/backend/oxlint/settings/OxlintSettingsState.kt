@@ -11,10 +11,6 @@ import com.intellij.util.xmlb.annotations.XMap
 private const val DISABLE_NESTED_CONFIG_KEY = "disable_nested_config"
 private const val FIX_KIND_KEY = "fix_kind"
 
-/**
- * Stored in the same layout as older versions of the plugin, so that a project file shared with one reads
- * the same in both.
- */
 class OxlintSettingsState : BaseState() {
 
   var configurationMode by enum(ConfigurationMode.AUTOMATIC)
@@ -22,15 +18,13 @@ class OxlintSettingsState : BaseState() {
   var configPath by string()
   var unusedDisableDirectives by enum(OxlintUnusedDisableDirectives.ALLOW)
 
-  /** An empty list means the defaults, because a list with entries replaces them entirely. */
   var supportedExtensions by list<String>()
   var typeAware by property(false)
 
   var fixAllOnSave by property(false)
 
   /**
-   * Holds [disableNestedConfig] and [fixKind], as `<flags><entry key="fix_kind" value="DANGEROUS_FIX" /></flags>`.
-   * A missing key means the default. Other keys are left alone.
+   * Holds [disableNestedConfig] and [fixKind]. A missing key means the default.
    */
   @get:XMap
   var flags by map<String, String>()
@@ -45,7 +39,7 @@ class OxlintSettingsState : BaseState() {
     get() = storedFixKind() ?: OxlintFixKind.SAFE_FIX
     set(value) = setFlag(FIX_KIND_KEY, value.name.takeIf { value != OxlintFixKind.SAFE_FIX })
 
-  /** Called when the file is read. Rewrites the fix kind in upper case, and drops one that isn't known. */
+  /** Rewrites the fix kind in upper case, and drops a fix kind value that isn't known. */
   fun normalizeFlags() {
     val value = flags[FIX_KIND_KEY] ?: return
     val kind = storedFixKind()
@@ -55,14 +49,14 @@ class OxlintSettingsState : BaseState() {
     setFlag(FIX_KIND_KEY, kind?.name)
   }
 
-  /** Older versions wrote the name in either case. */
+  /** Different casing has been used over time, so this normalizes it. */
   private fun storedFixKind(): OxlintFixKind? =
     flags[FIX_KIND_KEY]?.let { value -> OxlintFixKind.entries.find { it.name == value.uppercase() } }
 
   private fun setFlag(key: String, value: String?) {
     val updated = LinkedHashMap(flags)
     if (value == null) updated.remove(key) else updated[key] = value
-    // Assigned only on a change, because assigning counts as a modification.
+    // Assignment counts as a tracked modification, so only do it when something actually happened.
     if (updated != flags) {
       flags = updated
     }

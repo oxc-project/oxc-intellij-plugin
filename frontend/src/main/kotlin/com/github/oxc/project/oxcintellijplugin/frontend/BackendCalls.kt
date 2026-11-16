@@ -11,8 +11,7 @@ private object BackendCalls
 
 /**
  * Runs a call to the backend, and shows a failure as a balloon titled with [messageKey]. Returns null if
- * it failed. Uncaught, the backend's exception would only reach the IDE's error reporter, because
- * `durable` retries a lost connection but not an exception that the backend threw.
+ * it failed.
  */
 suspend fun <T : Any> callBackendReportingFailure(
   project: Project,

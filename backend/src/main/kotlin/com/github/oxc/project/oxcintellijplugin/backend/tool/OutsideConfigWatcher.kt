@@ -13,9 +13,8 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Restarts a tool's servers when its manual config outside the workspace changes. Nothing else would
- * notice, because the IDE may not have loaded the file, and a server in WSL registers a path that the
- * platform can't match. Files in the workspace don't need this, because the server reloads those itself.
+ * Restarts a tool's servers when its manual config outside the workspace changes. Files in the
+ * workspace don't need this, because the server reloads those itself.
  */
 @Service(Service.Level.PROJECT)
 class OutsideConfigWatcher : Disposable {
@@ -56,7 +55,6 @@ class OutsideConfigWatcher : Disposable {
 
   private class Watch(val file: String, val request: LocalFileSystem.WatchRequest?)
 
-  /** Listens on the project's message bus, so it only exists while the project is open. */
   class Listener(private val project: Project) : BulkFileListener {
 
     override fun after(events: List<VFileEvent>) {

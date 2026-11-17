@@ -17,8 +17,7 @@ import java.time.Instant
  * Names in the command of a process that runs a server: Node and the native binaries. Not WSL's own
  * `wsl.exe` and `wslhost.exe`: a server in WSL runs through IJent as a Linux process, so it isn't a Windows
  * child of the test, and the `wsl.exe` chain that IJent starts on first use lives for the whole session.
- * Waiting for it timed out the first WSL test of a job (CI run 42570445206). Windows hides a process's
- * arguments, so that chain can't be told apart from anything else by name.
+ * Windows hides a process's arguments, so that chain can't be told apart from anything else by name.
  */
 private val SERVER_COMMANDS = listOf("node", "oxlint", "oxfmt")
 

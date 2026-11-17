@@ -6,10 +6,8 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCon
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigLoader
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigResult
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.locateOxfmtConfig
-import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.lsp.OxfmtLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
-import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ServerLaunch
@@ -34,9 +32,9 @@ import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.fixtures.impl.CodeInsightTestFixtureImpl
 import com.intellij.util.PathUtil
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.runBlocking
 
 private const val ROOT_FORMATTED = "debugger;\nconst a = 'b';\n"
 private const val NESTED_FORMATTED = "debugger;\nconst a = \"b\";\n"
@@ -141,7 +139,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
     formatUntil(file, NESTED_FORMATTED)
     assertEquals("The running Oxfmt server", fmt, runningLaunch(OxfmtDefinition, file))
     if (hoistsVitePlus) {
-      // TODO D1: as for the root, the hoisted vite-plus wins over the package's own oxlint 1.80.0
+      // TODO: as for the root, the hoisted vite-plus wins over the package's own oxlint 1.80.0
       //  and oxfmt 0.70.0, so `vp` runs from the workspace root, the schemas are the root's 1.88.0 and
       //  0.77.0, and the overlay finds no config. Expected: the package's own tools, run from
       //  packages/nested, their schemas, and its `.oxfmtrc.json`.
@@ -175,7 +173,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
     waitForDebuggerSeverity(file, HighlightSeverity.WARNING)
     assertEquals("The running Oxlint server", lint, runningLaunch(OxlintDefinition, file))
     if (hoistsVitePlus) {
-      // TODO D2: vp runs from the workspace root, where there's no vite.config.ts, so it uses its
+      // TODO: vp runs from the workspace root, where there's no vite.config.ts, so it uses its
       //  defaults: Format keeps the semicolons and the overlay finds no config. Expected: VITE_FORMATTED
       //  and packages/vite/vite.config.ts read through Node.
       return

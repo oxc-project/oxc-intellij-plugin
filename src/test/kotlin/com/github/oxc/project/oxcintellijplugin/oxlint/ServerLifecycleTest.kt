@@ -107,7 +107,7 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
     assertEmpty(runningServers())
   }
 
-  // LC4: the platform's own restart only starts servers for the current client's open files, and a new
+  // The platform's own restart only starts servers for the current client's open files, and a new
   // server only gets didOpen for those, so a restart from a backend event left a thin client's file without one.
   fun testRestartOverRpcStartsAServerForAFileOpenOnlyInAnotherClient() {
     val file = myFixture.configureFromTempProjectFile("index.js").virtualFile

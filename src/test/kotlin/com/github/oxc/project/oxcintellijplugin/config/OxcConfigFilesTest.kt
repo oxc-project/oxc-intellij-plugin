@@ -15,7 +15,6 @@ import com.jetbrains.jsonSchema.ide.JsonSchemaService
 import com.jetbrains.jsonSchema.impl.inspections.JsonSchemaComplianceInspection
 import java.nio.file.Files
 
-/** Spec section 11: which files get the Oxc icon, and which schema each config gets. */
 class OxcConfigFilesTest : OxcFixtureTestCase() {
 
   override fun setUp() {

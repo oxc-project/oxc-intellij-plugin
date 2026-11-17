@@ -311,7 +311,7 @@ class YarnPnpRealServerTest : OxcFixtureTestCase() {
     assertEquals("The overlay's format", OxfmtConfigFormat.JSON, location?.format)
   }
 
-  /** Step 8: Node runs the real vite-plus's `resolveConfig` on `vite.config.ts` and gives its `fmt`. */
+  /** Node runs the real vite-plus's `resolveConfig` on `vite.config.ts` and gives its `fmt`. */
   private fun assertVitePlusOverlay(file: VirtualFile, config: VirtualFile) {
     val location = location(file)
     assertEquals("The overlay's config", config, location?.file)

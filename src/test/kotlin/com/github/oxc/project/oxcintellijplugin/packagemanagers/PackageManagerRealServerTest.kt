@@ -162,7 +162,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
 
     val lint = launch(OxlintDefinition, file)
     val fmt = launch(OxfmtDefinition, file)
-    // Spec 4.3: the folder holding the `node_modules` that holds vite-plus.
+    // The server root is the folder holding the `node_modules` that holds vite-plus.
     val expectedRoot = if (hoistsVitePlus) root else folder
     val vp = if (hoistsVitePlus) "node_modules/vite-plus/bin/vp" else "packages/vite/node_modules/vite-plus/bin/vp"
     assertExecutable(lint, vp, "lint", "--lsp")
@@ -186,7 +186,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
   }
 
   /**
-   * FR-LIFE-6: the root's servers start first, and the other folders still get their own, because a
+   * The root's servers start first, and the other folders still get their own, because a
    * server only answers for files that resolve to its launch.
    */
   fun testEveryFolderOpen() {
@@ -215,7 +215,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
   }
 
   /**
-   * FR-LIFE-6: a settings change restarts every folder's servers, not only the root's. The platform's own
+   * A settings change restarts every folder's servers, not only the root's. The platform's own
    * restart skips an open file under the root of a server it has already picked, so the nested and Vite+
    * files had no server until their editors were selected again, which this test doesn't do.
    */
@@ -293,7 +293,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
     assertEquals("The overlay's format", OxfmtConfigFormat.JSON, location?.format)
   }
 
-  /** Step 8: Node runs the real vite-plus's `resolveConfig` on `vite.config.ts` and gives its `fmt`. */
+  /** Node runs the real vite-plus's `resolveConfig` on `vite.config.ts` and gives its `fmt`. */
   private fun assertVitePlusOverlay(file: VirtualFile, config: VirtualFile) {
     val location = location(file)
     assertEquals("The overlay's config", config, location?.file)

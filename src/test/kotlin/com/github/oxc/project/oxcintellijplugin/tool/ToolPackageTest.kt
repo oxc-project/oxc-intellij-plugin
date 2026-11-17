@@ -48,7 +48,7 @@ class ToolPackageTest : OxcFixtureTestCase() {
     assertEquals(projectDir(), lint.root)
   }
 
-  /** npm hoists the tools out of `vite-plus`, and only `vp` reads `vite.config.ts` (FR-RES-2). */
+  /** npm hoists the tools out of `vite-plus`, and only `vp` reads `vite.config.ts`. */
   fun testVitePlusWinsOverAnInstalledTool() {
     FakePackages.vitePlus(myFixture)
     FakePackages.tool(myFixture, "node_modules/oxlint", "oxlint")
@@ -63,7 +63,7 @@ class ToolPackageTest : OxcFixtureTestCase() {
     assertEquals(listOf("lint", "--lsp"), resolve(OxlintDefinition).parameters)
   }
 
-  /** FR-RES-3: a manual binary never gets a subcommand or Vite+. */
+  /** A manual binary never gets a subcommand or Vite+. */
   fun testManualBinaryIgnoresVitePlus() {
     FakePackages.vitePlus(myFixture)
     val binary = myFixture.addFileToProject("tools/oxfmt", "").virtualFile

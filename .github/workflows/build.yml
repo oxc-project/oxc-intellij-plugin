@@ -58,6 +58,10 @@ jobs:
         working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
+      - name: Setup Vite+ Test
+        working-directory: src/test/testData/viteplus/project
+        run: npm ci
+
       - name: Run Tests
         run: ./gradlew check
 
@@ -108,6 +112,10 @@ jobs:
         working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
+      - name: Setup Vite+ Test
+        working-directory: src/test/testData/viteplus/project
+        run: npm ci
+
       - name: Run Tests
         shell: bash
         run: ./gradlew test
@@ -136,12 +144,15 @@ jobs:
         include:
           - project: Windows
             tmpdir: ''
+            viteplus: ''
           - project: WSL
             tmpdir: '\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests'
+            viteplus: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-viteplus'
     env:
       OXC_TEST_WSL_DISTRO: Ubuntu-24.04
       OXC_TEST_WSL_NODE: /usr/local/bin/node
       OXC_TEST_TMPDIR: ${{ matrix.tmpdir }}
+      OXC_TEST_VITEPLUS_FIXTURE: ${{ matrix.viteplus }}
     steps:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
@@ -184,6 +195,22 @@ jobs:
         shell: wsl-bash {0}
         working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
+
+      - name: Setup Vite+ Test
+        if: ${{ matrix.viteplus == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/viteplus/project
+        run: npm ci
+
+      # A project in WSL needs the fixture in WSL too. /tmp is cleared when WSL restarts the distribution.
+      - name: Setup Vite+ Test in WSL
+        if: ${{ matrix.viteplus != '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/viteplus/project
+        run: |
+          mkdir -p /var/tmp/oxc-viteplus
+          cp package.json package-lock.json vite.config.ts index.js /var/tmp/oxc-viteplus/
+          cd /var/tmp/oxc-viteplus && npm ci
 
       - name: Create Project Folder in WSL
         if: ${{ matrix.tmpdir != '' }}

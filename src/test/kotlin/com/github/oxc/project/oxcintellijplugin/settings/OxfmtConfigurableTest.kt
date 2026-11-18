@@ -108,6 +108,11 @@ class OxfmtConfigurableTest : BasePlatformTestCase() {
     }
   }
 
+  /** The plugin has no help pages, so a help topic would only give the page a "?" that goes nowhere. */
+  fun testPageHasNoHelpTopic() {
+    assertNull(OxfmtConfigurable(project).helpTopic)
+  }
+
   fun testApplyingOnlyTheCodeStylePreferenceDoesNotRestartServers() {
     val restarts = mutableListOf<Boolean>()
     project.messageBus.connect(testRootDisposable)

@@ -3,7 +3,6 @@ package com.github.oxc.project.oxcintellijplugin.settings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
-import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.settings.OxfmtConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.findInvalidExtension
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.parseExtensions
@@ -194,10 +193,9 @@ class OxlintConfigurableTest : BasePlatformTestCase() {
     }
   }
 
-  /** The plugin has no help pages, so a help topic would only give the pages a "?" that goes nowhere. */
-  fun testPagesHaveNoHelpTopic() {
+  /** The plugin has no help pages, so a help topic would only give the page a "?" that goes nowhere. */
+  fun testPageHasNoHelpTopic() {
     assertNull(OxlintConfigurable(project).helpTopic)
-    assertNull(OxfmtConfigurable(project).helpTopic)
   }
 
   fun testExtensionParsingAndValidation() {

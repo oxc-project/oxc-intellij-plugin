@@ -1,8 +1,8 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
-import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
+import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.settings.OxfmtConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.settings.findInvalidExtension
@@ -10,16 +10,11 @@ import com.github.oxc.project.oxcintellijplugin.frontend.settings.parseExtension
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.DEFAULT_OXLINT_EXTENSIONS
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintFixKind
-import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.openapi.application.EDT
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.time.Duration.Companion.seconds
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBRadioButton
@@ -27,9 +22,14 @@ import com.intellij.util.ui.UIUtil
 import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JTextField
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
-/** The page talks to the backend over RPC, which stays in process in a test IDE. */
-/** Fonts differ between machines, so this is a little above the 621 seen on Linux with the 45 column comment. */
+/** Max size of the page to prevent horizontal scrolling. There's some variation between platforms,
+ * so it's not an exact number. */
 private const val MAX_PAGE_WIDTH = 640
 
 class OxlintConfigurableTest : BasePlatformTestCase() {

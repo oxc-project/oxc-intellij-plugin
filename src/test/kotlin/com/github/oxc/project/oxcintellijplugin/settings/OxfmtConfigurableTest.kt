@@ -6,8 +6,8 @@ import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.settings.OxfmtConfigurable
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.DEFAULT_OXFMT_EXTENSIONS
-import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
+import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBCheckBox
@@ -16,10 +16,10 @@ import com.intellij.util.ui.UIUtil
 import javax.swing.JComponent
 import javax.swing.JTextField
 
-/** Fonts differ between machines, so this is a little above what Oxlint's page uses. */
+/** Max size of the page to prevent horizontal scrolling. There's some variation between platforms,
+ * so it's not an exact number. */
 private const val MAX_PAGE_WIDTH = 640
 
-/** The page talks to the backend over RPC, which stays in process in a test IDE. */
 class OxfmtConfigurableTest : BasePlatformTestCase() {
 
   private val settings: OxfmtSettings

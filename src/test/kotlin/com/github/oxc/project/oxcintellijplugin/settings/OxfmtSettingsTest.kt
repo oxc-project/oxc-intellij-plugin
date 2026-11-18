@@ -13,7 +13,6 @@ import com.intellij.testFramework.LightVirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.xmlb.XmlSerializer
 
-/** Uses the XML that older versions of the plugin and the Vite+ CLI wrote, because those files are in users' projects. */
 class OxfmtSettingsTest : BasePlatformTestCase() {
 
   private val settings: OxfmtSettings

@@ -1,0 +1,1 @@
+const greeting = "Happy developing ✨"

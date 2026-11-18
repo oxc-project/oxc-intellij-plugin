@@ -54,6 +54,10 @@ jobs:
         working-directory: src/test/testData/oxlint/highlighting/no-config
         run: npm ci
 
+      - name: Setup Oxfmt Formatting Test
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
+        run: npm ci
+
       - name: Run Tests
         run: ./gradlew check
 
@@ -98,6 +102,10 @@ jobs:
 
       - name: Setup Oxlint Highlighting No Config Test
         working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Oxfmt Formatting Test
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
       - name: Run Tests
@@ -170,6 +178,11 @@ jobs:
       - name: Setup Oxlint Highlighting No Config Test
         shell: wsl-bash {0}
         working-directory: src/test/testData/oxlint/highlighting/no-config
+        run: npm ci
+
+      - name: Setup Oxfmt Formatting Test
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/oxfmt/formatting/nested-config
         run: npm ci
 
       - name: Create Project Folder in WSL

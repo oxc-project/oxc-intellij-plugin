@@ -60,6 +60,8 @@ internal abstract class ToolFixAllAction(private val tool: OxcTool) : AnAction()
 
 internal class OxlintFixAllAction : ToolFixAllAction(OxcTool.OXLINT)
 
+internal class OxfmtFixAllAction : ToolFixAllAction(OxcTool.OXFMT)
+
 /** Runs in the project's scope, because the action has returned by the time the backend answers. */
 @Service(Service.Level.PROJECT)
 internal class ToolFixAllRunner(private val project: Project, private val scope: CoroutineScope) {

@@ -1,10 +1,15 @@
 package com.github.oxc.project.oxcintellijplugin.tool
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.OxfmtDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.lsp.OxfmtLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspIntegrationProvider
+import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.settings.OxfmtConfigurable
 import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
+import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.OxcIcons
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
@@ -18,7 +23,7 @@ import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.platform.lsp.api.LspServerState
 
-/** Starts a real Oxlint server. Needs Node on PATH and `npm ci` run in the fixture folder. */
+/** Starts real Oxlint and Oxfmt servers. Needs Node on PATH and `npm ci` run in the fixture folders. */
 class ToolWidgetItemTest : OxcFixtureTestCase() {
 
   fun testOxlintItemHasTheOxcIcon() {
@@ -26,6 +31,18 @@ class ToolWidgetItemTest : OxcFixtureTestCase() {
     myFixture.copyDirectoryToProject("no-config", "")
     val file = myFixture.configureFromTempProjectFile("index.js").virtualFile
     val provider = OxlintLspIntegrationProvider()
+
+    val item = provider.createWidgetItem(runningClient(provider), file)
+
+    assertSame(OxcIcons.OxcRound, item.statusBarIcon)
+  }
+
+  fun testOxfmtItemHasTheOxcIcon() {
+    OxlintSettings.getInstance(project).state.configurationMode = ConfigurationMode.DISABLED
+    myFixture.testDataPath = "src/test/testData/oxfmt/formatting"
+    myFixture.copyDirectoryToProject("nested-config", "")
+    val file = myFixture.configureFromTempProjectFile("index.js").virtualFile
+    val provider = OxfmtLspIntegrationProvider()
 
     val item = provider.createWidgetItem(runningClient(provider), file)
 
@@ -49,6 +66,7 @@ class ToolWidgetItemTest : OxcFixtureTestCase() {
   /** The item opens the page by its id, because the backend can't name the frontend's class. */
   fun testEachToolsPageIdNamesItsSettingsPage() {
     assertEquals(OxlintConfigurable::class.java.name, pageClassName(OxlintDefinition))
+    assertEquals(OxfmtConfigurable::class.java.name, pageClassName(OxfmtDefinition))
   }
 
   private fun pageClassName(definition: ToolDefinition): String? =

@@ -8,6 +8,7 @@ import com.intellij.openapi.util.SystemInfo
 import java.nio.file.Path
 import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Settings for running the tests with a language server inside WSL, which is enabled on Windows when
@@ -28,6 +29,29 @@ object WslTesting {
   /** The distribution's Node.js, as the project interpreter would be set in the IDE. */
   fun nodeInterpreterRef(): NodeJsInterpreterRef =
     NodeJsInterpreterRef.create(WslNodeInterpreter(distributionId!!, nodePath))
+
+  /**
+   * Starts WSL and IJent once per run, before a test starts waiting on a server. The IDE's first `wsl.exe`
+   * call followed by IJent startup takes an extended period (30+ seconds).
+   */
+  fun warmUp() {
+    warmUpResult.getOrThrow()
+  }
+
+  private val warmUpResult: Result<Unit> by lazy {
+    runCatching {
+      val future = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+        val distribution = WSLDistribution(distributionId!!)
+        distribution.mntRoot
+        val output = distribution.executeOnWsl(60_000, "/bin/true")
+        check(output.exitCode == 0 && !output.isTimeout) {
+          "WSL didn't start: exit code ${output.exitCode}, timeout ${output.isTimeout}, stderr ${output.stderr}"
+        }
+      })
+      waitUntil("WSL has started", 2.minutes) { future.isDone }
+      future.get()
+    }
+  }
 
   /** A local path as the distribution sees it. */
   fun toWslPath(localPath: String): String =

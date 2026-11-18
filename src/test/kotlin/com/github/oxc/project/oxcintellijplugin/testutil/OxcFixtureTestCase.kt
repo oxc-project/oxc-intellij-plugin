@@ -34,6 +34,8 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
   override fun setUp() {
     started = Instant.now()
     super.setUp()
+    // Before the snapshot, so that the wsl.exe chain IJent keeps for the session counts as already running.
+    if (WslTesting.enabled) WslTesting.warmUp()
     processesBefore = ProcessHandle.current().descendants().map { it.pid() }.toList().toSet()
     if (WslTesting.enabled) {
       NodeJsInterpreterManager.getInstance(project)

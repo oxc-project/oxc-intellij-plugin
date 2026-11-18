@@ -16,6 +16,7 @@ import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
 import com.intellij.platform.lsp.api.customization.LspCustomization
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsCustomizer
 
+private val OXLINT_JSON_CONFIG_NAMES = listOf(".oxlintrc.json", ".oxlintrc.jsonc")
 
 object OxlintDefinition : ToolDefinition(
   tool = OxcTool.OXLINT,
@@ -25,6 +26,8 @@ object OxlintDefinition : ToolDefinition(
   configurableId = "OxlintConfigurable",
   fixAllTimeoutRegistryKey = "oxc.lint.fix.all.timeout.ms",
   vitePlusCommand = "lint",
+  jsonConfigNames = OXLINT_JSON_CONFIG_NAMES,
+  configNames = OXLINT_JSON_CONFIG_NAMES + listOf("oxlint.config.ts", "oxlint.config.mts"),
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>
     get() = OxlintLspIntegrationProvider::class.java

@@ -25,12 +25,16 @@
 - File extensions in both tools' settings can now contain `-` and `_`.
 - Only `fmt.configPath` and `fmt.disableNestedConfig` are sent to Oxfmt's language server, which are the settings it reads.
 - In a Vite+ project, `vp` reloads a changed `vite.config.*` itself, instead of the plugin restarting the language servers.
+- The JSON schemas for `.oxlintrc.json(c)` and `.oxfmtrc.json(c)`, and for a manual config path, now come from the Oxlint or Oxfmt package that runs for the file, so they match its version and need no network. In a Vite+ project, that's the Oxlint or Oxfmt that `vp` runs. Without an installed package there's no schema, and the schema catalog's copy from Oxc's `main` branch isn't used for these files.
+- A manual config path only gets the Oxc icon in Manual mode, which is the only mode that uses it.
 
 ### Fixed
 
 - With more than one client connected, Oxlint's language server now keeps running while any client has a supported file open.
 - A manual Oxlint or Oxfmt binary at a path into WSL now runs inside WSL, instead of through Node.
 - Oxfmt no longer corrupts a file when the language server returns more than one edit.
+- Oxfmt's manual config path now gets the Oxc icon, as Oxlint's does.
+- `oxlint.config.mts` and `oxfmt.config.mts` now get the Oxc icon.
 
 ## [0.0.45] - 2026-10-15
 

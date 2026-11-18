@@ -14,6 +14,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.platform.lsp.api.customization.LspCustomization
 import com.intellij.platform.lsp.api.customization.LspFormattingCustomizer
 
+private val OXFMT_JSON_CONFIG_NAMES = listOf(".oxfmtrc.json", ".oxfmtrc.jsonc")
+
 object OxfmtDefinition : ToolDefinition(
   tool = OxcTool.OXFMT,
   displayName = "Oxfmt",
@@ -22,6 +24,8 @@ object OxfmtDefinition : ToolDefinition(
   configurableId = "OxfmtConfigurable",
   fixAllTimeoutRegistryKey = "oxc.fmt.fix.all.timeout.ms",
   vitePlusCommand = "fmt",
+  jsonConfigNames = OXFMT_JSON_CONFIG_NAMES,
+  configNames = OXFMT_JSON_CONFIG_NAMES + listOf("oxfmt.config.ts", "oxfmt.config.mts"),
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>
     get() = OxfmtLspIntegrationProvider::class.java

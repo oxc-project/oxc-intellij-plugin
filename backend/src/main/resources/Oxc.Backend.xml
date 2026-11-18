@@ -5,7 +5,9 @@
         <module name="intellij.platform.rpc.backend"/>
         <module name="Oxc.Shared"/>
         <module name="intellij.javascript.backend"/>
+        <module name="intellij.json.backend"/>
         <plugin id="com.intellij.modules.lsp"/>
+        <plugin id="com.intellij.modules.json"/>
         <plugin id="JavaScript"/>
     </dependencies>
 
@@ -32,6 +34,13 @@
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider"/>
         <platform.lsp.integrationProvider
                 implementation="com.github.oxc.project.oxcintellijplugin.backend.oxfmt.lsp.OxfmtLspIntegrationProvider"/>
+        <fileIconProvider implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcConfigFileIconProvider"/>
+        <json.catalog.exclusion implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcSchemaCatalogExclusion"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ContentAwareSchemaFileProvider
+                implementation="com.github.oxc.project.oxcintellijplugin.backend.config.OxcJsonSchemaProvider"/>
     </extensions>
 
     <applicationListeners>
@@ -45,6 +54,8 @@
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolEditorWatcher"
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.ToolSettingsWatcher"
+                  topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
+        <listener class="com.github.oxc.project.oxcintellijplugin.backend.config.OxcConfigFilesRefresher"
                   topic="com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener"/>
         <listener class="com.github.oxc.project.oxcintellijplugin.backend.tool.OutsideConfigWatcher$Listener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>

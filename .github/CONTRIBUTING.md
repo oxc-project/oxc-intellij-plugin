@@ -20,6 +20,13 @@ In IntelliJ IDEA, the **Run IDE with Plugin (Monolith)** run configuration runs 
 
 ## Running the tests
 
+The highlighting tests start a real language server from their fixture's `node_modules`, so they need Node on your
+`PATH` and the fixture's dependencies installed:
+
+```bash
+npm ci --prefix src/test/testData/oxlint/highlighting/no-config
+```
+
 ```bash
 ./gradlew check
 ```

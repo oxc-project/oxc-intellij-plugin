@@ -1,5 +1,6 @@
 package com.github.oxc.project.oxcintellijplugin.settings
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettingsState
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
@@ -142,6 +143,19 @@ class OxlintSettingsTest : BasePlatformTestCase() {
 
     assertEquals(emptyMap<String, String>(), settings.state.flags)
     assertFalse(saved(), "flags" in saved())
+  }
+
+  fun testOnlyTypedValuesReachTheServer() {
+    load("""
+      <component name="OxcSettings">
+        <flags><entry key="fix_kind" value="DANGEROUS_FIX" /></flags>
+      </component>
+    """)
+
+    val config = OxlintDefinition.workspaceConfig(project, null)
+
+    assertFalse(config.toString(), "flags" in config)
+    assertEquals("dangerous_fix", config["fixKind"])
   }
 
   fun testSerializationRoundTripMatches() {

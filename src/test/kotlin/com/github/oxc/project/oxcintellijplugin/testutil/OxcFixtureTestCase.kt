@@ -22,6 +22,13 @@ import java.time.Instant
 private val SERVER_COMMANDS = listOf("node", "oxlint", "oxfmt")
 
 /**
+ * In every server's command line. The platform names the thread that waits for a process after its command
+ * line until it has closed the process's streams, which in WSL goes through IJent and can outlast the
+ * process.
+ */
+private const val SERVER_ARGUMENT = "--lsp"
+
+/**
  * Base class for tests that use the project's Node interpreter. When [WslTesting] is enabled, the
  * interpreter is the WSL distribution's Node.js, so the same tests also cover a server running in WSL.
  */
@@ -47,6 +54,9 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
    * Waits for the test's servers to exit before its folders are deleted. A server runs in its root, inside
    * the test's folder, and Windows can't delete the working directory of a running process. A stop from
    * the UI thread, such as Fix All's for a closed file, returns before the process has exited.
+   *
+   * Then waits for the platform's threads for those servers, which the leak check after the test would
+   * report. A server in WSL isn't a Windows process, so for it this is the only wait.
    */
   override fun tearDown() {
     try {
@@ -58,6 +68,12 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
       }
       catch (e: AssertionError) {
         throw AssertionError("${e.message}. Still running: ${serverProcesses().map(::details)}", e)
+      }
+      try {
+        waitUntil("the threads for the test's servers have finished") { serverThreads().isEmpty() }
+      }
+      catch (e: AssertionError) {
+        throw AssertionError("${e.message}. Still running: ${serverThreads()}", e)
       }
     }
     catch (e: Throwable) {
@@ -110,6 +126,9 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
       .filter { it.isAlive && it.pid() !in processesBefore }
       .filter { process -> describe(process).lowercase().let { command -> SERVER_COMMANDS.any { it in command } } }
       .toList()
+
+  private fun serverThreads(): List<String> =
+    Thread.getAllStackTraces().keys.filter { it.isAlive && SERVER_ARGUMENT in it.name }.map { it.name }
 
   private fun describe(process: ProcessHandle): String =
     process.info().commandLine().or { process.info().command() }.orElse("")

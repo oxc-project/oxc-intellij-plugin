@@ -50,8 +50,8 @@ private const val VITE_FORMATTED = "debugger\nconst a = \"b\"\n"
  *
  * npm and Yarn's `node-modules` linker hoist `vite-plus` to the root's `node_modules`. pnpm and Bun link
  * each package into a store folder, `.pnpm` or `.bun`, and only `packages/vite` can resolve `vite-plus`.
- * The hoisted `vite-plus` causes two known defects, left for a later fix and not asserted here. D1: every
- * folder runs `vp`, which ignores `.oxlintrc.json` and `.oxfmtrc.json`. D2: `vp` runs from the workspace
+ * The hoisted `vite-plus` causes two known defects, left for a later fix and not asserted here. Every
+ * folder runs `vp`, which ignores `.oxlintrc.json` and `.oxfmtrc.json`. `vp` runs from the workspace
  * root, so it never reads `packages/vite/vite.config.ts`.
  *
  * The fixtures' `node_modules` are too big to copy for each test, so the fixture's folder is added to the
@@ -111,7 +111,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
     assertEquals("Oxlint's schema", "oxlint@1.88.0", schemaPackage(root, ".oxlintrc.json"))
     assertEquals("Oxfmt's schema", "oxfmt@0.77.0", schemaPackage(root, ".oxfmtrc.json"))
     if (hoistsVitePlus) {
-      // TODO D1: the root depends on oxlint and oxfmt, not vite-plus, but the hoisted vite-plus that
+      // TODO The root depends on oxlint and oxfmt, not vite-plus, but the hoisted vite-plus that
       //  packages/vite depends on wins: `vp lint --lsp` and `vp fmt --lsp` run from the root, and vp
       //  ignores `.oxlintrc.json` and `.oxfmtrc.json`. So no-debugger is a warning instead of an error,
       //  Format uses double quotes, and the overlay finds no config. Expected: the tools' own packages, an
@@ -194,7 +194,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
 
     for (definition in ToolDefinition.all) {
       val expected = files.map { launch(definition, it) }
-      // TODO D1: with npm and Yarn every folder resolves to the root's hoisted vp, which is D1.
+      // TODO: With npm and Yarn every folder resolves to the root's hoisted vp.
       assertEquals("${definition.displayName}'s launches", if (hoistsVitePlus) 1 else 3, expected.toSet().size)
       for (file in files) {
         val message = "The ${definition.displayName} server for ${file.path}"
@@ -238,7 +238,7 @@ abstract class PackageManagerRealServerTest : OxcFixtureTestCase() {
         assertEquals(message, launch(definition, file), runningLaunch(definition, file))
       }
       val running = clients(definition).map { (it.descriptor as ToolLspClientDescriptor).launch }
-      // TODO D1: with npm and Yarn every folder resolves to the root's hoisted vp, which is D1.
+      // TODO With npm and Yarn every folder resolves to the root's hoisted vp.
       assertEquals("Running ${definition.displayName} servers", if (hoistsVitePlus) 1 else 3, running.size)
       assertEquals("Running ${definition.displayName} servers", files.map { launch(definition, it) }.toSet(), running.toSet())
     }

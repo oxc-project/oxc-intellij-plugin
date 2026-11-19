@@ -33,6 +33,16 @@ A high-performance JavaScript/TypeScript formatter.
   manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
+## Remote Node.js interpreters
+
+Oxlint and Oxfmt run with the project's Node.js interpreter, so they also run in WSL, Docker and over SSH.
+
+With an SSH interpreter, the project has to be on the remote host, with its local folder mapped to the remote one, as
+described in [Node.js via SSH](https://www.jetbrains.com/help/webstorm/node-via-ssh.html). Use a Deployment
+configuration's mappings for that host, or the interpreter's path mappings. Without a mapping, the IDE uploads a copy
+of the project when each server starts, and it doesn't update that copy. Config changes and fixes to files that aren't
+open then use the old copy until the server is restarted.
+
 ## Troubleshooting
 
 IntelliJ provides log files for standard logs as well as the LSP integration. The plugin uses the regular log

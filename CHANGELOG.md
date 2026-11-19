@@ -7,6 +7,7 @@
 ### Added
 
 - Add support for IntelliJ split mode (Remote Development).
+- Add support for Dev Containers opened in the IDE's own window, without a backend in the container. Oxlint and Oxfmt run in the container and get the container's paths for files.
 
 ### Changed
 
@@ -15,6 +16,7 @@
 - Remove the upper limit on supported IntelliJ versions.
 - Oxlint now reloads changed config files itself, instead of the plugin restarting its language server.
 - Oxlint's manual config path is watched when it's outside the workspace, and changing it restarts the language server.
+- In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
 
 ### Fixed
 

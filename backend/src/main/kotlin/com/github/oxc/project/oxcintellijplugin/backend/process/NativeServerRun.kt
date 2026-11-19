@@ -3,8 +3,14 @@ package com.github.oxc.project.oxcintellijplugin.backend.process
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
+import com.intellij.platform.eel.EelDescriptor
+import com.intellij.platform.eel.EelExecApi
+import com.intellij.platform.eel.EelUnavailableException
+import com.intellij.platform.eel.environmentVariables
 import com.intellij.platform.eel.isWindows
 import com.intellij.platform.eel.provider.LocalEelDescriptor
+import com.intellij.platform.eel.provider.toEelApi
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
 import java.nio.file.Path
@@ -13,7 +19,8 @@ private val LOG = Logger.getInstance(NativeServerRun::class.java)
 
 /**
  * Runs a language server's executable directly, and the project's Node interpreter isn't involved. It runs
- * on the backend's machine.
+ * on the backend's machine, or in the container or other environment that [executable] or [workingDirectory]
+ * is in, which `GeneralCommandLine` reaches through Eel.
  */
 class NativeServerRun(
   private val executable: String,
@@ -25,10 +32,9 @@ class NativeServerRun(
   private var pathMapper: ServerPathMapper? = null
 
   override fun startProcess(): OSProcessHandler = startWithoutProgress {
-    val commandLine = nativeCommandLine(
-      executable, parameters, workingDirectory, isWindows = LocalEelDescriptor.osFamily.isWindows)
+    val (commandLine, mapper) = environmentCommandLine()
     val processHandler = NativeProcessHandler(commandLine)
-    pathMapper = UnchangedPathMapper
+    pathMapper = mapper
     processHandler
   }
 
@@ -38,7 +44,42 @@ class NativeServerRun(
   override fun toLocalPath(serverPath: String): String? =
     pathMapper?.toLocalPath(serverPath)
 
+  /** The IDE's machine or another environment, which `GeneralCommandLine` picks the same way. */
+  private fun environmentCommandLine(): Pair<GeneralCommandLine, ServerPathMapper> {
+    val environment = launchEnvironment(executable, workingDirectory)
+    if (environment is LocalEelDescriptor) {
+      return nativeCommandLine(executable, parameters, workingDirectory, isWindows = environment.osFamily.isWindows) to UnchangedPathMapper
+    }
+
+    val commandLine = nativeCommandLine(
+      executable, parameters, workingDirectory,
+      isWindows = environment.osFamily.isWindows,
+      commandInterpreter = null,
+      existingVariables = environmentVariables(environment),
+    )
+    return commandLine to EelServerPathMapper(environment)
+  }
 }
+
+/**
+ * The names of the variables that a process in [environment] gets, which are its own and not the IDE's.
+ * Connects to the environment, which starting the server does anyway. If that fails, starting the server
+ * reports why.
+ */
+private fun environmentVariables(environment: EelDescriptor): Set<String> =
+  try {
+    runBlockingMaybeCancellable {
+      environment.toEelApi().exec.environmentVariables().eelIt().await().keys
+    }
+  }
+  catch (exception: EelExecApi.EnvironmentVariablesException) {
+    LOG.warn("Couldn't read the variables in $environment", exception)
+    emptySet()
+  }
+  catch (exception: EelUnavailableException) {
+    LOG.warn("Couldn't reach $environment", exception)
+    emptySet()
+  }
 
 /**
  * Builds the command line for an executable. Windows can only start a `.cmd` or `.bat` file through its

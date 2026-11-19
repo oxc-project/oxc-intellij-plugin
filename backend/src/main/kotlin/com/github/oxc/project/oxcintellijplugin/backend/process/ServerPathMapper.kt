@@ -1,6 +1,18 @@
 package com.github.oxc.project.oxcintellijplugin.backend.process
 
 import com.intellij.javascript.nodejs.execution.NodeTargetRun
+import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
+import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
+import com.intellij.javascript.nodejs.interpreter.remote.NodeJsRemoteInterpreter
+import com.intellij.platform.eel.EelDescriptor
+import com.intellij.platform.eel.path.EelPath
+import com.intellij.platform.eel.path.EelPathException
+import com.intellij.platform.eel.provider.LocalEelDescriptor
+import com.intellij.platform.eel.provider.asEelPath
+import com.intellij.platform.eel.provider.asNioPath
+import com.intellij.util.PathUtil
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
 
 /**
  * Converts paths between the IDE and a language server, which may be on different machines. The LSP
@@ -16,7 +28,54 @@ interface ServerPathMapper {
 }
 
 /**
- * Maps paths through the Node interpreter's run. A local interpreter's paths are returned as they are.
+ * Maps paths for a server in an [environment] that the IDE reaches through Eel, such as a Dev Container.
+ * The IDE's path into it, such as `/$devcontainer.ij/…/workspaces/app`, is `/workspaces/app` to the
+ * server. A path in any other environment can't be reached. This only computes paths, so it never connects
+ * to the environment. [toEelPath] can be replaced in tests, which have no such environments.
+ */
+class EelServerPathMapper(
+  private val environment: EelDescriptor,
+  private val toEelPath: (Path) -> EelPath = Path::asEelPath,
+) : ServerPathMapper {
+
+  override fun toServerPath(localPath: String): String? =
+    eelPathOf(localPath)?.takeIf { it.descriptor == environment }?.toString()
+
+  override fun toLocalPath(serverPath: String): String? {
+    // A path into an environment, such as `/$devcontainer.ij/…`, is already the IDE's, not one from the server.
+    if (eelPathOf(serverPath)?.descriptor.let { it != null && it !is LocalEelDescriptor }) return null
+
+    return try {
+      PathUtil.toSystemIndependentName(EelPath.parse(serverPath, environment).asNioPath().toString())
+    }
+    catch (_: EelPathException) {
+      null
+    }
+    catch (_: IllegalArgumentException) {
+      null
+    }
+  }
+
+  /** Where the IDE's [path] is, or null if it isn't an absolute path. */
+  private fun eelPathOf(path: String): EelPath? =
+    try {
+      toEelPath(Path.of(path))
+    }
+    catch (_: InvalidPathException) {
+      null
+    }
+    catch (_: EelPathException) {
+      null
+    }
+    // Thrown for an environment that has no root on the IDE's side.
+    catch (_: NoSuchElementException) {
+      null
+    }
+}
+
+/**
+ * Maps paths for every other interpreter. A local interpreter's paths are returned as they are. Docker
+ * and SSH use the folders given to [NodeTargetRun.path], which are known once the server has started.
  */
 internal class TargetRunPathMapper(private val run: NodeTargetRun) : ServerPathMapper {
 
@@ -36,3 +95,35 @@ internal class TargetRunPathMapper(private val run: NodeTargetRun) : ServerPathM
       null
     }
 }
+
+/** Asks [first], and [fallback] only for what [first] has no answer to. */
+internal class FallbackPathMapper(
+  private val first: ServerPathMapper,
+  private val fallback: ServerPathMapper,
+) : ServerPathMapper {
+
+  override fun toServerPath(localPath: String): String? = first.toServerPath(localPath) ?: fallback.toServerPath(localPath)
+
+  override fun toLocalPath(serverPath: String): String? = first.toLocalPath(serverPath) ?: fallback.toLocalPath(serverPath)
+}
+
+/**
+ * The mapper for a Node interpreter outside WSL. A local, Docker or SSH interpreter maps through its
+ * [targetRun], as before. Any other kind in a project that's in an [environment], such as a Dev Container's
+ * own Node, has a run with no path mapper, so the run would ask the file system whether each path is a
+ * folder, which is a call into the container on the UI thread. Its paths are computed from the environment
+ * instead, and the run only answers what that can't. Only the interpreter's class and the environment are
+ * looked at, so choosing doesn't touch the file system either.
+ */
+fun nodePathMapper(
+  interpreter: NodeJsInterpreter,
+  environment: EelDescriptor,
+  targetRun: ServerPathMapper,
+  environmentPaths: (EelDescriptor) -> ServerPathMapper = { EelServerPathMapper(it) },
+): ServerPathMapper =
+  if (interpreter is NodeJsLocalInterpreter || interpreter is NodeJsRemoteInterpreter || environment is LocalEelDescriptor) {
+    targetRun
+  }
+  else {
+    FallbackPathMapper(environmentPaths(environment), targetRun)
+  }

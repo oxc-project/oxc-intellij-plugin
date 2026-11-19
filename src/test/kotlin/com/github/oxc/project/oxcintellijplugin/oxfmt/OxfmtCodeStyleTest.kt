@@ -149,6 +149,7 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     assertEquals(root, nearestConfig(myFixture.addFileToProject("a/index.js", "").virtualFile))
   }
 
+  /** `OxfmtJsConfigTest` covers reading it. */
   fun testNearerTypeScriptConfigHidesTheRootConfig() {
     myFixture.addFileToProject(".oxfmtrc.json", CONFIG)
     val typeScript = myFixture.addFileToProject("a/oxfmt.config.ts", "export default {}").virtualFile

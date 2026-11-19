@@ -13,7 +13,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 
-/** The config names that the plugin reads as JSON. */
+/** The config names that the plugin reads as JSON. [OXFMT_JS_CONFIG_NAMES] are read through Node. */
 val OXFMT_JSON_CONFIG_NAMES: List<String> = listOf(".oxfmtrc.json", ".oxfmtrc.jsonc")
 
 val OXFMT_JS_CONFIG_NAMES: List<String> = listOf("oxfmt.config.ts", "oxfmt.config.mts")
@@ -54,7 +54,8 @@ data class OxfmtConfig(
       return parse(project, file.name, text)
     }
 
-    private fun parse(project: Project, name: String, text: String): OxfmtConfig =
+    /** Reads JSON text, such as the options that Node gave for a JavaScript config. */
+    fun parse(project: Project, name: String, text: String): OxfmtConfig =
       parse(PsiFileFactory.getInstance(project).createFileFromText(name, JsonFileType.INSTANCE, text))
 
     /** A value of the wrong type, or an unknown name, is treated as if it wasn't there. */

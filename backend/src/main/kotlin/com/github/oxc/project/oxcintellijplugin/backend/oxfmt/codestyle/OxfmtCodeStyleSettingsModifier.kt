@@ -11,7 +11,11 @@ import com.intellij.psi.codeStyle.modifier.CodeStyleStatusBarUIContributor
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
 import java.util.function.Consumer
 
-/** Overlays the nearest Oxfmt config on a file's code style, without changing the project's own settings. */
+/**
+ * Overlays the nearest Oxfmt config on a file's code style, without changing the project's own settings.
+ * A JavaScript or TypeScript config is read through Node in the background, so its overlay comes once
+ * that's done.
+ */
 @Suppress("UnstableApiUsage")
 class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
 
@@ -50,8 +54,10 @@ fun disableOxfmtCodeStyle(project: Project) {
   refreshOxfmtOverlay(project)
 }
 
-/** Only JSON is read. */
+/** JSON is read now, and a JavaScript or TypeScript config once Node has read it. */
 private fun readOxfmtConfigNow(project: Project, location: OxfmtConfigLocation): OxfmtConfig? = when (location.format) {
   OxfmtConfigFormat.JSON -> OxfmtConfig.read(project, location.file)
-  OxfmtConfigFormat.JAVASCRIPT, OxfmtConfigFormat.VITE_PLUS, OxfmtConfigFormat.UNREADABLE -> null
+  OxfmtConfigFormat.UNREADABLE -> null
+  OxfmtConfigFormat.JAVASCRIPT, OxfmtConfigFormat.VITE_PLUS ->
+    (OxfmtJsConfigLoader.getInstance(project).getNow(location) as? OxfmtJsConfigResult.Loaded)?.config
 }

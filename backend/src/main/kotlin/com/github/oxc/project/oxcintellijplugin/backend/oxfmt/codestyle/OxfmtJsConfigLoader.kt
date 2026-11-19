@@ -86,7 +86,8 @@ sealed interface OxfmtJsConfigResult {
  * after Configure Node.js, which calls [retryNodeFailures]. Import reads a failed config again.
  *
  * A config that can't be read gets one notification until something changes. An untrusted project gets one
- * for the whole session, unless Import asks. The frontend shows them, as [notices] sends them.
+ * for the whole session, unless Import asks. The frontend shows them, as [notices] sends them, along with
+ * what [send] adds.
  */
 @Service(Service.Level.PROJECT)
 class OxfmtJsConfigLoader(private val project: Project, private val scope: CoroutineScope) : Disposable {
@@ -179,6 +180,11 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
       }
       return result
     }
+  }
+
+  /** Sends [notice] to the frontend with the problems, so that it waits for the frontend in the same way. */
+  fun send(notice: OxfmtCodeStyleNotice) {
+    pending.trySend(notice)
   }
 
   private fun entry(location: OxfmtConfigLocation, retryFailure: Boolean = false): Entry {

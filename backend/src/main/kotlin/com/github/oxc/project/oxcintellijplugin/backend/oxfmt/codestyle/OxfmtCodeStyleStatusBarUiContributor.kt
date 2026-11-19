@@ -2,6 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle
 
 import com.github.oxc.project.oxcintellijplugin.backend.OxcBackendBundle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.OxfmtDefinition
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
@@ -21,6 +22,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * The status bar's actions run here on the backend, where the platform asks for them, so what they report
+ * goes to the frontend's notifier, which shows it in the `Oxc` group.
+ */
 class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
 
   override fun areActionsAvailable(file: VirtualFile): Boolean = true
@@ -40,6 +45,7 @@ class OxfmtCodeStyleStatusBarUiContributor : CodeStyleStatusBarUIContributor {
   override fun createDisableAction(project: Project): AnAction =
     DumbAwareAction.create(OxcBackendBundle.message("oxfmt.action.disable.for.project.label")) {
       disableOxfmtCodeStyle(project)
+      OxfmtJsConfigLoader.getInstance(project).send(OxfmtCodeStyleNotice.CodeStyleDisabled)
     }
 
   override fun getActionGroupTitle(): String = OxcBackendBundle.message("oxfmt.code.style.status.bar.action.group.title")
@@ -62,7 +68,11 @@ internal class OxfmtConfigOpener(private val project: Project, private val scope
 
   fun open(file: VirtualFile) {
     scope.launch {
-      val config = readAction { findOxfmtConfig(project, file) } ?: return@launch
+      val config = readAction { findOxfmtConfig(project, file) }
+      if (config == null) {
+        OxfmtJsConfigLoader.getInstance(project).send(OxfmtCodeStyleNotice.ConfigNotFound(file.name))
+        return@launch
+      }
       withContext(Dispatchers.EDT) { OpenFileDescriptor(project, config).navigate(true) }
     }
   }

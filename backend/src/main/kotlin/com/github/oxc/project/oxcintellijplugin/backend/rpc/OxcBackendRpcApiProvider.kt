@@ -2,6 +2,7 @@
 
 package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigLoader
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
@@ -16,6 +17,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcFixOnSaveFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsData
@@ -25,10 +27,16 @@ import com.intellij.ide.SaveAndSyncHandler
 import com.intellij.ide.vfs.VirtualFileId
 import com.intellij.ide.vfs.virtualFile
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProjectOrNull
 import com.intellij.platform.rpc.backend.RemoteApiProvider
@@ -136,7 +144,35 @@ private class OxfmtCodeStyleApiImpl : OxfmtCodeStyleApi {
     val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxfmtImportResult.FILE_UNAVAILABLE
     return importOxfmtCodeStyle(project, virtualFile)
   }
+
+  override suspend fun notices(projectId: ProjectId): Flow<OxfmtCodeStyleNotice> {
+    val project = projectId.findProjectOrNull() ?: return emptyFlow()
+    return OxfmtJsConfigLoader.getInstance(project).notices
+  }
+
+  override suspend fun openConfig(projectId: ProjectId, configUrl: String) {
+    val project = projectId.findProjectOrNull() ?: return
+    val file = VirtualFileManager.getInstance().findFileByUrl(configUrl)?.takeIf { it.isValid } ?: return
+    withContext(Dispatchers.EDT) { OpenFileDescriptor(project, file).navigate(true) }
+  }
+
+  override suspend fun showNodeSettings(projectId: ProjectId) {
+    val project = projectId.findProjectOrNull() ?: return
+    // Not over another dialog. An RPC call has no modality of its own.
+    withContext(Dispatchers.EDT + ModalityState.nonModal().asContextElement()) {
+      ShowSettingsUtil.getInstance().showSettingsDialog(project, { (it as? SearchableConfigurable)?.id in NODE_SETTINGS_IDS }, null)
+    }
+    // Nothing else says when the interpreter changes. In a local IDE this is after the page closes. A thin
+    // client's page doesn't hold the call, so this is at once there, and a fix shows on reopen or Import.
+    OxfmtJsConfigLoader.getInstance(project).retryNodeFailures()
+  }
 }
+
+/**
+ * The interpreter's page. In 2026.3 it's JavaScript Runtime, and the older Node.js page only shows when
+ * that one doesn't, so either can be there.
+ */
+private val NODE_SETTINGS_IDS = setOf("settings.javascript.runtime", "settings.nodejs")
 
 private fun settingsProject(projectId: ProjectId?): Project? =
   if (projectId == null) ProjectManager.getInstance().defaultProject else projectId.findProjectOrNull()

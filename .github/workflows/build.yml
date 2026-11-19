@@ -62,6 +62,27 @@ jobs:
         working-directory: src/test/testData/viteplus/project
         run: npm ci
 
+      # Yarn's release is committed in its fixture, and npx fetches pnpm and Bun, so each only needs Node.
+      - name: Setup npm Workspace Test
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      - name: Setup Bun Workspace Test
+        working-directory: src/test/testData/package-managers/bun
+        run: npx -y bun@1.3.14 install --frozen-lockfile
+
+      # vp downloads each workspace's package manager on its first run, which outlasts the tests' waits.
+      - name: Download Package Managers for Vite+
+        run: node .github/scripts/download-vite-plus-package-managers.mjs
+
       - name: Run Tests
         run: ./gradlew check
 
@@ -116,6 +137,25 @@ jobs:
         working-directory: src/test/testData/viteplus/project
         run: npm ci
 
+      - name: Setup npm Workspace Test
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      - name: Setup Bun Workspace Test
+        working-directory: src/test/testData/package-managers/bun
+        run: npx -y bun@1.3.14 install --frozen-lockfile
+
+      - name: Download Package Managers for Vite+
+        run: node .github/scripts/download-vite-plus-package-managers.mjs
+
       - name: Run Tests
         shell: bash
         run: ./gradlew test
@@ -145,14 +185,17 @@ jobs:
           - project: Windows
             tmpdir: ''
             viteplus: ''
+            packagemanagers: ''
           - project: WSL
             tmpdir: '\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests'
             viteplus: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-viteplus'
+            packagemanagers: '\\wsl.localhost\Ubuntu-24.04\var\tmp\oxc-package-managers'
     env:
       OXC_TEST_WSL_DISTRO: Ubuntu-24.04
       OXC_TEST_WSL_NODE: /usr/local/bin/node
       OXC_TEST_TMPDIR: ${{ matrix.tmpdir }}
       OXC_TEST_VITEPLUS_FIXTURE: ${{ matrix.viteplus }}
+      OXC_TEST_PACKAGE_MANAGER_FIXTURES: ${{ matrix.packagemanagers }}
     steps:
       - name: Fetch Sources
         uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
@@ -211,6 +254,69 @@ jobs:
           mkdir -p /var/tmp/oxc-viteplus
           cp package.json package-lock.json vite.config.ts index.js /var/tmp/oxc-viteplus/
           cd /var/tmp/oxc-viteplus && npm ci
+
+      - name: Setup npm Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/npm
+        run: npm ci
+
+      - name: Setup Yarn Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/yarn
+        run: node .yarn/releases/yarn-4.18.1.cjs install --immutable
+
+      - name: Setup pnpm Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/pnpm
+        run: npx -y pnpm@12.18.0 install --frozen-lockfile
+
+      # On a Windows drive, Bun links each package before extracting it, which seems to leave a link
+      # Windows can't open as a folder. Linking again, once every folder exists, works around that.
+      - name: Setup Bun Workspace Test
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers/bun
+        run: |
+          npx -y bun@1.3.14 install --frozen-lockfile
+          find . -type l -path '*node_modules*' -print0 | while IFS= read -r -d '' link; do
+            ln -sfn "$(readlink "$link")" "$link"
+          done
+
+      # Fails here rather than in the tests if Windows still can't follow the links that WSL made.
+      - name: Check Linked Packages from Windows
+        if: ${{ matrix.packagemanagers == '' }}
+        shell: pwsh
+        working-directory: src/test/testData/package-managers
+        run: |
+          $missing = foreach ($manager in 'bun', 'pnpm') {
+            foreach ($package in 'node_modules/oxlint', 'packages/nested/node_modules/oxlint', 'packages/vite/node_modules/vite-plus') {
+              $json = "$manager/$package/package.json"
+              if (-not (Test-Path -LiteralPath $json -PathType Leaf)) { $json }
+            }
+          }
+          if ($missing) { throw "Windows can't read through these links: $($missing -join ', ')" }
+
+      # As for Vite+, a project in WSL needs the fixtures in WSL too.
+      - name: Setup Package Manager Tests in WSL
+        if: ${{ matrix.packagemanagers != '' }}
+        shell: wsl-bash {0}
+        working-directory: src/test/testData/package-managers
+        run: |
+          mkdir -p /var/tmp/oxc-package-managers
+          tar --exclude=node_modules -cf - npm yarn pnpm bun | tar -xf - -C /var/tmp/oxc-package-managers
+          cd /var/tmp/oxc-package-managers
+          (cd npm && npm ci)
+          (cd yarn && node .yarn/releases/yarn-4.18.1.cjs install --immutable)
+          (cd pnpm && npx -y pnpm@12.18.0 install --frozen-lockfile)
+          (cd bun && npx -y bun@1.3.14 install --frozen-lockfile)
+
+      # In WSL, where the tests' vp runs and keeps its downloads.
+      - name: Download Package Managers for Vite+
+        shell: wsl-bash {0}
+        run: node .github/scripts/download-vite-plus-package-managers.mjs ${{ matrix.packagemanagers != '' && '/var/tmp/oxc-package-managers' || 'src/test/testData/package-managers' }}
 
       - name: Create Project Folder in WSL
         if: ${{ matrix.tmpdir != '' }}

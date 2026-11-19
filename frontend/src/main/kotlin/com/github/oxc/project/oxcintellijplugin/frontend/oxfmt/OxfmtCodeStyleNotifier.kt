@@ -6,7 +6,7 @@ import com.github.oxc.project.oxcintellijplugin.frontend.OxcFrontendBundle
 import com.github.oxc.project.oxcintellijplugin.frontend.callBackendReportingFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
-import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtJsConfigFailure
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
@@ -39,27 +39,27 @@ private const val MAX_MESSAGE_LINES = 5
  * shows each.
  */
 @Service(Service.Level.PROJECT)
-class OxfmtConfigNotifier(private val project: Project, private val scope: CoroutineScope) {
+class OxfmtCodeStyleNotifier(private val project: Project, private val scope: CoroutineScope) {
 
   init {
     if (!project.isDefault) {
       scope.launch {
-        durable { OxfmtCodeStyleApi.getInstance().configNotices(project.projectId()).collect(::show) }
+        durable { OxfmtCodeStyleApi.getInstance().notices(project.projectId()).collect(::show) }
       }
     }
   }
 
-  private fun show(notice: OxfmtConfigNotice) {
+  private fun show(notice: OxfmtCodeStyleNotice) {
     when (notice) {
-      is OxfmtConfigNotice.Untrusted -> untrusted(notice)
-      is OxfmtConfigNotice.Failed -> failed(notice)
-      is OxfmtConfigNotice.Imported -> imported(notice)
-      OxfmtConfigNotice.CodeStyleDisabled -> group().createNotification(
+      is OxfmtCodeStyleNotice.Untrusted -> untrusted(notice)
+      is OxfmtCodeStyleNotice.Failed -> failed(notice)
+      is OxfmtCodeStyleNotice.Imported -> imported(notice)
+      OxfmtCodeStyleNotice.CodeStyleDisabled -> group().createNotification(
         OxcFrontendBundle.message("oxfmt.code.style.preference.disabled.title"),
         OxcFrontendBundle.message("oxfmt.code.style.preference.disabled.description"),
         NotificationType.INFORMATION,
       )
-      is OxfmtConfigNotice.ConfigNotFound -> group().createNotification(
+      is OxfmtCodeStyleNotice.ConfigNotFound -> group().createNotification(
         OxcFrontendBundle.message("oxfmt.configuration.file.not.found.title"),
         OxcFrontendBundle.message("oxfmt.configuration.file.not.found.description", notice.fileName),
         NotificationType.INFORMATION,
@@ -67,13 +67,13 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
     }.notify(project)
   }
 
-  private fun imported(notice: OxfmtConfigNotice.Imported): Notification =
+  private fun imported(notice: OxfmtCodeStyleNotice.Imported): Notification =
     group().createNotification(
       OxcFrontendBundle.message("oxfmt.import.code.style.automatic", notice.configName),
       NotificationType.INFORMATION,
     ).addAction(editConfig(notice.configUrl))
 
-  private fun untrusted(notice: OxfmtConfigNotice.Untrusted): Notification =
+  private fun untrusted(notice: OxfmtCodeStyleNotice.Untrusted): Notification =
     group().createNotification(
       OxcFrontendBundle.message("oxfmt.js.config.untrusted.title"),
       OxcFrontendBundle.message("oxfmt.js.config.untrusted.description", notice.configName),
@@ -83,7 +83,7 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
       scope.launch { durable { OxcToolApi.getInstance().trustProject(project.projectId()) } }
     })
 
-  private fun failed(notice: OxfmtConfigNotice.Failed): Notification {
+  private fun failed(notice: OxfmtCodeStyleNotice.Failed): Notification {
     val title = OxcFrontendBundle.message("oxfmt.js.config.failed.title", notice.configName)
     val notification = group().createNotification(
       title,
@@ -123,10 +123,10 @@ class OxfmtConfigNotifier(private val project: Project, private val scope: Corou
   private fun group() = NotificationGroupManager.getInstance().getNotificationGroup("Oxc")
 }
 
-internal class OxfmtConfigNotifierStarter : ProjectActivity {
+internal class OxfmtCodeStyleNotifierStarter : ProjectActivity {
 
   override suspend fun execute(project: Project) {
-    project.service<OxfmtConfigNotifier>()
+    project.service<OxfmtCodeStyleNotifier>()
   }
 }
 

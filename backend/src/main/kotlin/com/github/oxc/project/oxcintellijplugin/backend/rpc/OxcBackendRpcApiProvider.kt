@@ -17,7 +17,7 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcFixOnSaveFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
-import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsData
@@ -145,7 +145,7 @@ private class OxfmtCodeStyleApiImpl : OxfmtCodeStyleApi {
     return importOxfmtCodeStyle(project, virtualFile)
   }
 
-  override suspend fun configNotices(projectId: ProjectId): Flow<OxfmtConfigNotice> {
+  override suspend fun notices(projectId: ProjectId): Flow<OxfmtCodeStyleNotice> {
     val project = projectId.findProjectOrNull() ?: return emptyFlow()
     return OxfmtJsConfigLoader.getInstance(project).notices
   }

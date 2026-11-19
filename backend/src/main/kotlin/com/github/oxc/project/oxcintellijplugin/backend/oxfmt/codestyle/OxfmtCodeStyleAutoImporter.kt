@@ -1,7 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
-import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.readAction
@@ -77,7 +77,7 @@ class OxfmtCodeStyleAutoImporter(private val project: Project, private val scope
     val import = importOxfmtCodeStyle(project, location, asked = false)
     val source = import.source
     if (import.result == OxfmtImportResult.IMPORTED && source != null) {
-      OxfmtJsConfigLoader.getInstance(project).send(OxfmtConfigNotice.Imported(source.url, source.name))
+      OxfmtJsConfigLoader.getInstance(project).send(OxfmtCodeStyleNotice.Imported(source.url, source.name))
     }
   }
 

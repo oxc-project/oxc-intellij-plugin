@@ -27,7 +27,7 @@ interface OxfmtCodeStyleApi : RemoteApi<Unit> {
    * import that changed the project's code style, and what the code style status bar's actions report. The
    * backend decides which to send, so each one is shown. One that comes before the frontend asks waits for it.
    */
-  suspend fun configNotices(projectId: ProjectId): Flow<OxfmtConfigNotice>
+  suspend fun notices(projectId: ProjectId): Flow<OxfmtCodeStyleNotice>
 
   /** Opens the config at [configUrl] in an editor. A thin client can't find a file it hasn't opened, so the backend opens it. */
   suspend fun openConfig(projectId: ProjectId, configUrl: String)
@@ -64,15 +64,15 @@ enum class OxfmtImportResult {
  * the backend reaches a thin client empty.
  */
 @Serializable
-sealed interface OxfmtConfigNotice {
+sealed interface OxfmtCodeStyleNotice {
 
   /** Reading it would run the project's code, which only happens in a trusted project. */
   @Serializable
-  data class Untrusted(val configUrl: String, val configName: String) : OxfmtConfigNotice
+  data class Untrusted(val configUrl: String, val configName: String) : OxfmtCodeStyleNotice
 
   /** A change to the config made the backend import it into the project's code style. */
   @Serializable
-  data class Imported(val configUrl: String, val configName: String) : OxfmtConfigNotice
+  data class Imported(val configUrl: String, val configName: String) : OxfmtCodeStyleNotice
 
   /** [message] is what went wrong, and [details] is everything known about it, such as the stack. */
   @Serializable
@@ -82,15 +82,15 @@ sealed interface OxfmtConfigNotice {
     val reason: OxfmtJsConfigFailure,
     val message: String,
     val details: String,
-  ) : OxfmtConfigNotice
+  ) : OxfmtCodeStyleNotice
 
   /** The status bar's Disable action turned the project's Oxfmt code style off. */
   @Serializable
-  data object CodeStyleDisabled : OxfmtConfigNotice
+  data object CodeStyleDisabled : OxfmtCodeStyleNotice
 
   /** The status bar's Open Configuration File action found no config for the file named [fileName]. */
   @Serializable
-  data class ConfigNotFound(val fileName: String) : OxfmtConfigNotice
+  data class ConfigNotFound(val fileName: String) : OxfmtCodeStyleNotice
 }
 
 @Serializable

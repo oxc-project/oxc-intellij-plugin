@@ -2,7 +2,7 @@ package com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle
 
 import com.github.oxc.project.oxcintellijplugin.backend.OxcBackendBundle
 import com.github.oxc.project.oxcintellijplugin.backend.process.startWithoutProgress
-import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtConfigNotice
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtJsConfigFailure
 import com.intellij.execution.process.CapturingProcessRunner
 import com.intellij.execution.process.ProcessOutput
@@ -129,10 +129,10 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
   private val nodeRetries = AtomicInteger()
 
   /** Holds a few notices until the frontend asks, which can be after the first files open. */
-  private val pending = Channel<OxfmtConfigNotice>(capacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+  private val pending = Channel<OxfmtCodeStyleNotice>(capacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
   /** What the frontend should show. Each notice goes to one collector. */
-  val notices: Flow<OxfmtConfigNotice>
+  val notices: Flow<OxfmtCodeStyleNotice>
     get() = pending.receiveAsFlow()
 
   init {
@@ -184,7 +184,7 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
   }
 
   /** Sends [notice] to the frontend with the problems, so that it waits for the frontend in the same way. */
-  fun send(notice: OxfmtConfigNotice) {
+  fun send(notice: OxfmtCodeStyleNotice) {
     pending.trySend(notice)
   }
 
@@ -334,9 +334,9 @@ class OxfmtJsConfigLoader(private val project: Project, private val scope: Corou
     val notice = when (result) {
       is OxfmtJsConfigResult.Untrusted -> {
         untrustedNotified.set(true)
-        OxfmtConfigNotice.Untrusted(result.file.url, result.file.name)
+        OxfmtCodeStyleNotice.Untrusted(result.file.url, result.file.name)
       }
-      is OxfmtJsConfigResult.Failed -> OxfmtConfigNotice.Failed(result.file.url, result.file.name, result.reason, result.message, result.details)
+      is OxfmtJsConfigResult.Failed -> OxfmtCodeStyleNotice.Failed(result.file.url, result.file.name, result.reason, result.message, result.details)
       else -> return
     }
     pending.trySend(notice)

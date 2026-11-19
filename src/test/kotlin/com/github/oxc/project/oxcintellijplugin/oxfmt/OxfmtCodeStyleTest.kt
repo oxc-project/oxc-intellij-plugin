@@ -10,7 +10,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtTra
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.findOxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
-import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtConfigNotifier
+import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtCodeStyleNotifier
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
@@ -395,7 +395,7 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
 
   /** The action runs on the backend, and the frontend shows what it found in the `Oxc` group. */
   fun testOpenConfigurationFileWithoutAConfigTellsTheUserThroughTheFrontend() {
-    project.service<OxfmtConfigNotifier>()
+    project.service<OxfmtCodeStyleNotifier>()
     val file = myFixture.addFileToProject("index.js", "")
 
     OxfmtCodeStyleStatusBarUiContributor().getActions(file).first().actionPerformed(emptyEvent())
@@ -406,7 +406,7 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
   }
 
   fun testDisablingFromTheStatusBarTellsTheUserThroughTheFrontend() {
-    project.service<OxfmtConfigNotifier>()
+    project.service<OxfmtCodeStyleNotifier>()
     settings.state.preferOxfmtCodeStyleSettings = true
 
     OxfmtCodeStyleStatusBarUiContributor().createDisableAction(project).actionPerformed(emptyEvent())
@@ -440,7 +440,7 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
 
   fun testAutomaticImportTellsTheUserOnlyWhenItChangedSomething() {
     useAutoImport()
-    project.service<OxfmtConfigNotifier>()
+    project.service<OxfmtCodeStyleNotifier>()
     val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
     waitUntil("the import is shown") { notifications.isNotEmpty() }
     assertEquals("Imported the Oxfmt code style from \".oxfmtrc.json\" into this project.", notifications.single().content)

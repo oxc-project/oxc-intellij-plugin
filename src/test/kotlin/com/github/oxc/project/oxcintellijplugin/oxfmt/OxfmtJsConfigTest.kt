@@ -10,7 +10,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtOve
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.locateOxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
-import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtConfigNotifier
+import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtCodeStyleNotifier
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.testutil.FakePackages
@@ -75,7 +75,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
       }
     })
     // The frontend listens once its startup activity runs, which a test project may not have reached yet.
-    project.service<OxfmtConfigNotifier>()
+    project.service<OxfmtCodeStyleNotifier>()
   }
 
   fun testTypeScriptConfigIsReadThroughNode() {

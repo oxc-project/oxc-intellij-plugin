@@ -8,7 +8,7 @@
         <postStartupActivity
                 implementation="com.github.oxc.project.oxcintellijplugin.frontend.settings.OxcSettingsCacheStarter"/>
         <postStartupActivity
-                implementation="com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtConfigNotifierStarter"/>
+                implementation="com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtCodeStyleNotifierStarter"/>
         <postStartupActivity
                 implementation="com.github.oxc.project.oxcintellijplugin.frontend.tool.FixOnSaveFailureNotifierStarter"/>
         <notificationGroup id="Oxc"

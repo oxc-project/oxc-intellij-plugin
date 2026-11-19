@@ -5,6 +5,8 @@
 // runner that takes longer than the tests wait, and vp ignores the shutdown until the download ends, so
 // each test leaves a server running. `vp lint --lsp` with no input downloads it, then exits.
 //
+// The Yarn PnP fixture needs the same Yarn as the Yarn fixture, so it isn't run here.
+//
 // Usage: node download-vite-plus-package-managers.mjs [folder holding the fixtures]
 
 import { spawnSync } from 'node:child_process';

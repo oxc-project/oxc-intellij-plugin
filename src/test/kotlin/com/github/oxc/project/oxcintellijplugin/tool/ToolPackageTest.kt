@@ -113,6 +113,14 @@ class ToolPackageTest : OxcFixtureTestCase() {
     assertEquals(FileUtil.toSystemDependentName(binary.path), resolve(OxlintDefinition).executable)
   }
 
+  /** The schema comes from the package a relative binary is in, as for an absolute one. */
+  fun testRelativeManualBinaryFindsItsPackagesSchema() {
+    val schema = FakePackages.tool(myFixture, "node_modules/oxlint", "oxlint")
+    useOxlintBinary("node_modules/oxlint/bin/oxlint")
+
+    assertEquals(schema, ToolPackage(project, OxlintDefinition).findSchema(file))
+  }
+
   /** A nested package's own `vite-plus` runs from that package, as a nested `oxlint` would. */
   fun testNearestVitePlusWins() {
     FakePackages.vitePlus(myFixture)

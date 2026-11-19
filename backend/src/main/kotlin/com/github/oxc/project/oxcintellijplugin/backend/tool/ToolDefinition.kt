@@ -2,11 +2,18 @@ package com.github.oxc.project.oxcintellijplugin.backend.tool
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.OxfmtDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
+import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.customization.LspCustomization
+import com.intellij.util.PathUtil
 
 /** What differs between the tools. Everything else in this package is shared. */
 abstract class ToolDefinition(
@@ -20,6 +27,10 @@ abstract class ToolDefinition(
   val fixAllTimeoutRegistryKey: String,
   /** The subcommand of `vp` that runs this tool, as in `vp lint --lsp`. */
   val vitePlusCommand: String,
+  /** The config names that the tool's JSON schema describes. */
+  val jsonConfigNames: List<String>,
+  /** Every config name that the tool looks for. `vite.config.*` isn't one, because it's Vite's file. */
+  val configNames: List<String>,
 ) {
   /** The platform tells servers apart by their provider's class, so each tool needs its own. */
   abstract val providerClass: Class<out ToolLspIntegrationProvider>
@@ -39,6 +50,31 @@ abstract class ToolDefinition(
     if (!settings.isEnabled || !settings.isSupported(file)) return null
 
     return ToolPackage(project, this).resolve(file)?.let { ToolLspClientDescriptor(project, this, it) }
+  }
+
+  /** A config file of the tool's, by its name or because it's the manual config path. */
+  fun isConfigFile(project: Project?, file: VirtualFile): Boolean =
+    file.name in configNames || project != null && isManualConfig(project, file)
+
+  /** A config file that the tool's JSON schema describes. */
+  fun isJsonConfigFile(project: Project, file: VirtualFile): Boolean =
+    file.name in jsonConfigNames || isManualConfig(project, file)
+
+  /**
+   * The server resolves a relative path from its own folder, which depends on the file being checked, so
+   * this tries the project's folder and its content roots instead.
+   */
+  private fun isManualConfig(project: Project, file: VirtualFile): Boolean {
+    if (project.isDefault) return false
+    val settings = settings(project)
+    if (settings.configurationMode != ConfigurationMode.MANUAL) return false
+    val path = settings.configPath?.trim()?.takeIf { it.isNotEmpty() }
+                 ?.let { PathUtil.toSystemIndependentName(resolveSettingPath(project, it)) } ?: return false
+    // FileUtil is obsolete, but nothing public compares or canonicalizes path strings without NIO, which misreads another OS's.
+    if (OSAgnosticPathUtil.isAbsolute(path)) return FileUtil.pathsEqual(path, file.path)
+
+    val roots = ProjectRootManager.getInstance(project).contentRoots.asSequence() + listOfNotNull(project.guessProjectDir())
+    return roots.any { FileUtil.pathsEqual(FileUtil.toCanonicalPath("${it.path}/$path"), file.path) }
   }
 
   companion object {

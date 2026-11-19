@@ -2,9 +2,11 @@ package com.github.oxc.project.oxcintellijplugin.backend.tool
 
 import com.github.oxc.project.oxcintellijplugin.backend.process.resolveSettingPath
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
+import com.intellij.javascript.nodejs.PackageJsonData
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.util.NodePackage
 import com.intellij.javascript.nodejs.util.NodePackageDescriptor
+import com.intellij.lang.javascript.buildTools.npm.PackageJsonUtil
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
@@ -37,7 +39,7 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     return if (manualBinary != null) {
       manualLaunch(manualBinary, file)
     } else {
-      findVitePlus(file) ?: packageLaunch(file)
+      findVitePlus(file)?.launch ?: packageLaunch(file)
     }
   }
 
@@ -62,6 +64,21 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     return ServerLaunch(executable, SERVER_PARAMETERS, root)
   }
 
+  /**
+   * The JSON schema that ships with the tool that would run for [file], so that it matches the tool's
+   * version. Under Vite+ that's the tool `vp` runs, and for a manual binary it's the package the binary is
+   * in. Returns null if there's no installed package to take it from.
+   */
+  fun findSchema(file: VirtualFile): VirtualFile? {
+    val manualBinary = manualBinary()
+    val folder = if (manualBinary != null) {
+      packageContaining(manualRoot(file)?.let { resolveManualBinary(manualBinary, it) } ?: manualBinary)
+    } else {
+      findVitePlus(file)?.let(::toolUnderVitePlus) ?: find(file)?.let(::packageFolder)
+    }
+    return folder?.findChild(SCHEMA_FILE_NAME)?.takeIf { !it.isDirectory }
+  }
+
   private fun manualBinary(): String? {
     val settings = definition.settings(project)
     return settings.binaryPath?.trim()
@@ -79,16 +96,19 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file)
     ?: project.guessProjectDir()?.takeIf { VfsUtilCore.isAncestor(it, file, false) }
 
+  private class VitePlus(val nodePackage: NodePackage, val launch: ServerLaunch)
+
   /** The project's own `vite-plus`, with no global fallback, so the version the project chose always runs. */
-  private fun findVitePlus(file: VirtualFile): ServerLaunch? {
+  private fun findVitePlus(file: VirtualFile): VitePlus? {
     val descriptor = NodePackageDescriptor(VITE_PLUS_PACKAGE)
     val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
     val nodePackage = descriptor.listAvailable(project, interpreter, file, false, true).firstOrNull()
                       ?: descriptor.findUnambiguousDependencyPackage(project)
                       ?: return null
     val folder = nodePackage.getAbsolutePackagePathToRequire(project) ?: return null
+    val executable = Paths.get(folder, "bin", "vp").toString()
     val root = serverRoot(nodePackage) ?: return null
-    return ServerLaunch(Paths.get(folder, "bin", "vp").toString(), listOf(definition.vitePlusCommand, "--lsp"), root)
+    return VitePlus(nodePackage, ServerLaunch(executable, listOf(definition.vitePlusCommand, "--lsp"), root))
   }
 
   /** Prefers the nearest `node_modules` above the file, then falls back to a default package. */
@@ -116,9 +136,39 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
   private fun packageFolder(nodePackage: NodePackage): VirtualFile? =
     LocalFileSystem.getInstance().findFileByPath(nodePackage.systemIndependentPath)
 
+  /**
+   * The tool package that `vp` runs. It asks Node for the tool from the server's folder, and then from
+   * its own, so the project's copy wins over the one `vite-plus` depends on.
+   */
+  private fun toolUnderVitePlus(vitePlus: VitePlus): VirtualFile? =
+    nodeModulesLookup(vitePlus.launch.root)
+    ?: packageFolder(vitePlus.nodePackage)?.canonicalFile?.let(::nodeModulesLookup)
+
+  /** Node's lookup: `node_modules/<name>` in the folder and each one above it. */
+  private fun nodeModulesLookup(start: VirtualFile): VirtualFile? =
+    generateSequence(start) { it.parent }
+      .filter { it.name != NODE_MODULES }
+      .firstNotNullOfOrNull { folder ->
+        folder.findChild(NODE_MODULES)?.findChild(definition.packageName)?.takeIf { it.isDirectory }
+      }
+
+  /**
+   * The package a manual binary belongs to, such as `node_modules/oxlint/bin/oxlint`. The nearest
+   * `package.json` above the binary has to be the tool's, so a binary dropped into a project doesn't
+   * pick up the project's own `package.json`.
+   */
+  private fun packageContaining(binary: String): VirtualFile? {
+    val file = LocalFileSystem.getInstance().findFileByPath(binary)?.canonicalFile ?: return null
+    val packageJson = generateSequence(file.parent) { it.parent }
+                        .firstNotNullOfOrNull { it.findChild(PackageJsonUtil.FILE_NAME) } ?: return null
+    return packageJson.parent.takeIf { PackageJsonData.getOrCreate(packageJson).name == definition.packageName }
+  }
+
   private companion object {
     val SERVER_PARAMETERS = listOf("--lsp")
     const val VITE_PLUS_PACKAGE = "vite-plus"
+    const val NODE_MODULES = "node_modules"
+    const val SCHEMA_FILE_NAME = "configuration_schema.json"
   }
 }
 

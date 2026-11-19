@@ -10,6 +10,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.javascript.nodejs.packageJson.PackageJsonFileManager
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootModificationTracker
@@ -78,7 +79,9 @@ class ToolLspClientDescriptor(
   override fun startServerProcess(): OSProcessHandler {
     val run = createServerRun()
     serverRun = run
-    return run.startProcess()
+    val process = run.startProcess()
+    project.service<OutsideConfigWatcher>().watch(definition.tool, configPath()?.fileOutsideWorkspace)
+    return process
   }
 
   /** Automatic resolutions are always scripts, and a manual path is a native binary unless it's one too. */
@@ -117,7 +120,13 @@ class ToolLspClientDescriptor(
     workspaceConfig().takeIf { roots.any { root -> getFileUri(root) == item.scopeUri } }
 
   private fun workspaceConfig(): Map<String, Any?> =
-    definition.workspaceConfig(project, null)
+    definition.workspaceConfig(project, configPath()?.serverValue)
+
+  private fun configPath(): ToolConfigPath? {
+    if (settings.configurationMode != ConfigurationMode.MANUAL) return null
+
+    return ToolConfigPath.of(settings.configPath?.trim(), roots.single().path, ::toServerPath, ::toLocalPath)
+  }
 
   private fun toServerPath(localPath: String): String? = serverRun?.toServerPath(localPath)
 

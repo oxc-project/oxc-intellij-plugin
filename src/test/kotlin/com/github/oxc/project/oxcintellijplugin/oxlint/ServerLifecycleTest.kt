@@ -16,6 +16,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClient
 import com.intellij.platform.lsp.api.LspClientManager
@@ -24,6 +26,7 @@ import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.replaceService
+import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -122,6 +125,21 @@ class ServerLifecycleTest : OxcFixtureTestCase() {
 
     whileOpenOnlyInAnotherClient(file) {
       settings.update(settings.toData().copy(typeAware = true))
+      waitForANewServerThatOpenedTheFile(firstServer)
+    }
+  }
+
+  fun testOutsideConfigChangeStartsAServerForAFileOpenOnlyInAnotherClient() {
+    val outside = FileUtil.createTempDirectory("oxc-outside", null, true).toPath().resolve("custom.json")
+    Files.writeString(outside, "{}")
+    settings.state.configurationMode = ConfigurationMode.MANUAL
+    settings.state.configPath = outside.toString()
+    val file = myFixture.configureFromTempProjectFile("index.js").virtualFile
+    val firstServer = runningServer()
+
+    whileOpenOnlyInAnotherClient(file) {
+      Files.writeString(outside, """{ "rules": { "no-debugger": "error" } }""")
+      LocalFileSystem.getInstance().refreshNioFiles(listOf(outside))
       waitForANewServerThatOpenedTheFile(firstServer)
     }
   }

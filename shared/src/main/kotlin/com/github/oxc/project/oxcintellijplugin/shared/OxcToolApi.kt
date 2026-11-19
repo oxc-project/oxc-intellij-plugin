@@ -2,6 +2,7 @@
 
 package com.github.oxc.project.oxcintellijplugin.shared
 
+import com.intellij.ide.vfs.VirtualFileId
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.rpc.RemoteApiProviderService
 import fleet.rpc.RemoteApi
@@ -15,6 +16,21 @@ interface OxcToolApi : RemoteApi<Unit> {
 
   /** Stops the tool's servers for the project, and starts the ones that its open files still need. */
   suspend fun restart(projectId: ProjectId, tool: OxcTool)
+
+  /**
+   * Starts the server that [fixAll] needs for the file, and returns why Fix All can't go on, or null once
+   * it runs. Call it without a modal dialog showing, because the platform's start waits for one to close.
+   */
+  suspend fun startServerForFixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult?
+
+  /** Applies the tool's changes to the file, which doesn't have to be open in an editor. */
+  suspend fun fixAll(projectId: ProjectId, tool: OxcTool, file: VirtualFileId): OxcFixAllResult
+
+  /**
+   * Asks the user to trust the project, which running anything from it needs, with the platform's dialog.
+   * Returns whether it's trusted afterwards. The backend holds the project's trust.
+   */
+  suspend fun trustProject(projectId: ProjectId): Boolean
 
   /** The project's folder as the backend sees it, or null if it cannot be found. */
   suspend fun projectPath(projectId: ProjectId): String?

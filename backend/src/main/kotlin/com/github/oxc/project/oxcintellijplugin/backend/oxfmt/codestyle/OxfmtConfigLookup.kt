@@ -54,7 +54,6 @@ data class OxfmtConfigLocation(
 fun findOxfmtConfig(project: Project, file: VirtualFile): VirtualFile? = locateOxfmtConfig(project, file)?.file
 
 /**
- * Follows the server's rules, from its source at 0.77.0:
  * - A manual config path is the only config, resolved from the server's root folder.
  * - Under `vp`, the server only looks for `vite.config.*`, from its root folder upward, and has no nested
  *   configs. The first name in Vite's order wins in a folder.

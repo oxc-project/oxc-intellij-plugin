@@ -47,17 +47,23 @@ class PluginLoadingTest : BasePlatformTestCase() {
     assertNotNull(ActionManager.getInstance().getAction("OxlintRestartServerAction"))
   }
 
+  fun testOxfmtRestartActionIsRegistered() {
+    assertNotNull(ActionManager.getInstance().getAction("OxfmtRestartServerAction"))
+  }
+
   fun testSettingsPageIsRegistered() {
     assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxlintConfigurable" })
     assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxfmtConfigurable" })
   }
 
   fun testFixAllIsInTheMenus() {
-    val action = ActionManager.getInstance().getAction("OxlintApplyFixAllAction")
-    assertNotNull(action)
-    for (group in listOf("EditorPopupMenu", "ProjectViewPopupMenu")) {
-      val children = (ActionManager.getInstance().getAction(group) as DefaultActionGroup).getChildren(ActionManager.getInstance())
-      assertTrue(group, action in children)
+    for (id in listOf("OxlintApplyFixAllAction", "OxfmtApplyFixAllAction")) {
+      val action = ActionManager.getInstance().getAction(id)
+      assertNotNull(id, action)
+      for (group in listOf("EditorPopupMenu", "ProjectViewPopupMenu")) {
+        val children = (ActionManager.getInstance().getAction(group) as DefaultActionGroup).getChildren(ActionManager.getInstance())
+        assertTrue("$id in $group", action in children)
+      }
     }
   }
 
@@ -69,13 +75,23 @@ class PluginLoadingTest : BasePlatformTestCase() {
     if (format >= 0) assertTrue(names.toString(), fix < format)
   }
 
+  fun testOxfmtFixOnSaveRunsAfterOxlintAndFormatOnSave() {
+    val names = ExtensionPointName<Any>("com.intellij.actionOnSave").extensionList.map { it.javaClass.simpleName }
+    val oxlint = names.indexOf("OxlintFixAllOnSaveAction")
+    val oxfmt = names.indexOf("OxfmtFixAllOnSaveAction")
+    assertTrue(names.toString(), oxfmt > oxlint)
+    val format = names.indexOf("FormatOnSaveAction")
+    if (format >= 0) assertTrue(names.toString(), oxfmt > format)
+  }
+
   fun testOnSaveRowIsRegistered() {
     val names = ExtensionPointName<Any>("com.intellij.actionOnSaveInfoProvider").extensionList.map { it.javaClass.simpleName }
     assertContainsElements(names, "OxcOnSaveInfoProvider")
   }
 
-  fun testRegistryKeyIsDefined() {
+  fun testRegistryKeysAreDefined() {
     assertEquals(30000, Registry.intValue("oxc.lint.fix.all.timeout.ms"))
+    assertEquals(30000, Registry.intValue("oxc.fmt.fix.all.timeout.ms"))
   }
 
   fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {

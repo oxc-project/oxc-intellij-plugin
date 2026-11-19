@@ -19,7 +19,7 @@ import java.time.Instant
  * child of the test, and the `wsl.exe` chain that IJent starts on first use lives for the whole session.
  * Windows hides a process's arguments, so that chain can't be told apart from anything else by name.
  */
-private val SERVER_COMMANDS = listOf("node", "oxlint")
+private val SERVER_COMMANDS = listOf("node", "oxlint", "oxfmt")
 
 /**
  * Base class for tests that use the project's Node interpreter. When [WslTesting] is enabled, the
@@ -34,6 +34,8 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
   override fun setUp() {
     started = Instant.now()
     super.setUp()
+    // Before the snapshot, so that the wsl.exe chain IJent keeps for the session counts as already running.
+    if (WslTesting.enabled) WslTesting.warmUp()
     processesBefore = ProcessHandle.current().descendants().map { it.pid() }.toList().toSet()
     if (WslTesting.enabled) {
       NodeJsInterpreterManager.getInstance(project)

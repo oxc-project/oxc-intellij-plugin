@@ -10,11 +10,9 @@ class ToolSettingsWatcher(private val project: Project) : OxcSettingsListener {
 
   override fun settingsChanged(tool: OxcTool, affectsServers: Boolean) {
     if (!affectsServers || project.isDefault) return
-    // Oxfmt has settings before it has a server.
-    val definition = ToolDefinition.all.find { it.tool == tool } ?: return
 
     ApplicationManager.getApplication().invokeLater({
-      project.service<ToolServerStarter>().restart(definition)
+      project.service<ToolServerStarter>().restart(ToolDefinition.of(tool))
     }, project.disposed)
   }
 }

@@ -16,7 +16,6 @@ import com.intellij.platform.lsp.api.customization.LspCodeActionsSupport
 import com.intellij.platform.lsp.api.customization.LspCustomization
 import com.intellij.platform.lsp.api.customization.LspDiagnosticsCustomizer
 
-/** The names that `oxlint --lsp` looks for, from its source at 1.88.0. */
 private val OXLINT_JSON_CONFIG_NAMES = listOf(".oxlintrc.json", ".oxlintrc.jsonc")
 
 object OxlintDefinition : ToolDefinition(

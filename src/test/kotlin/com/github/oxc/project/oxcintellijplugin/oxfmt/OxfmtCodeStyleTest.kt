@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyle
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleAutoImporter
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleStatusBarUiContributor
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtConfig
@@ -313,7 +314,7 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
   }
 
   /** Through the platform, so this also covers that changing the file reaches an open file's settings. */
-  fun testConfigChangeRefreshesTheOverlay() {
+  fun testConfigChangeRefreshesTheOverlayAndImportsIt() {
     useRealCodeStyleLookup()
     settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))
     val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
@@ -324,6 +325,7 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
 
     waitForIndent(file, 5)
+    waitForProjectIndent(5)
   }
 
   /**
@@ -332,6 +334,8 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
    */
   fun testConfigChangeAfterImportRefreshesTheOverlay() {
     useRealCodeStyleLookup()
+    // Otherwise the config would be imported before Import runs.
+    OxfmtCodeStyleAutoImporter.getInstance(project).setEnabledForTests(false, testRootDisposable)
     settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))
     val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
     val file = myFixture.addFileToProject("index.js", "")
@@ -347,6 +351,8 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
 
   fun testTurningThePreferenceOffRemovesTheOverlay() {
     useRealCodeStyleLookup()
+    // Otherwise the project's own code style would have the config's indent too.
+    OxfmtCodeStyleAutoImporter.getInstance(project).setEnabledForTests(false, testRootDisposable)
     settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))
     myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""")
     val file = myFixture.addFileToProject("index.js", "")
@@ -413,11 +419,142 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
   private fun emptyEvent(): AnActionEvent =
     AnActionEvent.createEvent(DataContext.EMPTY_CONTEXT, Presentation(), "", ActionUiKind.NONE, null)
 
+  fun testCreatingAndChangingTheProjectConfigImportsIt() {
+    useAutoImport()
+    val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
+    waitForProjectIndent(3)
+    assertTrue("The change should be kept in this project", CodeStyleSettingsManager.getInstance(project).USE_PER_PROJECT_SETTINGS)
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+
+    waitForProjectIndent(5)
+  }
+
+  fun testCreatingAJsoncConfigImportsIt() {
+    useAutoImport()
+
+    myFixture.addFileToProject(".oxfmtrc.jsonc", "{\n  // indent\n  \"tabWidth\": 3\n}")
+
+    waitForProjectIndent(3)
+  }
+
+  fun testAutomaticImportTellsTheUserOnlyWhenItChangedSomething() {
+    useAutoImport()
+    project.service<OxfmtCodeStyleNotifier>()
+    val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
+    waitUntil("the import is shown") { notifications.isNotEmpty() }
+    assertEquals("Imported the Oxfmt code style from \".oxfmtrc.json\" into this project.", notifications.single().content)
+    assertEquals(listOf("Edit Configuration File"), notifications.single().actions.map { it.templateText })
+
+    // Saved again with the same options, so there's nothing to import.
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 3 } """.toByteArray()) }
+    awaitAutoImports()
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+
+    assertEquals(1, notifications.size)
+  }
+
+  fun testChangingTheManualConfigImportsIt() {
+    useAutoImport()
+    myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""")
+    val config = myFixture.addFileToProject("configs/team.json", """{ "tabWidth": 6 }""").virtualFile
+    preferManualConfig("./configs/team.json")
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+
+    waitForProjectIndent(5)
+  }
+
+  fun testChangingAManualConfigAboveTheProjectImportsIt() {
+    useAutoImport()
+    val root = myFixture.tempDirFixture.getFile(".")!!
+    val outside = root.toNioPath().parent.resolve("oxc-team-${System.nanoTime()}.json")
+    Files.writeString(outside, """{ "tabWidth": 3 }""")
+    try {
+      val config = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(outside)!!
+      preferManualConfig("../${outside.fileName}")
+
+      WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+
+      waitForProjectIndent(5)
+    } finally {
+      Files.deleteIfExists(outside)
+    }
+  }
+
+  /** A nested config is only for the files below it, so the project's code style keeps following the root's. */
+  fun testChangingANestedConfigImportsNothing() {
+    useAutoImport()
+    myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""")
+    waitForProjectIndent(3)
+
+    val nested = myFixture.addFileToProject("packages/a/.oxfmtrc.json", """{ "tabWidth": 5 }""").virtualFile
+    WriteAction.runAndWait<Exception> { nested.setBinaryContent("""{ "tabWidth": 6 }""".toByteArray()) }
+    awaitAutoImports()
+
+    assertEquals(3, projectIndent())
+  }
+
+  fun testRenamingAConfigToAConfigNameImportsIt() {
+    useAutoImport()
+    val draft = myFixture.addFileToProject("draft.json", """{ "tabWidth": 3 }""").virtualFile
+    awaitAutoImports()
+    assertFalse(projectIndent() == 3)
+
+    WriteAction.runAndWait<Exception> { draft.rename(this, ".oxfmtrc.json") }
+
+    waitForProjectIndent(3)
+  }
+
+  fun testDeletingTheProjectConfigKeepsTheCodeStyle() {
+    useAutoImport()
+    val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
+    waitForProjectIndent(3)
+
+    WriteAction.runAndWait<Exception> { config.delete(this) }
+    awaitAutoImports()
+
+    assertEquals(3, projectIndent())
+  }
+
+  fun testNothingIsImportedWithThePreferenceOff() {
+    useRealCodeStyleLookup()
+    val before = projectIndent()
+
+    myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""")
+    awaitAutoImports()
+
+    assertEquals(before, projectIndent())
+  }
+
   fun testImportWithoutAConfig() {
     assertEquals(
       OxfmtImportResult.CONFIG_NOT_FOUND,
       runImport(myFixture.addFileToProject("index.js", "").virtualFile),
     )
+  }
+
+  /**
+   * Automatic import follows the preference. Through the platform's settings, because the test framework's
+   * fixed ones would hide what was written.
+   */
+  private fun useAutoImport() {
+    useRealCodeStyleLookup()
+    settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))
+  }
+
+  private fun projectIndent(): Int =
+    CodeStyle.getSettings(project).getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE
+
+  private fun waitForProjectIndent(expected: Int) {
+    waitUntil("the project's indent is $expected") { projectIndent() == expected }
+  }
+
+  private fun awaitAutoImports() {
+    val call = ApplicationManager.getApplication().executeOnPooledThread {
+      runBlocking { OxfmtCodeStyleAutoImporter.getInstance(project).awaitImports() }
+    }
+    PlatformTestUtil.waitForFuture(call, 30_000)
   }
 
   private fun preferManualConfig(path: String) {

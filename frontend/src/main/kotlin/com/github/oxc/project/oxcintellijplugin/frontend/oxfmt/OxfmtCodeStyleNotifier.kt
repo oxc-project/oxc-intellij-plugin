@@ -33,9 +33,10 @@ import javax.swing.JComponent
 private const val MAX_MESSAGE_LINES = 5
 
 /**
- * Shows what the backend sends when it can't read a JavaScript or TypeScript config, or when one of the code
- * style status bar's actions, which run on the backend, has something to say. The backend decides when to
- * send one, so this shows each.
+ * Shows what the backend sends when it can't read a JavaScript or TypeScript config, when a config change
+ * made it import the config into the project's code style, or when one of the code style status bar's
+ * actions, which run on the backend, has something to say. The backend decides when to send one, so this
+ * shows each.
  */
 @Service(Service.Level.PROJECT)
 class OxfmtCodeStyleNotifier(private val project: Project, private val scope: CoroutineScope) {
@@ -52,6 +53,7 @@ class OxfmtCodeStyleNotifier(private val project: Project, private val scope: Co
     when (notice) {
       is OxfmtCodeStyleNotice.Untrusted -> untrusted(notice)
       is OxfmtCodeStyleNotice.Failed -> failed(notice)
+      is OxfmtCodeStyleNotice.Imported -> imported(notice)
       OxfmtCodeStyleNotice.CodeStyleDisabled -> group().createNotification(
         OxcFrontendBundle.message("oxfmt.code.style.preference.disabled.title"),
         OxcFrontendBundle.message("oxfmt.code.style.preference.disabled.description"),
@@ -64,6 +66,12 @@ class OxfmtCodeStyleNotifier(private val project: Project, private val scope: Co
       )
     }.notify(project)
   }
+
+  private fun imported(notice: OxfmtCodeStyleNotice.Imported): Notification =
+    group().createNotification(
+      OxcFrontendBundle.message("oxfmt.import.code.style.automatic", notice.configName),
+      NotificationType.INFORMATION,
+    ).addAction(editConfig(notice.configUrl))
 
   private fun untrusted(notice: OxfmtCodeStyleNotice.Untrusted): Notification =
     group().createNotification(

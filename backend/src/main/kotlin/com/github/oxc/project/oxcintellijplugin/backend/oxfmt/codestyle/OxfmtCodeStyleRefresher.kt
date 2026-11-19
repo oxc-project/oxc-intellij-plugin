@@ -14,13 +14,18 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.OSAgnosticPathUtil
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.util.PathUtil
 
-/** With the code style preference on, makes files pick up the overlay again when a config changes. */
+/**
+ * With the code style preference on, makes files pick up the overlay again when a config changes, and hands
+ * the change to [OxfmtCodeStyleAutoImporter], which imports the project folder's config into the project's
+ * own code style.
+ */
 class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, OxcSettingsListener {
 
   override fun after(events: List<VFileEvent>) {
@@ -28,7 +33,13 @@ class OxfmtCodeStyleRefresher(private val project: Project) : BulkFileListener, 
     if (!settings.preferOxfmtCodeStyleSettings) return
     val roots = roots()
     val manual = manualConfigPaths(settings, roots)
-    if (events.any { touchesConfig(it, roots, manual) }) refresh()
+    val touched = events.filter { touchesConfig(it, roots, manual) }
+    if (touched.isEmpty()) return
+    refresh()
+    OxfmtCodeStyleAutoImporter.getInstance(project).configsChanged(
+      touched.flatMap(::paths).distinct(),
+      moved = touched.any { it is VFileDeleteEvent || it is VFileMoveEvent || (it as? VFilePropertyChangeEvent)?.isRename == true },
+    )
   }
 
   override fun settingsChanged(tool: OxcTool, affectsServers: Boolean) {

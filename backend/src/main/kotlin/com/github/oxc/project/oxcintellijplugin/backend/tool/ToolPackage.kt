@@ -32,24 +32,36 @@ data class ServerLaunch(
 )
 
 /**
- * Finds what to run for a file: the project's Vite+, else the tool's package, or the manual path.
+ * Finds what to run for a file: the manual path, the project's Vite+, or the tool's package.
  *
  * Vite+ comes first even when the tool's own package is installed too, because npm hoists the tool out of
  * `vite-plus`, and only `vp` reads `vite.config.*`. A manual binary never uses Vite+.
  */
 class ToolPackage(private val project: Project, private val definition: ToolDefinition) {
 
-  /** Returns null if there's nothing to run. */
+  /** Returns null if there's nothing to run. A manual binary that can't run doesn't fall back to a package. */
   fun resolve(file: VirtualFile): ServerLaunch? {
     val manualBinary = manualBinary()
-    if (manualBinary == null) {
-      findVitePlus(file)?.let { return it.launch }
+    return if (manualBinary != null) {
+      manualLaunch(manualBinary, file)
+    } else {
+      findVitePlus(file)?.launch ?: packageLaunch(file)
     }
+  }
 
+  private fun manualLaunch(binary: String, file: VirtualFile): ServerLaunch? {
+    val root = manualRoot(file)
+    if (root == null) {
+      thisLogger().debug("Not starting ${definition.displayName} for ${file.path}: no root for manual binary $binary")
+      return null
+    }
+    return ServerLaunch(resolveManualBinary(binary, root), SERVER_PARAMETERS, root)
+  }
+
+  private fun packageLaunch(file: VirtualFile): ServerLaunch? {
     val nodePackage = find(file)
-    val root = serverRoot(file, nodePackage, manualBinary != null)
-    val executable = manualBinary?.let { binary -> root?.let { resolveManualBinary(binary, it) } ?: binary }
-                     ?: nodePackage?.let(::executablePath)
+    val executable = nodePackage?.let(::executablePath)
+    val root = nodePackage?.let(::serverRoot)
     if (executable == null || root == null) {
       thisLogger().debug(
         "Not starting ${definition.displayName} for ${file.path}: package=$nodePackage, executable=$executable, root=$root")
@@ -65,12 +77,10 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
    */
   fun findSchema(file: VirtualFile): VirtualFile? {
     val manualBinary = manualBinary()
-    val folder = when {
-      manualBinary != null -> {
-        val root = serverRoot(file, find(file), manual = true)
-        packageContaining(root?.let { resolveManualBinary(manualBinary, it) } ?: manualBinary)
-      }
-      else -> findVitePlus(file)?.let { toolUnderVitePlus(it) } ?: find(file)?.let(::packageFolder)
+    val folder = if (manualBinary != null) {
+      packageContaining(manualRoot(file)?.let { resolveManualBinary(manualBinary, it) } ?: manualBinary)
+    } else {
+      findVitePlus(file)?.let(::toolUnderVitePlus) ?: find(file)?.let(::packageFolder)
     }
     return folder?.findChild(SCHEMA_FILE_NAME)?.takeIf { !it.isDirectory }
   }
@@ -83,16 +93,13 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
   }
 
   /**
-   * Where the server runs from: the folder holding the tool's `node_modules`, or for a [manual] binary
-   * without one, the file's content root. A file outside the content falls back to the project's folder,
-   * because a project opened in Safe Mode has no content until it's reopened, even once trusted.
+   * Where a manual binary's server runs from: the folder holding the tool's `node_modules`, or without one,
+   * the file's content root. A file outside the content falls back to the project's folder, because a
+   * project opened in Safe Mode has no content until it's reopened, even once trusted.
    */
-  private fun serverRoot(file: VirtualFile, nodePackage: NodePackage?, manual: Boolean): VirtualFile? =
-    nodePackage?.let(::serverRoot)
-    ?: if (manual) contentRootOrProjectFolder(file) else null
-
-  private fun contentRootOrProjectFolder(file: VirtualFile): VirtualFile? =
-    ProjectFileIndex.getInstance(project).getContentRootForFile(file)
+  private fun manualRoot(file: VirtualFile): VirtualFile? =
+    find(file)?.let(::serverRoot)
+    ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file)
     ?: project.guessProjectDir()?.takeIf { VfsUtilCore.isAncestor(it, file, false) }
 
   private class VitePlus(val nodePackage: NodePackage, val launch: ServerLaunch)

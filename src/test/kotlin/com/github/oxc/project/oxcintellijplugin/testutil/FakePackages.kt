@@ -21,6 +21,11 @@ object FakePackages {
     return fixture.addFileToProject("$folder/configuration_schema.json", schema).virtualFile
   }
 
+  fun vitePlus(fixture: CodeInsightTestFixture, folder: String = "node_modules/vite-plus") {
+    fixture.addFileToProject("$folder/package.json", """{ "name": "vite-plus", "version": "1.5.0", "bin": { "vp": "./bin/vp" } }""")
+    fixture.addFileToProject("$folder/bin/vp", "#!/usr/bin/env node\n")
+  }
+
   fun schema(title: String): String =
     """{ "${'$'}schema": "http://json-schema.org/draft-07/schema#", "title": "$title", "type": "object" }"""
 }

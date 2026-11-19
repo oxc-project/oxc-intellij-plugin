@@ -23,16 +23,37 @@ data class ServerLaunch(
   val root: VirtualFile,
 )
 
-/** Finds what to run for a file: the tool's package, or the manual path. */
+/**
+ * Finds what to run for a file: the manual path, the project's Vite+, or the tool's package.
+ *
+ * Vite+ comes first even when the tool's own package is installed too, because npm hoists the tool out of
+ * `vite-plus`, and only `vp` reads `vite.config.*`. A manual binary never uses Vite+.
+ */
 class ToolPackage(private val project: Project, private val definition: ToolDefinition) {
 
-  /** Returns null if there's nothing to run. */
+  /** Returns null if there's nothing to run. A manual binary that can't run doesn't fall back to a package. */
   fun resolve(file: VirtualFile): ServerLaunch? {
     val manualBinary = manualBinary()
+    return if (manualBinary != null) {
+      manualLaunch(manualBinary, file)
+    } else {
+      findVitePlus(file) ?: packageLaunch(file)
+    }
+  }
+
+  private fun manualLaunch(binary: String, file: VirtualFile): ServerLaunch? {
+    val root = manualRoot(file)
+    if (root == null) {
+      thisLogger().debug("Not starting ${definition.displayName} for ${file.path}: no root for manual binary $binary")
+      return null
+    }
+    return ServerLaunch(resolveManualBinary(binary, root), SERVER_PARAMETERS, root)
+  }
+
+  private fun packageLaunch(file: VirtualFile): ServerLaunch? {
     val nodePackage = find(file)
-    val root = serverRoot(file, nodePackage, manualBinary != null)
-    val executable = manualBinary?.let { binary -> root?.let { resolveManualBinary(binary, it) } ?: binary }
-                     ?: nodePackage?.let(::executablePath)
+    val executable = nodePackage?.let(::executablePath)
+    val root = nodePackage?.let(::serverRoot)
     if (executable == null || root == null) {
       thisLogger().debug(
         "Not starting ${definition.displayName} for ${file.path}: package=$nodePackage, executable=$executable, root=$root")
@@ -49,17 +70,26 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
   }
 
   /**
-   * Where the server runs from: the folder holding the tool's `node_modules`, or for a [manual] binary
-   * without one, the file's content root. A file outside the content falls back to the project's folder,
-   * because a project opened in Safe Mode has no content until it's reopened, even once trusted.
+   * Where a manual binary's server runs from: the folder holding the tool's `node_modules`, or without one,
+   * the file's content root. A file outside the content falls back to the project's folder, because a
+   * project opened in Safe Mode has no content until it's reopened, even once trusted.
    */
-  private fun serverRoot(file: VirtualFile, nodePackage: NodePackage?, manual: Boolean): VirtualFile? =
-    nodePackage?.let(::serverRoot)
-    ?: if (manual) contentRootOrProjectFolder(file) else null
-
-  private fun contentRootOrProjectFolder(file: VirtualFile): VirtualFile? =
-    ProjectFileIndex.getInstance(project).getContentRootForFile(file)
+  private fun manualRoot(file: VirtualFile): VirtualFile? =
+    find(file)?.let(::serverRoot)
+    ?: ProjectFileIndex.getInstance(project).getContentRootForFile(file)
     ?: project.guessProjectDir()?.takeIf { VfsUtilCore.isAncestor(it, file, false) }
+
+  /** The project's own `vite-plus`, with no global fallback, so the version the project chose always runs. */
+  private fun findVitePlus(file: VirtualFile): ServerLaunch? {
+    val descriptor = NodePackageDescriptor(VITE_PLUS_PACKAGE)
+    val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
+    val nodePackage = descriptor.listAvailable(project, interpreter, file, false, true).firstOrNull()
+                      ?: descriptor.findUnambiguousDependencyPackage(project)
+                      ?: return null
+    val folder = nodePackage.getAbsolutePackagePathToRequire(project) ?: return null
+    val root = serverRoot(nodePackage) ?: return null
+    return ServerLaunch(Paths.get(folder, "bin", "vp").toString(), listOf(definition.vitePlusCommand, "--lsp"), root)
+  }
 
   /** Prefers the nearest `node_modules` above the file, then falls back to a default package. */
   private fun find(file: VirtualFile): NodePackage? {
@@ -88,6 +118,7 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
 
   private companion object {
     val SERVER_PARAMETERS = listOf("--lsp")
+    const val VITE_PLUS_PACKAGE = "vite-plus"
   }
 }
 

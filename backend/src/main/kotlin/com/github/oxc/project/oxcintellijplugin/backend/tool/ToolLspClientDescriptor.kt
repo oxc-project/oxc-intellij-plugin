@@ -46,8 +46,8 @@ class ToolLspClientDescriptor(
 
   /**
    * A supported file under the root that also resolves to this [launch]. Otherwise, the first
-   * server would take its whole folder, and a nested package in it would never start its own
-   * server.
+   * server would take its whole folder, and a nested package or a Vite+ folder in it would never
+   * start its own server.
    *
    * The platform calls this in read actions, mostly on background threads but on the UI thread when
    * formatting, and again on every document change, so the answer is kept per folder.

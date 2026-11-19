@@ -1,0 +1,11 @@
+{
+  "name": "oxc-npm-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "packageManager": "npm@11.21.2",
+  "devDependencies": {
+    "oxfmt": "0.77.0",
+    "oxlint": "1.88.0"
+  }
+}

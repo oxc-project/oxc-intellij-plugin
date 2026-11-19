@@ -13,7 +13,8 @@ import kotlinx.serialization.Serializable
 
 /**
  * Lets the frontend ask for the project's code style to be changed, which only the backend can do, and
- * tells it what to show when the backend can't read a config or has imported one by itself.
+ * tells it what to show when the backend can't read a config, has imported one by itself, or ran one of the
+ * code style status bar's actions.
  */
 @Rpc
 interface OxfmtCodeStyleApi : RemoteApi<Unit> {
@@ -22,9 +23,9 @@ interface OxfmtCodeStyleApi : RemoteApi<Unit> {
   suspend fun importCodeStyle(projectId: ProjectId, file: VirtualFileId): OxfmtImportResult
 
   /**
-   * Each problem reading a JavaScript or TypeScript config that the frontend should show, and each
-   * automatic import that changed the project's code style. The backend decides which to send, so each one
-   * is shown. One that comes before the frontend asks waits for it.
+   * Each problem reading a JavaScript or TypeScript config that the frontend should show, each automatic
+   * import that changed the project's code style, and what the code style status bar's actions report. The
+   * backend decides which to send, so each one is shown. One that comes before the frontend asks waits for it.
    */
   suspend fun configNotices(projectId: ProjectId): Flow<OxfmtConfigNotice>
 
@@ -57,32 +58,39 @@ enum class OxfmtImportResult {
 }
 
 /**
- * Why the backend didn't read a config, or that it imported one. [configName] is for the title, and
- * [configUrl] is the backend's URL for it, for [OxfmtCodeStyleApi.openConfig]. It isn't a `VirtualFileId`,
- * because one made on the backend reaches a thin client empty.
+ * Something the backend did with the project's code style that the frontend shows, because a notification
+ * group is frontend API. Where there's a config, [configName] is for the title, and [configUrl] is the
+ * backend's URL for it, for [OxfmtCodeStyleApi.openConfig]. It isn't a `VirtualFileId`, because one made on
+ * the backend reaches a thin client empty.
  */
 @Serializable
 sealed interface OxfmtConfigNotice {
-  val configUrl: String
-  val configName: String
 
   /** Reading it would run the project's code, which only happens in a trusted project. */
   @Serializable
-  data class Untrusted(override val configUrl: String, override val configName: String) : OxfmtConfigNotice
+  data class Untrusted(val configUrl: String, val configName: String) : OxfmtConfigNotice
 
   /** A change to the config made the backend import it into the project's code style. */
   @Serializable
-  data class Imported(override val configUrl: String, override val configName: String) : OxfmtConfigNotice
+  data class Imported(val configUrl: String, val configName: String) : OxfmtConfigNotice
 
   /** [message] is what went wrong, and [details] is everything known about it, such as the stack. */
   @Serializable
   data class Failed(
-    override val configUrl: String,
-    override val configName: String,
+    val configUrl: String,
+    val configName: String,
     val reason: OxfmtJsConfigFailure,
     val message: String,
     val details: String,
   ) : OxfmtConfigNotice
+
+  /** The status bar's Disable action turned the project's Oxfmt code style off. */
+  @Serializable
+  data object CodeStyleDisabled : OxfmtConfigNotice
+
+  /** The status bar's Open Configuration File action found no config for the file named [fileName]. */
+  @Serializable
+  data class ConfigNotFound(val fileName: String) : OxfmtConfigNotice
 }
 
 @Serializable

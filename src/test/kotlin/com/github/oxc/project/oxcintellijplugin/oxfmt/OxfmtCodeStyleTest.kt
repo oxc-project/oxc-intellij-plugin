@@ -393,6 +393,32 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     waitUntil("the config is open") { config in FileEditorManager.getInstance(project).openFiles }
   }
 
+  /** The action runs on the backend, and the frontend shows what it found in the `Oxc` group. */
+  fun testOpenConfigurationFileWithoutAConfigTellsTheUserThroughTheFrontend() {
+    project.service<OxfmtConfigNotifier>()
+    val file = myFixture.addFileToProject("index.js", "")
+
+    OxfmtCodeStyleStatusBarUiContributor().getActions(file).first().actionPerformed(emptyEvent())
+
+    waitUntil("the missing config is shown") { notifications.isNotEmpty() }
+    assertEquals("Oxfmt configuration file not found", notifications.single().title)
+    assertEquals("Unable to find an Oxfmt configuration file for \"index.js\".", notifications.single().content)
+  }
+
+  fun testDisablingFromTheStatusBarTellsTheUserThroughTheFrontend() {
+    project.service<OxfmtConfigNotifier>()
+    settings.state.preferOxfmtCodeStyleSettings = true
+
+    OxfmtCodeStyleStatusBarUiContributor().createDisableAction(project).actionPerformed(emptyEvent())
+
+    assertFalse(settings.state.preferOxfmtCodeStyleSettings)
+    waitUntil("the change is shown") { notifications.isNotEmpty() }
+    assertEquals("Oxfmt code style disabled", notifications.single().title)
+  }
+
+  private fun emptyEvent(): AnActionEvent =
+    AnActionEvent.createEvent(DataContext.EMPTY_CONTEXT, Presentation(), "", ActionUiKind.NONE, null)
+
   fun testCreatingAndChangingTheProjectConfigImportsIt() {
     useAutoImport()
     val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile

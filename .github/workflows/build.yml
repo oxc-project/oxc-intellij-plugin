@@ -12,10 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # TODO: Remove the check for nrayburn-tech.
-  CACHE_READ_ONLY: >-
-    ${{ !((github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main')
-    || (github.event.pull_request.head.repo.full_name || github.repository) == 'nrayburn-tech/oxc-intellij-plugin') }}
+  CACHE_READ_ONLY: ${{ !(github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main') }}
   # IntelliJ's archive is 1.5 GB and is just as easily downloaded fresh each time.
   GRADLE_CACHE_EXCLUDES: caches/modules-2/files-2.1/com.jetbrains.intellij.idea
   # Keep in sync with the project's Java toolchains.

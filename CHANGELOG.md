@@ -20,6 +20,8 @@
 - "Apply Oxfmt Quick Fixes" now says when a file is already formatted, shows cancellable progress without blocking the IDE, and can format a closed file. Its timeout is per file, 30 seconds by default, and set by the Registry key `oxc.fmt.fix.all.timeout.ms`.
 - Oxfmt format on save no longer blocks the IDE.
 - Oxfmt's fix on save is now only set on the Actions on Save page. The Oxfmt settings page links to it.
+- "Prefer Oxfmt configuration to IDE code style" now also applies indent and margins for each file, including languages other than JavaScript and TypeScript.
+- The Oxfmt code style now uses the same config as Oxfmt's language server, including a manual config path, "Disable nested config lookups", and an `oxfmt.config.ts` in a nearer folder.
 - In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
 - Oxfmt's default file extensions no longer list the five with more than one dot, such as `.json.example`. They never matched a file.
 - File extensions in both tools' settings can now contain `-` and `_`.
@@ -33,6 +35,8 @@
 - With more than one client connected, Oxlint's language server now keeps running while any client has a supported file open.
 - A manual Oxlint or Oxfmt binary at a path into WSL now runs inside WSL, instead of through Node.
 - Oxfmt no longer corrupts a file when the language server returns more than one edit.
+- An unknown `trailingComma` value in an Oxfmt config no longer causes an error.
+- A config change only affects the project that it's in.
 - Oxfmt's manual config path now gets the Oxc icon, as Oxlint's does.
 - `oxlint.config.mts` and `oxfmt.config.mts` now get the Oxc icon.
 

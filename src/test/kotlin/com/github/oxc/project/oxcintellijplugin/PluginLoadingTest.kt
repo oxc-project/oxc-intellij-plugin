@@ -84,6 +84,11 @@ class PluginLoadingTest : BasePlatformTestCase() {
     if (format >= 0) assertTrue(names.toString(), oxfmt > format)
   }
 
+  fun testCodeStyleOverlayRunsBeforeEditorConfig() {
+    val names = ExtensionPointName<Any>("com.intellij.codeStyleSettingsModifier").extensionList.map { it.javaClass.simpleName }
+    assertEquals(names.toString(), 0, names.indexOf("OxfmtCodeStyleSettingsModifier"))
+  }
+
   fun testOnSaveRowIsRegistered() {
     val names = ExtensionPointName<Any>("com.intellij.actionOnSaveInfoProvider").extensionList.map { it.javaClass.simpleName }
     assertContainsElements(names, "OxcOnSaveInfoProvider")

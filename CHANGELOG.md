@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-19
+
 ### Added
 
 - Add support for IntelliJ split mode (Remote Development).
@@ -447,7 +449,8 @@
 - Schema validation for `.oxlintrc.json` configuration files. (Note: Comments within the .oxlintrc.json
   file are supported, however they show as an error within the IDE due to jsonc not being supported by the IDE.)
 
-[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.45...HEAD
+[Unreleased]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.45...v0.1.0
 [0.0.45]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.44...v0.0.45
 [0.0.44]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.43...v0.0.44
 [0.0.43]: https://github.com/oxc-project/oxc-intellij-plugin/compare/v0.0.42...v0.0.43

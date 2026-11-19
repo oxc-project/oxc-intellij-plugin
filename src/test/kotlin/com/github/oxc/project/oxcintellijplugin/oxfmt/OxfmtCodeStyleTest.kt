@@ -2,12 +2,15 @@ package com.github.oxc.project.oxcintellijplugin.oxfmt
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleSettingsModifier
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCodeStyleStatusBarUiContributor
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtOverlayTracker
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtTrailingComma
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.findOxfmtConfig
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.application.options.CodeStyle
@@ -15,14 +18,22 @@ import com.intellij.lang.javascript.JavaScriptSupportLoader
 import com.intellij.lang.javascript.JavascriptLanguage
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 import com.intellij.lang.typescript.formatter.TypeScriptCodeStyleSettings
+import com.intellij.openapi.actionSystem.ActionUiKind
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
+import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
 import com.intellij.testFramework.PlatformTestUtil
 import java.nio.file.Files
+import kotlinx.coroutines.runBlocking
 
 private const val CONFIG = """{ "singleQuote": true, "semi": false, "tabWidth": 7, "useTabs": true, "printWidth": 77, "trailingComma": "none", "bracketSpacing": false }"""
 
@@ -299,6 +310,25 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     waitForIndent(file, 5)
   }
 
+  /**
+   * After Import the project's settings match the config, so the overlay changes nothing. A later change
+   * to the config still has to reach the open file.
+   */
+  fun testConfigChangeAfterImportRefreshesTheOverlay() {
+    useRealCodeStyleLookup()
+    settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))
+    val config = myFixture.addFileToProject(".oxfmtrc.json", """{ "tabWidth": 3 }""").virtualFile
+    val file = myFixture.addFileToProject("index.js", "")
+    myFixture.configureFromExistingVirtualFile(file.virtualFile)
+    waitForIndent(file, 3)
+    assertEquals(OxfmtImportResult.IMPORTED, runImport(file.virtualFile))
+    waitForIndent(file, 3)
+
+    WriteAction.runAndWait<Exception> { config.setBinaryContent("""{ "tabWidth": 5 }""".toByteArray()) }
+
+    waitForIndent(file, 5)
+  }
+
   fun testTurningThePreferenceOffRemovesTheOverlay() {
     useRealCodeStyleLookup()
     settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = true))
@@ -310,6 +340,42 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     settings.update(settings.toData().copy(preferOxfmtCodeStyleSettings = false))
 
     waitUntil("the overlay is gone") { CodeStyle.getIndentOptions(file).INDENT_SIZE != 3 }
+  }
+
+  fun testImportWritesToTheProjectEvenWhenThePreferenceIsOff() {
+    useRealCodeStyleLookup()
+    myFixture.addFileToProject(".oxfmtrc.json", CONFIG)
+    val file = myFixture.addFileToProject("index.js", "").virtualFile
+
+    assertEquals(OxfmtImportResult.IMPORTED, runImport(file))
+
+    val manager = CodeStyleSettingsManager.getInstance(project)
+    assertTrue("The change should be kept in this project", manager.USE_PER_PROJECT_SETTINGS)
+    assertTrue(OxfmtCodeStyle.isApplied(CodeStyle.getSettings(project), parse(CONFIG)))
+    assertFalse(
+      "The IDE-wide scheme should not change",
+      OxfmtCodeStyle.isApplied(CodeStyleSettingsManager.getInstance().mainProjectCodeStyle ?: CodeStyle.getDefaultSettings(), parse(CONFIG)),
+    )
+    assertEquals(OxfmtImportResult.ALREADY_IMPORTED, runImport(file))
+  }
+
+  /** The lookup can read the disk, so the action leaves it to a coroutine and only navigates on the EDT. */
+  fun testOpenConfigurationFileLooksForTheConfigOffTheEdt() {
+    val config = myFixture.addFileToProject(".oxfmtrc.json", "{}").virtualFile
+    val file = myFixture.addFileToProject("index.js", "")
+    val action = OxfmtCodeStyleStatusBarUiContributor().getActions(file).first()
+
+    action.actionPerformed(AnActionEvent.createEvent(DataContext.EMPTY_CONTEXT, Presentation(), "", ActionUiKind.NONE, null))
+
+    assertFalse("The action should return before the lookup", config in FileEditorManager.getInstance(project).openFiles)
+    waitUntil("the config is open") { config in FileEditorManager.getInstance(project).openFiles }
+  }
+
+  fun testImportWithoutAConfig() {
+    assertEquals(
+      OxfmtImportResult.CONFIG_NOT_FOUND,
+      runImport(myFixture.addFileToProject("index.js", "").virtualFile),
+    )
   }
 
   private fun preferManualConfig(path: String) {
@@ -350,4 +416,11 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
       val copy = TransientCodeStyleSettings(file.virtualFile, project, CodeStyle.getSettings(project))
       copy.takeIf { OxfmtCodeStyleSettingsModifier().modifySettings(it, file) }
     }
+
+  private fun runImport(file: VirtualFile): OxfmtImportResult {
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxfmtImportResult> {
+      runBlocking { importOxfmtCodeStyle(project, file) }
+    }
+    return PlatformTestUtil.waitForFuture(call, 30_000)
+  }
 }

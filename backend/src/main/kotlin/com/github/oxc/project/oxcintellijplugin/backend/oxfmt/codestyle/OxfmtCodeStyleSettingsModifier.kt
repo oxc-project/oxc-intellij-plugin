@@ -37,7 +37,8 @@ class OxfmtCodeStyleSettingsModifier : CodeStyleSettingsModifier {
 
   override fun getName(): String = OxcBackendBundle.message("oxfmt.code.style.display.name")
 
-  override fun getStatusBarUiContributor(transientSettings: TransientCodeStyleSettings): CodeStyleStatusBarUIContributor? = null
+  override fun getStatusBarUiContributor(transientSettings: TransientCodeStyleSettings): CodeStyleStatusBarUIContributor =
+    OxfmtCodeStyleStatusBarUiContributor()
 
   /** Never for the default project, which has no files of its own and no LSP manager to find a config with. */
   override fun mayOverrideSettingsOf(project: Project): Boolean =

@@ -1,6 +1,45 @@
+@file:Suppress("UnstableApiUsage")
+
 package com.github.oxc.project.oxcintellijplugin.shared.oxfmt
 
+import com.intellij.ide.vfs.VirtualFileId
+import com.intellij.platform.project.ProjectId
+import com.intellij.platform.rpc.RemoteApiProviderService
+import fleet.rpc.RemoteApi
+import fleet.rpc.Rpc
+import fleet.rpc.remoteApiDescriptor
 import kotlinx.serialization.Serializable
+
+/** Lets the frontend ask for the project's code style to be changed, which only the backend can do. */
+@Rpc
+interface OxfmtCodeStyleApi : RemoteApi<Unit> {
+
+  /** Imports the nearest config above [file] into the project's code style. */
+  suspend fun importCodeStyle(projectId: ProjectId, file: VirtualFileId): OxfmtImportResult
+
+  companion object {
+
+    suspend fun getInstance(): OxfmtCodeStyleApi =
+      RemoteApiProviderService.resolve(remoteApiDescriptor<OxfmtCodeStyleApi>())
+  }
+}
+
+@Serializable
+enum class OxfmtImportResult {
+
+  IMPORTED,
+  ALREADY_IMPORTED,
+  CONFIG_NOT_FOUND,
+
+  /** The config is JavaScript or TypeScript, and Oxfmt is a native binary that can't read it either. */
+  CONFIG_NOT_READABLE,
+
+  /** Node couldn't read the JavaScript or TypeScript config, or the project isn't trusted. */
+  CONFIG_NOT_LOADED,
+
+  /** The backend can't find the project or the file, such as one deleted since, or a project closing. */
+  FILE_UNAVAILABLE,
+}
 
 /**
  * Why the backend didn't read a config. [configName] is for the title, and [configUrl] is the backend's

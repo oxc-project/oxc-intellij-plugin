@@ -2,6 +2,7 @@
 
 package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
@@ -14,6 +15,8 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixOnSaveFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsData
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
@@ -50,6 +53,9 @@ internal class OxcBackendRpcApiProvider : RemoteApiProvider {
     }
     remoteApi(remoteApiDescriptor<OxfmtSettingsApi>()) {
       OxfmtSettingsApiImpl()
+    }
+    remoteApi(remoteApiDescriptor<OxfmtCodeStyleApi>()) {
+      OxfmtCodeStyleApiImpl()
     }
   }
 }
@@ -120,6 +126,15 @@ private class OxfmtSettingsApiImpl : OxfmtSettingsApi {
   override suspend fun updates(projectId: ProjectId): Flow<OxfmtSettingsData> {
     val project = projectId.findProjectOrNull() ?: return emptyFlow()
     return settingsUpdates(project, OxcTool.OXFMT) { OxfmtSettings.getInstance(project).toData() }
+  }
+}
+
+private class OxfmtCodeStyleApiImpl : OxfmtCodeStyleApi {
+
+  override suspend fun importCodeStyle(projectId: ProjectId, file: VirtualFileId): OxfmtImportResult {
+    val project = projectId.findProjectOrNull() ?: return OxfmtImportResult.FILE_UNAVAILABLE
+    val virtualFile = file.virtualFile()?.takeIf { it.isValid } ?: return OxfmtImportResult.FILE_UNAVAILABLE
+    return importOxfmtCodeStyle(project, virtualFile)
   }
 }
 

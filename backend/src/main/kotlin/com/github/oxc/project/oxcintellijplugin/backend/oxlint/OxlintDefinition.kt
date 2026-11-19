@@ -19,6 +19,7 @@ object OxlintDefinition : ToolDefinition(
   tool = OxcTool.OXLINT,
   displayName = "Oxlint",
   packageName = "oxlint",
+  configurableId = "OxlintConfigurable",
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>
     get() = OxlintLspIntegrationProvider::class.java

@@ -1,17 +1,21 @@
 package com.github.oxc.project.oxcintellijplugin
 
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
+import com.github.oxc.project.oxcintellijplugin.frontend.oxlint.settings.OxlintConfigurable
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.options.Configurable
 import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import java.util.Locale
+import java.util.ResourceBundle
 
 /**
  * A test IDE is a monolith, so every content module should load and the RPC call stays in process.
@@ -30,6 +34,26 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
     assertTrue(pluginIsLoaded)
   }
+
+  fun testSettingsPageIsRegistered() {
+    assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxlintConfigurable" })
+  }
+
+  fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {
+    for (name in listOf("messages.OxcFrontendBundle")) {
+      val bundle = ResourceBundle.getBundle(name, Locale.ROOT, bundleLoader(name))
+      for (key in bundle.keySet()) {
+        val value = bundle.getString(key)
+        if ("{" !in value) assertFalse("$key: $value", "''" in value)
+      }
+    }
+  }
+
+  private fun bundleLoader(name: String): ClassLoader =
+    when {
+      "Frontend" in name -> OxlintConfigurable::class.java
+      else -> OxlintSettings::class.java
+    }.classLoader
 
   fun testSettingsUpdatesAnswerOverRpc() {
     val projectId = project.projectId()

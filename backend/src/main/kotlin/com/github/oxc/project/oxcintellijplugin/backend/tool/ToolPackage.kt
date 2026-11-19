@@ -18,11 +18,15 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.PathUtil
 import java.nio.file.Paths
 
-/** What to run for a file, and where its server should run from. */
+/**
+ * What to run for a file, and where its server should run from. [vitePlusFolder] is the `vite-plus`
+ * package that [executable] belongs to, when the server is `vp`.
+ */
 data class ServerLaunch(
   val executable: String,
   val parameters: List<String>,
   val root: VirtualFile,
+  val vitePlusFolder: String? = null,
 )
 
 /**
@@ -108,7 +112,7 @@ class ToolPackage(private val project: Project, private val definition: ToolDefi
     val folder = nodePackage.getAbsolutePackagePathToRequire(project) ?: return null
     val executable = Paths.get(folder, "bin", "vp").toString()
     val root = serverRoot(nodePackage) ?: return null
-    return VitePlus(nodePackage, ServerLaunch(executable, listOf(definition.vitePlusCommand, "--lsp"), root))
+    return VitePlus(nodePackage, ServerLaunch(executable, listOf(definition.vitePlusCommand, "--lsp"), root, folder))
   }
 
   /** Prefers the nearest `node_modules` above the file, then falls back to a default package. */

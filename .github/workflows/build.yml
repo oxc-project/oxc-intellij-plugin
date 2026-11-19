@@ -1,0 +1,102 @@
+permissions: { }
+
+name: Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # TODO: Remove the check for nrayburn-tech.
+  CACHE_READ_ONLY: >-
+    ${{ !((github.repository == 'oxc-project/oxc-intellij-plugin' && github.ref == 'refs/heads/main')
+    || (github.event.pull_request.head.repo.full_name || github.repository) == 'nrayburn-tech/oxc-intellij-plugin') }}
+  # IntelliJ's archive is 1.5 GB and is just as easily downloaded fresh each time.
+  GRADLE_CACHE_EXCLUDES: caches/modules-2/files-2.1/com.jetbrains.intellij.idea
+  # Keep in sync with the project's Java toolchains.
+  JAVA_TOOLCHAIN_DISTRO: jetbrains
+  JAVA_TOOLCHAIN_VERSION: 25
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: ${{ env.CACHE_READ_ONLY }}
+          gradle-home-cache-excludes: ${{ env.GRADLE_CACHE_EXCLUDES }}
+
+      - name: Run Tests
+        run: ./gradlew check
+
+      - name: Collect Tests Result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tests-result
+          include-hidden-files: true
+          path: |
+            ${{ github.workspace }}/build/test-results/test
+            ${{ github.workspace }}/build/reports/tests
+            ${{ github.workspace }}/.intellijPlatform/sandbox/*/*/log-test/language-services
+
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch Sources
+        uses: taiki-e/checkout-action@7d1e50e93dc4fb3bba58f85018fadf77898aee8b # v1.4.2
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: ${{ env.JAVA_TOOLCHAIN_DISTRO }}
+          java-version: ${{ env.JAVA_TOOLCHAIN_VERSION }}
+
+      # Restores the cache that the `test` job writes.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+
+      - name: Build and Sign Plugin
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin
+
+      - name: Upload Plugin Artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: plugin
+          path: ./build/distributions/*.zip
+
+      - name: Run Plugin Verification
+        run: ./gradlew verifyPlugin
+
+      - name: Collect Plugin Verifier Result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pluginVerifier-result
+          path: ${{ github.workspace }}/build/reports/pluginVerifier

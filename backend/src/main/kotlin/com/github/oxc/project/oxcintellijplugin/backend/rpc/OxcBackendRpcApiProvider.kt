@@ -2,6 +2,7 @@
 
 package com.github.oxc.project.oxcintellijplugin.backend.rpc
 
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixAll
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcFixOnSaveFailures
@@ -13,6 +14,8 @@ import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixOnSaveFailure
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.settings.OxfmtSettingsData
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.SaveAndSyncHandler
@@ -44,6 +47,9 @@ internal class OxcBackendRpcApiProvider : RemoteApiProvider {
     }
     remoteApi(remoteApiDescriptor<OxlintSettingsApi>()) {
       OxlintSettingsApiImpl()
+    }
+    remoteApi(remoteApiDescriptor<OxfmtSettingsApi>()) {
+      OxfmtSettingsApiImpl()
     }
   }
 }
@@ -97,6 +103,23 @@ private class OxlintSettingsApiImpl : OxlintSettingsApi {
   override suspend fun updates(projectId: ProjectId): Flow<OxlintSettingsData> {
     val project = projectId.findProjectOrNull() ?: return emptyFlow()
     return settingsUpdates(project, OxcTool.OXLINT) { OxlintSettings.getInstance(project).toData() }
+  }
+}
+
+private class OxfmtSettingsApiImpl : OxfmtSettingsApi {
+
+  override suspend fun load(projectId: ProjectId?): OxfmtSettingsData =
+    settingsProject(projectId)?.let { OxfmtSettings.getInstance(it).toData() } ?: OxfmtSettingsData()
+
+  override suspend fun apply(projectId: ProjectId?, settings: OxfmtSettingsData) {
+    val project = settingsProject(projectId) ?: return
+    OxfmtSettings.getInstance(project).update(settings)
+    scheduleSave(project)
+  }
+
+  override suspend fun updates(projectId: ProjectId): Flow<OxfmtSettingsData> {
+    val project = projectId.findProjectOrNull() ?: return emptyFlow()
+    return settingsUpdates(project, OxcTool.OXFMT) { OxfmtSettings.getInstance(project).toData() }
   }
 }
 

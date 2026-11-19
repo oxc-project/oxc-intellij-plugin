@@ -17,6 +17,8 @@
 - Oxlint now reloads changed config files itself, instead of the plugin restarting its language server.
 - Oxlint's manual config path is watched when it's outside the workspace, and changing it restarts the language server.
 - In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
+- Oxfmt's default file extensions no longer list the five with more than one dot, such as `.json.example`. They never matched a file.
+- File extensions in both tools' settings can now contain `-` and `_`.
 
 ### Fixed
 

@@ -19,6 +19,12 @@
                              bundle="messages.OxcFrontendBundle"
                              key="oxlint.settings.name"
                              nonDefaultProject="false"/>
+        <projectConfigurable parentId="tools"
+                             instance="com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.settings.OxfmtConfigurable"
+                             id="OxfmtConfigurable"
+                             bundle="messages.OxcFrontendBundle"
+                             key="oxfmt.settings.name"
+                             nonDefaultProject="false"/>
     </extensions>
 
     <actions resource-bundle="messages.OxcFrontendBundle">

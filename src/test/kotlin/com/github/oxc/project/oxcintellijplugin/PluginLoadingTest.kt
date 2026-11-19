@@ -49,6 +49,7 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
   fun testSettingsPageIsRegistered() {
     assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxlintConfigurable" })
+    assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxfmtConfigurable" })
   }
 
   fun testFixAllIsInTheMenus() {

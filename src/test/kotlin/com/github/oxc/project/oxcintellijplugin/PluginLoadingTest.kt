@@ -57,7 +57,7 @@ class PluginLoadingTest : BasePlatformTestCase() {
   }
 
   fun testFixAllIsInTheMenus() {
-    for (id in listOf("OxlintApplyFixAllAction", "OxfmtApplyFixAllAction")) {
+    for (id in listOf("OxlintApplyFixAllAction", "OxfmtApplyFixAllAction", "OxfmtImportCodeStyleAction")) {
       val action = ActionManager.getInstance().getAction(id)
       assertNotNull(id, action)
       for (group in listOf("EditorPopupMenu", "ProjectViewPopupMenu")) {

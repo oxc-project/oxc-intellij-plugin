@@ -3,6 +3,8 @@ package com.github.oxc.project.oxcintellijplugin.tool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcFixAllResult
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
 import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleApi
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.intellij.ide.vfs.VirtualFileId
 import com.intellij.ide.vfs.rpcId
 import com.intellij.openapi.application.ApplicationManager
@@ -15,8 +17,8 @@ import fleet.util.UID
 import kotlinx.coroutines.runBlocking
 
 /**
- * A file or project the backend can't resolve gets its own answer, instead of "nothing to fix", which
- * would tell the user something untrue about the file.
+ * A file or project the backend can't resolve gets its own answer, instead of "nothing to fix" or "no
+ * config", which would tell the user something untrue about the file.
  */
 class UnavailableFileTest : BasePlatformTestCase() {
 
@@ -36,6 +38,17 @@ class UnavailableFileTest : BasePlatformTestCase() {
 
     assertEquals(OxcFixAllResult.FileUnavailable, onPooledThread {
       OxcToolApi.getInstance().fixAll(ProjectId(UID.random()), OxcTool.OXLINT, file)
+    })
+  }
+
+  fun testImportForAFileTheBackendCannotFindSaysSo() {
+    val deleted = deletedFile()
+    assertEquals(OxfmtImportResult.FILE_UNAVAILABLE, onPooledThread {
+      OxfmtCodeStyleApi.getInstance().importCodeStyle(project.projectId(), deleted)
+    })
+    val file = myFixture.addFileToProject("b.js", "").virtualFile.rpcId()
+    assertEquals(OxfmtImportResult.FILE_UNAVAILABLE, onPooledThread {
+      OxfmtCodeStyleApi.getInstance().importCodeStyle(ProjectId(UID.random()), file)
     })
   }
 

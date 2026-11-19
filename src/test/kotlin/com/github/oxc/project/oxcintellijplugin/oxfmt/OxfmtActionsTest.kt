@@ -9,6 +9,8 @@ import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.ide.actionsOnSave.ActionOnSaveContext
+import com.intellij.notification.Notification
+import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -23,6 +25,7 @@ import com.intellij.openapi.options.ex.Settings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import java.util.concurrent.CopyOnWriteArrayList
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
 
@@ -60,7 +63,15 @@ class OxfmtActionsTest : BasePlatformTestCase() {
     assertFalse(update("OxfmtApplyFixAllAction", file("a.txt")).isVisible)
   }
 
-  fun testFixAllIsHiddenWhenDisabled() {
+  fun testImportIsShownForSupportedFilesAndFolders() {
+    val file = file("a/b.js")
+
+    assertTrue(update("OxfmtImportCodeStyleAction", file).isVisible)
+    assertTrue(update("OxfmtImportCodeStyleAction", file.parent).isVisible)
+    assertFalse(update("OxfmtImportCodeStyleAction", file("c.txt")).isVisible)
+  }
+
+  fun testActionsAreHiddenWhenDisabled() {
     settings.update(settings.toData().copy(configurationMode = ConfigurationMode.DISABLED))
     waitUntil("the frontend knows") {
       project.service<OxcSettingsCache>().oxfmt?.configurationMode == ConfigurationMode.DISABLED
@@ -68,6 +79,23 @@ class OxfmtActionsTest : BasePlatformTestCase() {
     val file = file("a.js")
 
     assertFalse(update("OxfmtApplyFixAllAction", file).isVisible)
+    assertFalse(update("OxfmtImportCodeStyleAction", file).isVisible)
+  }
+
+  fun testImportSaysWhenThereIsNoConfig() {
+    val notifications = CopyOnWriteArrayList<Notification>()
+    project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
+      override fun notify(notification: Notification) {
+        if (notification.groupId == "Oxc") notifications += notification
+      }
+    })
+    val file = file("a.js")
+
+    ActionManager.getInstance().getAction("OxfmtImportCodeStyleAction")
+      .actionPerformed(event(file, Presentation()))
+
+    waitUntil("the notification appears") { notifications.isNotEmpty() }
+    assertEquals("Oxfmt configuration file not found", notifications.single().title)
   }
 
   fun testOnSaveRowEditsOxfmtsOwnSetting() {

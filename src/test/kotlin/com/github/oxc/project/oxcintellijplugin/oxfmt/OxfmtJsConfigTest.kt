@@ -6,10 +6,12 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtCon
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigLoader
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtJsConfigResult
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtOverlayTracker
+import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.locateOxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
+import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.testutil.FakePackages
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
 import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
@@ -43,9 +45,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /**
- * JavaScript and TypeScript configs, which the overlay reads by running them with the project's Node. A
- * test whose project has a `vite-plus` package uses a fake one, whose `resolveConfig` only imports the
- * config, so the server's rules are what's tested here. `VitePlusRealServerTest` reads a real one.
+ * JavaScript and TypeScript configs, which the overlay and Import read by running them with the project's
+ * Node. A test whose project has a `vite-plus` package uses a fake one, whose `resolveConfig` only imports
+ * the config, so the server's rules are what's tested here. `VitePlusRealServerTest` reads a real one.
  */
 class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
@@ -85,6 +87,16 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     val overlay = waitForOverlay(myFixture.addFileToProject("index.js", ""))
 
     assertEquals(5, overlay.getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
+  }
+
+  fun testImportReadsATypeScriptConfig() {
+    CodeStyle.dropTemporarySettings(project)
+    myFixture.addFileToProject("oxfmt.config.mts", "export default { tabWidth: 9 };\n")
+    val file = myFixture.addFileToProject("index.js", "").virtualFile
+
+    assertEquals(OxfmtImportResult.IMPORTED, runImport(file))
+
+    assertEquals(9, CodeStyle.getSettings(project).getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
   }
 
   /** Through the platform, so this covers the refresh that comes once Node has read the config. */
@@ -134,6 +146,37 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     assertTrue(result.details, "oxfmt.config.ts:1" in result.details)
   }
 
+  fun testImportSendsTheFailureAgain() {
+    myFixture.addFileToProject("oxfmt.config.ts", "export default 3;\n")
+    val file = myFixture.addFileToProject("index.js", "")
+    waitUntil("a failure is sent") { runModifier(file); notices.isNotEmpty() }
+
+    assertEquals(OxfmtImportResult.CONFIG_NOT_LOADED, runImport(file.virtualFile))
+
+    waitUntil("the failure is sent again, because Import asks") { notices.size == 2 }
+    val failure = notices.last() as OxfmtCodeStyleNotice.Failed
+    assertTrue(failure.message, "must have a default export that is an object" in failure.message)
+    // Import read it again, and only Import sent it.
+    repeat(5) { runModifier(file); Thread.sleep(200); PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
+    assertEquals(2, notices.size)
+  }
+
+  /** Import reads a failed config again, so it picks up Node installed where the project already looks. */
+  fun testImportReadsAConfigThatFailedForWantOfNode() {
+    if (SystemInfo.isWindows || WslTesting.enabled) return
+    val realNode = NodeJsInterpreterManager.getInstance(project).interpreter!!.referenceName
+    val node = File(myFixture.tempDirPath, "later/node")
+    NodeJsInterpreterManager.getInstance(project).setInterpreterRef(NodeJsInterpreterRef.create(node.path), testRootDisposable)
+    myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 7 };\n")
+    val file = myFixture.addFileToProject("index.js", "")
+    waitUntil("a failure is sent") { runModifier(file); notices.isNotEmpty() }
+
+    node.parentFile.mkdirs()
+    Files.createSymbolicLink(node.toPath(), File(realNode).toPath())
+
+    assertEquals(OxfmtImportResult.IMPORTED, runImport(file.virtualFile))
+  }
+
   fun testUntrustedProjectRunsNothing() {
     val config = myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 4 };\n").virtualFile
     val file = myFixture.addFileToProject("index.js", "")
@@ -146,6 +189,9 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     val untrusted = notices.single() as OxfmtCodeStyleNotice.Untrusted
     assertEquals("oxfmt.config.ts", untrusted.configName)
+
+    assertEquals(OxfmtImportResult.CONFIG_NOT_LOADED, runImport(file.virtualFile))
+    waitUntil("it's sent again, because Import asks") { notices.size == 2 }
   }
 
   /**
@@ -226,6 +272,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     assertEquals(OxfmtConfigFormat.UNREADABLE, locate(file.virtualFile).format)
     assertNull(runModifier(file))
+    assertEquals(OxfmtImportResult.CONFIG_NOT_READABLE, runImport(file.virtualFile))
     assertEmpty(notices)
   }
 
@@ -279,8 +326,23 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     myFixture.addFileToProject("vite.config.mjs", "export default { lint: {} };\n")
     val file = myFixture.addFileToProject("index.js", "")
 
+    assertEquals(OxfmtImportResult.CONFIG_NOT_FOUND, runImport(file.virtualFile))
     assertNull(runModifier(file))
     assertEmpty(notices)
+  }
+
+  /** The server calls a manual config without `fmt` an error. */
+  fun testVitePlusManualConfigNeedsFmt() {
+    FakePackages.vitePlus(myFixture)
+    myFixture.addFileToProject("configs/vite.shared.mjs", "export default { lint: {} };\n")
+    settings.state.configurationMode = ConfigurationMode.MANUAL
+    settings.state.configPath = "configs/vite.shared.mjs"
+
+    assertEquals(OxfmtImportResult.CONFIG_NOT_LOADED, runImport(myFixture.addFileToProject("index.js", "").virtualFile))
+
+    waitUntil("the failure is sent") { notices.isNotEmpty() }
+    val failure = notices.single() as OxfmtCodeStyleNotice.Failed
+    assertEquals("Expected a `fmt` field in the default export of vite.shared.mjs.", failure.message)
   }
 
   private fun locate(file: VirtualFile): OxfmtConfigLocation =
@@ -299,4 +361,11 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
       val copy = TransientCodeStyleSettings(file.virtualFile, project, CodeStyle.getSettings(project))
       copy.takeIf { OxfmtCodeStyleSettingsModifier().modifySettings(it, file) }
     }
+
+  private fun runImport(file: VirtualFile): OxfmtImportResult {
+    val call = ApplicationManager.getApplication().executeOnPooledThread<OxfmtImportResult> {
+      runBlocking { importOxfmtCodeStyle(project, file) }
+    }
+    return PlatformTestUtil.waitForFuture(call, 60_000)
+  }
 }

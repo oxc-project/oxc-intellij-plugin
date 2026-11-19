@@ -9,6 +9,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtTra
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.findOxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
+import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtCodeStyleNotifier
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
@@ -18,6 +19,8 @@ import com.intellij.lang.javascript.JavaScriptSupportLoader
 import com.intellij.lang.javascript.JavascriptLanguage
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 import com.intellij.lang.typescript.formatter.TypeScriptCodeStyleSettings
+import com.intellij.notification.Notification
+import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
@@ -25,6 +28,7 @@ import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
@@ -33,6 +37,7 @@ import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
 import com.intellij.testFramework.PlatformTestUtil
 import java.nio.file.Files
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.runBlocking
 
 private const val CONFIG = """{ "singleQuote": true, "semi": false, "tabWidth": 7, "useTabs": true, "printWidth": 77, "trailingComma": "none", "bracketSpacing": false }"""
@@ -41,6 +46,17 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
 
   private val settings: OxfmtSettings
     get() = OxfmtSettings.getInstance(project)
+
+  private val notifications = CopyOnWriteArrayList<Notification>()
+
+  override fun setUp() {
+    super.setUp()
+    project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
+      override fun notify(notification: Notification) {
+        if (notification.groupId == "Oxc") notifications += notification
+      }
+    })
+  }
 
   fun testEveryKeyIsRead() {
     assertEquals(
@@ -370,6 +386,32 @@ class OxfmtCodeStyleTest : OxcFixtureTestCase() {
     assertFalse("The action should return before the lookup", config in FileEditorManager.getInstance(project).openFiles)
     waitUntil("the config is open") { config in FileEditorManager.getInstance(project).openFiles }
   }
+
+  /** The action runs on the backend, and the frontend shows what it found in the `Oxc` group. */
+  fun testOpenConfigurationFileWithoutAConfigTellsTheUserThroughTheFrontend() {
+    project.service<OxfmtCodeStyleNotifier>()
+    val file = myFixture.addFileToProject("index.js", "")
+
+    OxfmtCodeStyleStatusBarUiContributor().getActions(file).first().actionPerformed(emptyEvent())
+
+    waitUntil("the missing config is shown") { notifications.isNotEmpty() }
+    assertEquals("Oxfmt configuration file not found", notifications.single().title)
+    assertEquals("Unable to find an Oxfmt configuration file for \"index.js\".", notifications.single().content)
+  }
+
+  fun testDisablingFromTheStatusBarTellsTheUserThroughTheFrontend() {
+    project.service<OxfmtCodeStyleNotifier>()
+    settings.state.preferOxfmtCodeStyleSettings = true
+
+    OxfmtCodeStyleStatusBarUiContributor().createDisableAction(project).actionPerformed(emptyEvent())
+
+    assertFalse(settings.state.preferOxfmtCodeStyleSettings)
+    waitUntil("the change is shown") { notifications.isNotEmpty() }
+    assertEquals("Oxfmt code style disabled", notifications.single().title)
+  }
+
+  private fun emptyEvent(): AnActionEvent =
+    AnActionEvent.createEvent(DataContext.EMPTY_CONTEXT, Presentation(), "", ActionUiKind.NONE, null)
 
   fun testImportWithoutAConfig() {
     assertEquals(

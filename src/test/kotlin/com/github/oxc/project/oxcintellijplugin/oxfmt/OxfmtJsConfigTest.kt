@@ -9,8 +9,8 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.OxfmtOve
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.importOxfmtCodeStyle
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.codestyle.locateOxfmtConfig
 import com.github.oxc.project.oxcintellijplugin.backend.oxfmt.settings.OxfmtSettings
+import com.github.oxc.project.oxcintellijplugin.frontend.oxfmt.OxfmtCodeStyleNotifier
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
-import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtCodeStyleNotice
 import com.github.oxc.project.oxcintellijplugin.shared.oxfmt.OxfmtImportResult
 import com.github.oxc.project.oxcintellijplugin.testutil.FakePackages
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
@@ -25,11 +25,17 @@ import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
 import com.intellij.lang.javascript.JavascriptLanguage
 import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
+import com.intellij.notification.Notification
+import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.WriteAction
-import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.openapi.util.SystemInfo
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings
@@ -39,10 +45,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+
+/** The frontend shows these notifications, in its own group. */
+private const val NOTIFICATION_GROUP = "Oxc"
 
 /**
  * JavaScript and TypeScript configs, which the overlay and Import read by running them with the project's
@@ -51,8 +57,7 @@ import kotlinx.coroutines.runBlocking
  */
 class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
-  /** What the loader sends. Each notice goes to one collector, and this is the only one. */
-  private val notices = CopyOnWriteArrayList<OxfmtCodeStyleNotice>()
+  private val notifications = CopyOnWriteArrayList<Notification>()
 
   private val settings: OxfmtSettings
     get() = OxfmtSettings.getInstance(project)
@@ -62,10 +67,13 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     // The JavaScript plugin only looks in node_modules next to a package.json.
     myFixture.addFileToProject("package.json", """{ "name": "app" }""")
     settings.state.preferOxfmtCodeStyleSettings = true
-    val collector = CoroutineScope(Dispatchers.Default).launch {
-      OxfmtJsConfigLoader.getInstance(project).notices.collect { notices += it }
-    }
-    Disposer.register(testRootDisposable) { collector.cancel() }
+    project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
+      override fun notify(notification: Notification) {
+        if (notification.groupId == NOTIFICATION_GROUP) notifications += notification
+      }
+    })
+    // The frontend listens once its startup activity runs, which a test project may not have reached yet.
+    project.service<OxfmtCodeStyleNotifier>()
   }
 
   fun testTypeScriptConfigIsReadThroughNode() {
@@ -76,7 +84,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     assertEquals(6, overlay.getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
     assertFalse(overlay.getCustomSettings(JSCodeStyleSettings::class.java).USE_DOUBLE_QUOTES)
-    assertEmpty(notices)
+    assertEmpty(notifications)
   }
 
   fun testManualJavaScriptConfigIsReadThroughNode() {
@@ -113,24 +121,29 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     waitUntil("the indent is 5") { CodeStyle.getIndentOptions(file).INDENT_SIZE == 5 }
   }
 
-  fun testFailureIsSentOnceUntilTheConfigChanges() {
+  fun testFailureIsShownOnceUntilTheConfigChanges() {
     val config = myFixture.addFileToProject("oxfmt.config.ts", "throw new Error('broken config');\n").virtualFile
     val file = myFixture.addFileToProject("index.js", "")
 
-    waitUntil("a failure is sent") { runModifier(file); notices.isNotEmpty() }
+    waitUntil("a failure is shown") { runModifier(file); notifications.isNotEmpty() }
     repeat(3) { assertNull(runModifier(file)) }
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
 
-    val failure = notices.single() as OxfmtCodeStyleNotice.Failed
-    assertEquals("oxfmt.config.ts", failure.configName)
-    assertTrue(failure.message, "broken config" in failure.message)
+    val failure = notifications.single()
+    assertEquals("Oxfmt couldn't read oxfmt.config.ts", failure.title)
+    assertTrue(failure.content, "broken config" in failure.content)
+    assertEquals(listOf("Show Details", "Edit Configuration File"), failure.actions.map { it.templateText })
+
+    // The backend opens it, through the frontend.
+    Notification.fire(failure, failure.actions.last(), null)
+    waitUntil("the config is open") { FileEditorManager.getInstance(project).isFileOpen(config) }
 
     WriteAction.runAndWait<Exception> { config.setBinaryContent("throw new Error('still broken');\n".toByteArray()) }
-    waitUntil("the changed config's failure is sent") { runModifier(file); notices.size == 2 }
-    assertTrue("still broken" in (notices.last() as OxfmtCodeStyleNotice.Failed).message)
+    waitUntil("the changed config's failure is shown") { runModifier(file); notifications.size == 2 }
+    assertTrue("still broken" in notifications.last().content)
   }
 
-  /** A failure's details have the whole error, such as its stack. */
+  /** Show Details has the whole error, because the notification only has its first lines. */
   fun testFailureDetailsHaveTheStack() {
     myFixture.addFileToProject("oxfmt.config.ts", "throw new Error('broken config');\n")
     val file = myFixture.addFileToProject("index.js", "").virtualFile
@@ -146,19 +159,18 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     assertTrue(result.details, "oxfmt.config.ts:1" in result.details)
   }
 
-  fun testImportSendsTheFailureAgain() {
+  fun testImportShowsTheFailureAgain() {
     myFixture.addFileToProject("oxfmt.config.ts", "export default 3;\n")
     val file = myFixture.addFileToProject("index.js", "")
-    waitUntil("a failure is sent") { runModifier(file); notices.isNotEmpty() }
+    waitUntil("a failure is shown") { runModifier(file); notifications.isNotEmpty() }
 
     assertEquals(OxfmtImportResult.CONFIG_NOT_LOADED, runImport(file.virtualFile))
 
-    waitUntil("the failure is sent again, because Import asks") { notices.size == 2 }
-    val failure = notices.last() as OxfmtCodeStyleNotice.Failed
-    assertTrue(failure.message, "must have a default export that is an object" in failure.message)
-    // Import read it again, and only Import sent it.
+    waitUntil("the failure is shown again, because Import asks") { notifications.size == 2 }
+    assertTrue(notifications.last().content, "must have a default export that is an object" in notifications.last().content)
+    // Import read it again, and only Import showed it.
     repeat(5) { runModifier(file); Thread.sleep(200); PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
-    assertEquals(2, notices.size)
+    assertEquals(2, notifications.size)
   }
 
   /** Import reads a failed config again, so it picks up Node installed where the project already looks. */
@@ -169,7 +181,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     NodeJsInterpreterManager.getInstance(project).setInterpreterRef(NodeJsInterpreterRef.create(node.path), testRootDisposable)
     myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 7 };\n")
     val file = myFixture.addFileToProject("index.js", "")
-    waitUntil("a failure is sent") { runModifier(file); notices.isNotEmpty() }
+    waitUntil("a failure is shown") { runModifier(file); notifications.isNotEmpty() }
 
     node.parentFile.mkdirs()
     Files.createSymbolicLink(node.toPath(), File(realNode).toPath())
@@ -177,21 +189,31 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     assertEquals(OxfmtImportResult.IMPORTED, runImport(file.virtualFile))
   }
 
-  fun testUntrustedProjectRunsNothing() {
+  fun testUntrustedProjectRunsNothingAndAsksToTrust() {
     val config = myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 4 };\n").virtualFile
     val file = myFixture.addFileToProject("index.js", "")
     untrustProject(project, testRootDisposable)
 
-    waitUntil("the untrusted notice is sent") { runModifier(file); notices.isNotEmpty() }
+    waitUntil("the untrusted notification is shown") { runModifier(file); notifications.isNotEmpty() }
     // Another config doesn't ask again in this session.
     WriteAction.runAndWait<Exception> { config.setBinaryContent("export default { tabWidth: 8 };\n".toByteArray()) }
     repeat(3) { assertNull(runModifier(file)); Thread.sleep(100); PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
 
-    val untrusted = notices.single() as OxfmtCodeStyleNotice.Untrusted
-    assertEquals("oxfmt.config.ts", untrusted.configName)
+    val untrusted = notifications.single()
+    assertEquals("Oxfmt code style needs a trusted project", untrusted.title)
+    assertTrue(untrusted.content, "oxfmt.config.ts" in untrusted.content)
+    assertEquals(listOf("Trust Project"), untrusted.actions.map { it.templateText })
 
     assertEquals(OxfmtImportResult.CONFIG_NOT_LOADED, runImport(file.virtualFile))
-    waitUntil("it's sent again, because Import asks") { notices.size == 2 }
+    waitUntil("it's shown again, because Import asks") { notifications.size == 2 }
+
+    // Trust Project asks the backend, through the frontend, which shows the platform's dialog.
+    TestDialogManager.setTestDialog({ Messages.YES }, testRootDisposable)
+    Notification.fire(untrusted, untrusted.actions.single(), null)
+    waitUntil("the project is trusted") { TrustedProjects.isProjectTrusted(project) }
+
+    val overlay = waitForOverlay(file)
+    assertEquals(8, overlay.getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
   }
 
   /**
@@ -202,7 +224,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 4 };\n")
     val file = myFixture.addFileToProject("index.js", "")
     untrustProject(project, testRootDisposable)
-    waitUntil("the untrusted notice is sent") { runModifier(file); notices.isNotEmpty() }
+    waitUntil("the untrusted notification is shown") { runModifier(file); notifications.isNotEmpty() }
     val tracker = OxfmtOverlayTracker.getInstance(project)
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
     val before = tracker.modificationCount
@@ -218,6 +240,17 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     assertEquals(4, waitForOverlay(file).getCommonSettings(JavascriptLanguage).indentOptions!!.INDENT_SIZE)
   }
 
+  fun testNoNodeOffersItsSettings() {
+    NodeJsInterpreterManager.getInstance(project)
+      .setInterpreterRef(NodeJsInterpreterRef.create("${myFixture.tempDirPath}/missing/node"), testRootDisposable)
+    myFixture.addFileToProject("oxfmt.config.ts", "export default {};\n")
+    val file = myFixture.addFileToProject("index.js", "")
+
+    waitUntil("a failure is shown") { runModifier(file); notifications.isNotEmpty() }
+
+    assertEquals(listOf("Configure Node.js…", "Edit Configuration File"), notifications.single().actions.map { it.templateText })
+  }
+
   /** Node installed at the path the project already names, which leaves the interpreter's name as it was. */
   fun testRetryingNodeFailuresReadsTheConfigAgain() {
     if (SystemInfo.isWindows || WslTesting.enabled) return
@@ -226,12 +259,12 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     NodeJsInterpreterManager.getInstance(project).setInterpreterRef(NodeJsInterpreterRef.create(node.path), testRootDisposable)
     myFixture.addFileToProject("oxfmt.config.ts", "export default { tabWidth: 7 };\n")
     val file = myFixture.addFileToProject("index.js", "")
-    waitUntil("a failure is sent") { runModifier(file); notices.isNotEmpty() }
+    waitUntil("a failure is shown") { runModifier(file); notifications.isNotEmpty() }
 
-    // Still no Node: read again, but the same failure isn't sent again.
+    // Still no Node: read again, but the same failure isn't shown again.
     OxfmtJsConfigLoader.getInstance(project).retryNodeFailures()
     repeat(5) { assertNull(runModifier(file)); Thread.sleep(200); PlatformTestUtil.dispatchAllEventsInIdeEventQueue() }
-    assertEquals(1, notices.size)
+    assertEquals(1, notifications.size)
 
     node.parentFile.mkdirs()
     Files.createSymbolicLink(node.toPath(), File(realNode).toPath())
@@ -256,11 +289,12 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     myFixture.addFileToProject("oxfmt.config.ts", "export default {};\n")
     val file = myFixture.addFileToProject("index.js", "")
 
-    waitUntil("a failure is sent") { runModifier(file); notices.isNotEmpty() }
+    waitUntil("a failure is shown") { runModifier(file); notifications.isNotEmpty() }
 
-    val failure = notices.single() as OxfmtCodeStyleNotice.Failed
+    val failure = notifications.single()
     assertEquals("TypeScript configs need Node.js 22.18.0 or later, and the project's Node.js is v20.0.0.",
-                 failure.message)
+                 StringUtil.unescapeXmlEntities(failure.content))
+    assertEquals(listOf("Configure Node.js…", "Edit Configuration File"), failure.actions.map { it.templateText })
   }
 
   fun testNativeBinaryCantReadAJavaScriptConfig() {
@@ -273,7 +307,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
     assertEquals(OxfmtConfigFormat.UNREADABLE, locate(file.virtualFile).format)
     assertNull(runModifier(file))
     assertEquals(OxfmtImportResult.CONFIG_NOT_READABLE, runImport(file.virtualFile))
-    assertEmpty(notices)
+    assertEmpty(notifications)
   }
 
   fun testVitePlusReadsFmtFromViteConfig() {
@@ -328,7 +362,7 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     assertEquals(OxfmtImportResult.CONFIG_NOT_FOUND, runImport(file.virtualFile))
     assertNull(runModifier(file))
-    assertEmpty(notices)
+    assertEmpty(notifications)
   }
 
   /** The server calls a manual config without `fmt` an error. */
@@ -340,9 +374,8 @@ class OxfmtJsConfigTest : OxcFixtureTestCase() {
 
     assertEquals(OxfmtImportResult.CONFIG_NOT_LOADED, runImport(myFixture.addFileToProject("index.js", "").virtualFile))
 
-    waitUntil("the failure is sent") { notices.isNotEmpty() }
-    val failure = notices.single() as OxfmtCodeStyleNotice.Failed
-    assertEquals("Expected a `fmt` field in the default export of vite.shared.mjs.", failure.message)
+    waitUntil("the failure is shown") { notifications.isNotEmpty() }
+    assertEquals("Expected a `fmt` field in the default export of vite.shared.mjs.", notifications.single().content)
   }
 
   private fun locate(file: VirtualFile): OxfmtConfigLocation =

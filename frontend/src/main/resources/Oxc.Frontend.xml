@@ -16,4 +16,9 @@
                              key="oxlint.settings.name"
                              nonDefaultProject="false"/>
     </extensions>
+
+    <actions resource-bundle="messages.OxcFrontendBundle">
+        <action id="OxlintRestartServerAction"
+                class="com.github.oxc.project.oxcintellijplugin.frontend.tool.OxlintRestartServerAction"/>
+    </actions>
 </idea-plugin>

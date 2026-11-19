@@ -1,19 +1,18 @@
 package com.github.oxc.project.oxcintellijplugin.oxlint
 
-import com.github.oxc.project.oxcintellijplugin.backend.lsp.pathToFileUri
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.OxlintDefinition
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ServerLaunch
+import com.github.oxc.project.oxcintellijplugin.backend.lsp.pathToFileUri
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspClientDescriptor
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
+import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting.onPooledThread
 import com.github.oxc.project.oxcintellijplugin.testutil.assertDoesNotBlock
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.LspClientDescriptor
-import java.util.concurrent.Callable
-import java.util.concurrent.TimeUnit
 
 class ServerPathsTest : OxcFixtureTestCase() {
 
@@ -35,6 +34,7 @@ class ServerPathsTest : OxcFixtureTestCase() {
   }
 
   fun testFileUriAfterTheServerStartsDoesNotBlock() {
+    if (WslTesting.enabled) return // WslWorkspaceUriTest expects a different URI.
     val root = root()
     val descriptor = descriptor(root)
 
@@ -55,6 +55,7 @@ class ServerPathsTest : OxcFixtureTestCase() {
 
   /** Oxlint matches the URIs that it gets, so ours have to be spelled as the platform spells them. */
   fun testUriIsSpelledAsThePlatformSpellsIt() {
+    if (WslTesting.enabled) return // The platform's URI is the wrong one for a server in WSL.
     val folder = myFixture.tempDirFixture.findOrCreateDir("a b#c+é%20(d)")
     val file = LocalFileSystem.getInstance().refreshAndFindFileByPath(
       "${myFixture.tempDirPath}/${folder.name}")!!
@@ -73,7 +74,3 @@ class ServerPathsTest : OxcFixtureTestCase() {
   private fun descriptor(root: VirtualFile) =
     ToolLspClientDescriptor(project, OxlintDefinition, ServerLaunch("${myFixture.tempDirPath}/oxlint", listOf("--lsp"), root))
 }
-
-/** Starting a server can block, which the IDE forbids on the EDT. */
-private fun <T> onPooledThread(block: () -> T): T =
-  ApplicationManager.getApplication().executeOnPooledThread(Callable(block)).get(60, TimeUnit.SECONDS)

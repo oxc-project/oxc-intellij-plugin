@@ -1,6 +1,7 @@
 package com.github.oxc.project.oxcintellijplugin.testutil
 
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
+import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.platform.lsp.api.LspClientManager
 import com.intellij.testFramework.builders.ModuleFixtureBuilder
@@ -12,10 +13,18 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.time.Instant
 
-/** Names in the command of a process that runs a server. */
+/**
+ * Names in the command of a process that runs a server: Node and the native binaries. Not WSL's own
+ * `wsl.exe` and `wslhost.exe`: a server in WSL runs through IJent as a Linux process, so it isn't a Windows
+ * child of the test, and the `wsl.exe` chain that IJent starts on first use lives for the whole session.
+ * Windows hides a process's arguments, so that chain can't be told apart from anything else by name.
+ */
 private val SERVER_COMMANDS = listOf("node", "oxlint")
 
-/** Base class for tests that use the project's Node interpreter. */
+/**
+ * Base class for tests that use the project's Node interpreter. When [WslTesting] is enabled, the
+ * interpreter is the WSL distribution's Node.js, so the same tests also cover a server running in WSL.
+ */
 abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuilder<ModuleFixture>>() {
 
   private var processesBefore: Set<Long> = emptySet()
@@ -26,6 +35,10 @@ abstract class OxcFixtureTestCase : CodeInsightFixtureTestCase<ModuleFixtureBuil
     started = Instant.now()
     super.setUp()
     processesBefore = ProcessHandle.current().descendants().map { it.pid() }.toList().toSet()
+    if (WslTesting.enabled) {
+      NodeJsInterpreterManager.getInstance(project)
+        .setInterpreterRef(WslTesting.nodeInterpreterRef(), testRootDisposable)
+    }
   }
 
   /**

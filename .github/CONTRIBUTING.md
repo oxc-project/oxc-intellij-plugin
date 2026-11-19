@@ -30,3 +30,10 @@ npm ci --prefix src/test/testData/oxlint/highlighting/no-config
 ```bash
 ./gradlew check
 ```
+
+To run the tests on Windows with Node in WSL, set `OXC_TEST_WSL_DISTRO` to an installed distribution. It needs Node at
+`OXC_TEST_WSL_NODE` (default `/usr/local/bin/node`), and `npm ci` run inside WSL in the fixture folder. CI does this in
+its `Test (WSL)` jobs. New tests that use Node should extend `OxcFixtureTestCase` so that they run there too.
+
+Test projects are created on the Windows side by default. To store them inside WSL, set `OXC_TEST_TMPDIR` to an existing
+folder in the distribution, such as `\\wsl.localhost\Ubuntu-24.04\tmp\oxc-tests`.

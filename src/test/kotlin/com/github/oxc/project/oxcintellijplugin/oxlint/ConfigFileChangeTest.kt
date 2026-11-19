@@ -4,6 +4,7 @@ import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspInte
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.shared.ConfigurationMode
 import com.github.oxc.project.oxcintellijplugin.testutil.OxcFixtureTestCase
+import com.github.oxc.project.oxcintellijplugin.testutil.WslTesting
 import com.github.oxc.project.oxcintellijplugin.testutil.waitUntil
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.WriteAction
@@ -199,7 +200,7 @@ class ConfigFileChangeTest : OxcFixtureTestCase() {
 
   /** The server reads `extends` itself, so it has to be a path that the server can reach. */
   private fun serverPath(localPath: String): String =
-    FileUtil.toSystemIndependentName(localPath)
+    if (WslTesting.enabled) WslTesting.toWslPath(localPath) else FileUtil.toSystemIndependentName(localPath)
 
   /** Written with plain file calls, so that the IDE hasn't loaded the file. */
   private fun createOutsideFile(name: String, content: String): String {

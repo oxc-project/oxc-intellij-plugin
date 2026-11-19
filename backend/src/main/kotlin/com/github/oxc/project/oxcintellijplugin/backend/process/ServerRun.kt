@@ -1,13 +1,16 @@
 package com.github.oxc.project.oxcintellijplugin.backend.process
 
+import com.github.oxc.project.oxcintellijplugin.backend.OxcBackendBundle
+import com.intellij.execution.ExecutionException
+import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.wsl.WSLDistribution
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.coroutineToIndicator
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
-import com.intellij.execution.process.OSProcessHandler
-import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.progress.coroutineToIndicator
-import com.intellij.openapi.progress.runBlockingMaybeCancellable
 
 private val LOG = Logger.getInstance("#com.github.oxc.project.oxcintellijplugin")
 
@@ -42,6 +45,14 @@ fun isNodeScript(executable: String, workingDirectory: String): Boolean =
   catch (_: InvalidPathException) {
     false
   }
+
+internal fun createWslPathMapper(distribution: WSLDistribution, workingDirectory: String): ServerPathMapper {
+  val mapper = WslServerPathMapper(distribution, distribution.mntRoot, workingDirectory)
+  mapper.toServerPath(workingDirectory)
+  ?: throw ExecutionException(
+    OxcBackendBundle.message("wsl.folder.not.reachable", workingDirectory, distribution.msId))
+  return mapper
+}
 
 /** The log level for the server, for any of its variables that aren't set already. */
 fun logEnvironment(existingVariables: Set<String>): Map<String, String> {

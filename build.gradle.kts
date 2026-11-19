@@ -129,8 +129,20 @@ intellijPlatform {
 
   pluginVerification {
     ides {
-      // TODO: Adjust to target the pluginSinceBuild and pluginUntilBuild versions instead.
-      create(IntelliJPlatformType.IntellijIdeaUltimate, properties("platformVersion"))
+      // Targets the version specified by pluginSinceBuild as the earliest.
+      // For example, pluginSinceBuild of 263 would target the latest 263.x build.
+      select {
+        types = listOf(IntelliJPlatformType.IntellijIdeaUltimate)
+        sinceBuild = properties("pluginSinceBuild")
+        untilBuild = properties("pluginSinceBuild").map { value -> "$value.*" }
+      }
+
+      // Targets the version specified by pluginUntilBuild as the latest. If pluginUntilBuild is
+      // not provided, then the plugin verifier will automatically use the latest available version.
+      latest {
+        types = listOf(IntelliJPlatformType.IntellijIdeaUltimate)
+        untilBuild = properties("pluginUntilBuild").orNull
+      }
     }
     ignoredProblemsFile = layout.projectDirectory.file("plugin-verifier-ignored-problems.txt")
   }

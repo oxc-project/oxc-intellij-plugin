@@ -21,9 +21,24 @@ object FakePackages {
     return fixture.addFileToProject("$folder/configuration_schema.json", schema).virtualFile
   }
 
+  /**
+   * Its `resolveConfig` only imports the config and returns the default export, which is all that reading
+   * `fmt` needs, and it records each call in `calls.log` beside it.
+   */
   fun vitePlus(fixture: CodeInsightTestFixture, folder: String = "node_modules/vite-plus") {
-    fixture.addFileToProject("$folder/package.json", """{ "name": "vite-plus", "version": "1.5.0", "bin": { "vp": "./bin/vp" } }""")
+    fixture.addFileToProject("$folder/package.json", """
+      { "name": "vite-plus", "version": "1.5.0", "type": "module", "bin": { "vp": "./bin/vp" },
+        "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" } } }
+    """.trimIndent())
     fixture.addFileToProject("$folder/bin/vp", "#!/usr/bin/env node\n")
+    fixture.addFileToProject("$folder/dist/index.js", """
+      import { appendFileSync } from "node:fs";
+      import { pathToFileURL } from "node:url";
+      export async function resolveConfig({ configFile }, command) {
+        appendFileSync(new URL("../calls.log", import.meta.url), `${'$'}{configFile} ${'$'}{command} ${'$'}{process.env.VP_VERSION}\n`);
+        return (await import(pathToFileURL(configFile).href)).default;
+      }
+    """.trimIndent())
   }
 
   fun schema(title: String): String =

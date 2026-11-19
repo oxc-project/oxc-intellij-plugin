@@ -8,6 +8,8 @@
 
 - Add support for IntelliJ split mode (Remote Development).
 - Add support for Dev Containers opened in the IDE's own window, without a backend in the container. Oxlint and Oxfmt run in the container and get the container's paths for files.
+- The Oxfmt code style now reads JavaScript and TypeScript configs: `oxfmt.config.ts`, `oxfmt.config.mts`, a JavaScript or TypeScript manual config path, and in a Vite+ project the `fmt` field of `vite.config.*`. It runs the config with the project's Node.js, as Oxfmt does, so a TypeScript config needs Node.js 22.18 or later. A file the config imports isn't watched, so changing it doesn't update the code style. The time allowed is set by the Registry key `oxc.fmt.config.load.timeout.ms`, 30 seconds by default.
+- Running a JavaScript or TypeScript config only happens in a trusted project.
 
 ### Changed
 

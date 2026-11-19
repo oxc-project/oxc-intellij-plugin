@@ -24,10 +24,10 @@ enum class OxfmtConfigFormat {
 
   JSON,
 
-  /** The default export of a JavaScript or TypeScript file, which the plugin doesn't read yet. */
+  /** The default export of a JavaScript or TypeScript file, which only Node can read. */
   JAVASCRIPT,
 
-  /** The `fmt` field of a `vite.config.*`, under `vp`, which the plugin doesn't read yet. */
+  /** The `fmt` field of the config that `vite-plus`'s `resolveConfig` gives, under `vp`. */
   VITE_PLUS,
 
   /** A JavaScript or TypeScript config for a native binary, which can't read one either. */

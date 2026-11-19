@@ -5,6 +5,7 @@ package com.github.oxc.project.oxcintellijplugin.backend.rpc
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.OxcSettingsListener
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
+import com.github.oxc.project.oxcintellijplugin.shared.OxcToolApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsApi
 import com.github.oxc.project.oxcintellijplugin.shared.oxlint.settings.OxlintSettingsData
 import com.intellij.ide.SaveAndSyncHandler
@@ -25,10 +26,19 @@ import kotlinx.coroutines.flow.map
 
 internal class OxcBackendRpcApiProvider : RemoteApiProvider {
   override fun RemoteApiProvider.Sink.remoteApis() {
+    remoteApi(remoteApiDescriptor<OxcToolApi>()) {
+      OxcToolApiImpl()
+    }
     remoteApi(remoteApiDescriptor<OxlintSettingsApi>()) {
       OxlintSettingsApiImpl()
     }
   }
+}
+
+private class OxcToolApiImpl : OxcToolApi {
+
+  override suspend fun projectPath(projectId: ProjectId): String? =
+    projectId.findProjectOrNull()?.basePath
 }
 
 private class OxlintSettingsApiImpl : OxlintSettingsApi {

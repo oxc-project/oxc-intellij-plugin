@@ -7,6 +7,7 @@ import com.intellij.platform.rpc.RemoteApiProviderService
 import fleet.rpc.RemoteApi
 import fleet.rpc.Rpc
 import fleet.rpc.remoteApiDescriptor
+import kotlinx.serialization.Serializable
 
 /** Lets the frontend control the language servers, which run on the backend. */
 @Rpc
@@ -23,4 +24,40 @@ interface OxcToolApi : RemoteApi<Unit> {
     suspend fun getInstance(): OxcToolApi =
       RemoteApiProviderService.resolve(remoteApiDescriptor<OxcToolApi>())
   }
+}
+
+/** The frontend decides how to tell the user about each of these. */
+@Serializable
+sealed interface OxcFixAllResult {
+
+  @Serializable
+  data object Applied : OxcFixAllResult
+
+  @Serializable
+  data object NothingToApply : OxcFixAllResult
+
+  @Serializable
+  data object UnsupportedFile : OxcFixAllResult
+
+  /** Oxlint's fix kind is `None`. The server wasn't asked for anything. */
+  @Serializable
+  data object FixesTurnedOff : OxcFixAllResult
+
+  /** The project isn't trusted, so nothing from it was run. */
+  @Serializable
+  data object Untrusted : OxcFixAllResult
+
+  /** The backend can't find the project or the file, such as one deleted since, or a project closing. */
+  @Serializable
+  data object FileUnavailable : OxcFixAllResult
+
+  /** There's no package or manual path to run for the file. */
+  @Serializable
+  data object ToolNotFound : OxcFixAllResult
+
+  @Serializable
+  data object TimedOut : OxcFixAllResult
+
+  @Serializable
+  data class Failed(val message: String) : OxcFixAllResult
 }

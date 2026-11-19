@@ -10,15 +10,17 @@ import com.github.oxc.project.oxcintellijplugin.testutil.resetOxcSettings
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.platform.project.projectId
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import java.util.Locale
 import java.util.ResourceBundle
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * A test IDE is a monolith, so every content module should load and the RPC call stays in process.
@@ -44,6 +46,18 @@ class PluginLoadingTest : BasePlatformTestCase() {
 
   fun testSettingsPageIsRegistered() {
     assertTrue(Configurable.PROJECT_CONFIGURABLE.getExtensions(project).any { it.id == "OxlintConfigurable" })
+  }
+
+  fun testFixOnSaveRunsBeforeFormatOnSave() {
+    val names = ExtensionPointName<Any>("com.intellij.actionOnSave").extensionList.map { it.javaClass.simpleName }
+    val fix = names.indexOf("OxlintFixAllOnSaveAction")
+    assertTrue(names.toString(), fix >= 0)
+    val format = names.indexOf("FormatOnSaveAction")
+    if (format >= 0) assertTrue(names.toString(), fix < format)
+  }
+
+  fun testRegistryKeyIsDefined() {
+    assertEquals(30000, Registry.intValue("oxc.lint.fix.all.timeout.ms"))
   }
 
   fun testMessagesWithoutPlaceholdersDoNotHaveDoubledQuotes() {

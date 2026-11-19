@@ -1,10 +1,12 @@
 package com.github.oxc.project.oxcintellijplugin.backend.oxlint
 
 import com.github.oxc.project.oxcintellijplugin.backend.lsp.LspDisabledCustomization
+import com.github.oxc.project.oxcintellijplugin.backend.oxlint.fix.OxlintFixer
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspDiagnosticsSupport
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.lsp.OxlintLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.oxlint.settings.OxlintSettings
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolDefinition
+import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolFixer
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolLspIntegrationProvider
 import com.github.oxc.project.oxcintellijplugin.backend.tool.ToolSettings
 import com.github.oxc.project.oxcintellijplugin.shared.OxcTool
@@ -19,7 +21,9 @@ object OxlintDefinition : ToolDefinition(
   tool = OxcTool.OXLINT,
   displayName = "Oxlint",
   packageName = "oxlint",
+  messagePrefix = "oxlint",
   configurableId = "OxlintConfigurable",
+  fixAllTimeoutRegistryKey = "oxc.lint.fix.all.timeout.ms",
 ) {
   override val providerClass: Class<out ToolLspIntegrationProvider>
     get() = OxlintLspIntegrationProvider::class.java
@@ -41,4 +45,6 @@ object OxlintDefinition : ToolDefinition(
     override val codeActionsCustomizer: LspCodeActionsCustomizer = LspCodeActionsSupport()
     override val diagnosticsCustomizer: LspDiagnosticsCustomizer = OxlintLspDiagnosticsSupport()
   }
+
+  override fun fixer(project: Project): ToolFixer = OxlintFixer(project)
 }

@@ -8,29 +8,38 @@
 
 - Add support for IntelliJ split mode (Remote Development).
 - Add support for Dev Containers opened in the IDE's own window, without a backend in the container. Oxlint and Oxfmt run in the container and get the container's paths for files.
-- The Oxfmt code style and "Import Oxfmt Code Style" now read JavaScript and TypeScript configs: `oxfmt.config.ts`, `oxfmt.config.mts`, a JavaScript or TypeScript manual config path, and in a Vite+ project the `fmt` field of `vite.config.*`. They run the config with the project's Node.js, as Oxfmt does, so a TypeScript config needs Node.js 22.18 or later. A file the config imports isn't watched, so changing it doesn't update the code style. The time allowed is set by the Registry key `oxc.fmt.config.load.timeout.ms`, 30 seconds by default.
+- The Oxfmt code style and "Import Oxfmt Code Style" now read JavaScript and TypeScript configs: `oxfmt.config.ts`, `oxfmt.config.mts`, a JavaScript or TypeScript manual config path, and in a Vite+ project the `fmt` field of `vite.config.*`. They run the config with the project's Node.js, as Oxfmt does, so a TypeScript config needs Node.js 22.18 or later. A file the config imports isn't watched, so changing it doesn't update the code style.
 - Running a JavaScript or TypeScript config only happens in a trusted project. In an untrusted one, a notification names the config once a session and offers to trust the project.
-- When a JavaScript or TypeScript config can't be read, a notification says why, once until the config or the Node.js interpreter changes. It offers "Configure Node.js…" for a missing or old Node.js, "Show Details" with the whole error otherwise, and "Edit Configuration File". "Import Oxfmt Code Style" reads a failed config again and shows its problem again.
+- When a JavaScript or TypeScript config can't be read, a notification says why.
+- When Oxlint's or Oxfmt's fix on save times out or fails, a notification names the file that was saved without its fixes.
+- In an untrusted project, "Apply Oxlint Quick Fixes" and "Apply Oxfmt Quick Fixes" say that they need a trusted project and offer "Trust Project".
 
 ### Changed
 
-- **Breaking:** Rewrite the plugin to run in split mode.
 - **Breaking:** Minimum IntelliJ version updated to 2026.3+.
 - Remove the upper limit on supported IntelliJ versions.
 - Oxlint now reloads changed config files itself, instead of the plugin restarting its language server.
 - Oxlint's manual config path is watched when it's outside the workspace, and changing it restarts the language server.
 - Oxfmt also reloads changed config files itself. A manual config path outside the workspace is watched, and changing it restarts the language server.
-- "Apply Oxfmt Quick Fixes" now says when a file is already formatted, shows cancellable progress without blocking the IDE, and can format a closed file. Its timeout is per file, 30 seconds by default, and set by the Registry key `oxc.fmt.fix.all.timeout.ms`.
-- Oxfmt format on save no longer blocks the IDE.
-- Oxfmt's fix on save is now only set on the Actions on Save page. The Oxfmt settings page links to it.
+- "Apply Oxlint Quick Fixes" and "Apply Oxfmt Quick Fixes" start the language server when it isn't running, and say why when nothing was applied, such as no fixes, a file that's already formatted, Fix Kind set to None, or the tool not being found.
+- "Apply Oxfmt Quick Fixes" waits 30 seconds for the language server instead of 5. The timeout is set by the Registry key `oxc.fmt.fix.all.timeout.ms`.
+- Oxfmt format on save no longer blocks the IDE with a dialog. Each file gets its own timeout, 30 seconds by default and set by the Registry key `oxc.fmt.fix.all.timeout.ms`, instead of 5 seconds for all of them.
+- Fix on save for both tools is now only set on the Actions on Save page. Their settings pages link to it.
+- Applying a settings page only restarts that tool's language servers when a setting they use changed.
+- A change to `.idea/OxcSettings.xml` or `.idea/OxfmtSettings.xml` made outside the IDE, such as by the Vite+ CLI, now applies without reopening the project.
+- A folder with its own Oxlint or Oxfmt package, or its own Vite+, now gets its own language server, instead of sharing the one for the folder above it.
+- A relative manual binary path is now relative to the language server's root folder, instead of the IDE's working directory. A bare name, such as `oxlint`, is still looked up on the PATH.
+- "Restart Oxlint Server" and "Restart Oxfmt Server" say the server restarted once it has, and show a notification when the restart fails.
 - "Prefer Oxfmt configuration to IDE code style" now also applies indent and margins for each file, including languages other than JavaScript and TypeScript.
-- The Oxfmt code style and "Import Oxfmt Code Style" now use the same config as Oxfmt's language server, including a manual config path, "Disable nested config lookups", and an `oxfmt.config.ts` in a nearer folder. When Oxfmt is a native binary, which can't read a JavaScript or TypeScript config, the code style is left alone and Import says so.
-- **Breaking:** Changing an Oxfmt config no longer rewrites the project's code style. Only "Import Oxfmt Code Style" does, and it now stores the result in the project rather than the IDE-wide scheme.
+- The Oxfmt code style and "Import Oxfmt Code Style" now use the same config as Oxfmt's language server, including a manual config path, "Disable nested config lookups", and an `oxfmt.config.ts` in a nearer folder. When Oxfmt is a native binary, which can't read a JavaScript or TypeScript config, the code style is left alone.
+- Changing an Oxfmt config only imports it into the code style when "Prefer Oxfmt configuration to IDE code style" is on, and only for the config that the project's folder uses, not a nested one. It covers every config Oxfmt reads: `.oxfmtrc.json(c)`, `oxfmt.config.ts`, `oxfmt.config.mts`, a manual config path, and `vite.config.*` in a Vite+ project. It says nothing when the code style already matches.
+- The automatic import and "Import Oxfmt Code Style" now store the code style in the project rather than the IDE-wide scheme.
 - "Import Oxfmt Code Style" now appears for every file that Oxfmt handles, and for folders, and says if there's no config.
 - Oxfmt's default file extensions no longer list the five with more than one dot, such as `.json.example`. They never matched a file.
 - File extensions in both tools' settings can now contain `-` and `_`.
+- File extensions left at the defaults are stored as the defaults, so later changes to the default list apply.
 - In a project in WSL or a Dev Container, a manual binary or config path can be written as it is there, such as `/workspaces/app/node_modules/.bin/oxlint`, as well as by the IDE's path to it.
-- Only `fmt.configPath` and `fmt.disableNestedConfig` are sent to Oxfmt's language server, which are the settings it reads.
+- Only the settings that the current language servers read are sent to them. Oxlint no longer gets the old `flags` map, which repeated Fix Kind and "Disable nested config lookups", and Oxfmt only gets `fmt.configPath` and `fmt.disableNestedConfig`.
 - In a Vite+ project, `vp` reloads a changed `vite.config.*` itself, instead of the plugin restarting the language servers.
 - In a Vite+ project, the Oxfmt code style and Import use the same config as `vp fmt`: the first `vite.config.*` with a `fmt` field, from the folder `vp` runs in upward. `.oxfmtrc.json` and `oxfmt.config.ts` aren't used there, because `vp fmt` ignores them.
 - The JSON schemas for `.oxlintrc.json(c)` and `.oxfmtrc.json(c)`, and for a manual config path, now come from the Oxlint or Oxfmt package that runs for the file, so they match its version and need no network. In a Vite+ project, that's the Oxlint or Oxfmt that `vp` runs. Without an installed package there's no schema, and the schema catalog's copy from Oxc's `main` branch isn't used for these files.
@@ -38,12 +47,14 @@
 
 ### Fixed
 
-- With more than one client connected, Oxlint's language server now keeps running while any client has a supported file open.
+- With more than one client connected, a language server now keeps running while any client has a supported file open.
+- "Apply Oxlint Quick Fixes" and "Apply Oxfmt Quick Fixes" now fix a closed file and save it.
 - A manual Oxlint or Oxfmt binary at a path into WSL now runs inside WSL, instead of through Node.
+- A native language server now logs at the IDE's log level for the plugin, through `OXC_LOG` and `RUST_LOG`, as a server started through Node did.
 - Oxfmt no longer corrupts a file when the language server returns more than one edit.
 - An unknown `trailingComma` value in an Oxfmt config no longer causes an error.
 - A config change only affects the project that it's in.
-- Oxfmt's manual config path now gets the Oxc icon, as Oxlint's does.
+- Oxfmt's manual config path now gets the Oxc icon.
 - `oxlint.config.mts` and `oxfmt.config.mts` now get the Oxc icon.
 
 ## [0.0.45] - 2026-10-15

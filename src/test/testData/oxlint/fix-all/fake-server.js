@@ -12,6 +12,8 @@
 //   answerDelayMs: how long to wait before answering a code action or formatting request
 //   formatting: text edits to answer a formatting request with, as { "start": [line, character],
 //     "end": [line, character], "newText" }
+//   diagnostics: diagnostics to answer every diagnostic pull with, as { "start": [line, character],
+//     "end": [line, character], "message", "code" }, all with error severity
 //
 // A code action is { "title", "isPreferred", "insert" }, where insert is text to add at the file's start.
 "use strict";
@@ -52,6 +54,19 @@ function toTextEdit({ start, end, newText }) {
   };
 }
 
+function toDiagnostic({ start, end, message, code }) {
+  return {
+    range: {
+      start: { line: start[0], character: start[1] },
+      end: { line: end[0], character: end[1] },
+    },
+    severity: 1,
+    code,
+    source: "oxc",
+    message,
+  };
+}
+
 function handle(message) {
   if (message.id === undefined || message.method === undefined) return;
   fs.appendFileSync("requests.log", `${JSON.stringify({ method: message.method, params: message.params })}\n`);
@@ -73,7 +88,13 @@ function handle(message) {
       break;
     case "textDocument/diagnostic":
       diagnosticsPulled = codeActionRequested;
-      send({ id: message.id, result: { kind: "full", items: [] } });
+      send({
+        id: message.id,
+        result: {
+          kind: "full",
+          items: fs.existsSync("fake-server.json") ? (script().diagnostics ?? []).map(toDiagnostic) : [],
+        },
+      });
       break;
     case "textDocument/codeAction": {
       const { cached, afterDiagnostic, hang, answerDelayMs } = script();

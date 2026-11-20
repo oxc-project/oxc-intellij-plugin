@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Oxlint diagnostics that cover only a line break, such as `@stylistic/semi` and `@stylistic/comma-dangle` at the end of a line, are now underlined after the line instead of not showing in the editor.
+
 ## [0.1.0] - 2026-11-19
 
 ### Added

@@ -197,6 +197,12 @@ tasks {
     )
   }
 
+  prepareTestSandbox {
+    // Configuration Script checks for an `intellij.yml` on every highlighting pass. In a WSL project,
+    // a canceled pass during that check logs an error and fails the test.
+    disabledPlugins.add("com.intellij.configurationScript")
+  }
+
   test {
     systemProperty(
       "idea.log.trace.categories",
